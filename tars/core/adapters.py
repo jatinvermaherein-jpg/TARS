@@ -1,0 +1,97 @@
+"""Provider adapters — byte-exact request signatures, fixture twin for all tests.
+
+The real classes (GroqAdapter / OpenRouterAdapter) carry the full urllib
+codepath — written, reviewable, and never network-called in a sandbox: with
+no key string they return the canon refusal dict instead of touching the wire
+(first live call is the P3 ceremony on the AiO, roadmap §4). FixtureAdapter
+implements the identical interface from recorded scripts and is the ONLY
+adapter the selftest drives.
+"""
+import json
+import socket
+import time
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+
+from tars.core import canon
+
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+TIMEOUT_S = 30  # bible §26: 30-second ceiling, then retry on the next healthy key
+
+
+@dataclass
+class AdapterResult:
+    text: str = ""
+    tokens: int = 0
+    latency_ms: int = 0
+    key_visible_name: str = ""
+    ok: bool = False
+    error: str = None  # None | "timeout" | "http_429" | "http_5xx" | "garbage_json" | "no_keys"
+
+
+def _http_call(url: str, messages: list, *, key_string: str, key_visible_name: str, model: str,
+               timeout_s: int) -> AdapterResult:
+    if not key_string:
+        # No key, no wire: the refusal dict, not a crash.
+        return AdapterResult(text=canon.LINE_ALL_SPENT, key_visible_name=key_visible_name, error="no_keys")
+    payload = json.dumps({"model": model, "messages": messages}).encode("utf-8")
+    request = urllib.request.Request(url, data=payload, method="POST", headers={
+        "Authorization": f"Bearer {key_string}",
+        "Content-Type": "application/json",
+    })
+    started = time.monotonic()
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_s) as response:
+            body = json.loads(response.read().decode("utf-8"))
+        return AdapterResult(
+            text=body["choices"][0]["message"]["content"],
+            tokens=int(body.get("usage", {}).get("total_tokens", 0)),
+            latency_ms=int((time.monotonic() - started) * 1000),
+            key_visible_name=key_visible_name,
+            ok=True,
+        )
+    except urllib.error.HTTPError as exc:
+        # 429 is rate-limited; every other HTTP fault rides the retry as a 5xx-class failure.
+        return AdapterResult(key_visible_name=key_visible_name,
+                             error="http_429" if exc.code == 429 else "http_5xx")
+    except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError, OSError):
+        return AdapterResult(key_visible_name=key_visible_name, error="timeout")
+    except (json.JSONDecodeError, KeyError, IndexError, UnicodeDecodeError):
+        return AdapterResult(key_visible_name=key_visible_name, error="garbage_json")
+
+
+class GroqAdapter:
+    """Groq chat-completions endpoint (fast/smart/eyes/ears lanes)."""
+
+    def call(self, messages: list, *, key_string: str, key_visible_name: str, model: str,
+             timeout_s: int = TIMEOUT_S) -> AdapterResult:
+        return _http_call(GROQ_URL, messages, key_string=key_string, key_visible_name=key_visible_name,
+                          model=model, timeout_s=timeout_s)
+
+
+class OpenRouterAdapter:
+    """OpenRouter chat-completions endpoint (ultra/council lanes)."""
+
+    def call(self, messages: list, *, key_string: str, key_visible_name: str, model: str,
+             timeout_s: int = TIMEOUT_S) -> AdapterResult:
+        return _http_call(OPENROUTER_URL, messages, key_string=key_string, key_visible_name=key_visible_name,
+                          model=model, timeout_s=timeout_s)
+
+
+class FixtureAdapter:
+    """Scripted twin of the real adapters. Each call pops one scripted step."""
+
+    def __init__(self, provider: str, script: list):
+        self.provider = provider
+        self._script = list(script)
+
+    def call(self, messages: list, *, key_string: str, key_visible_name: str, model: str,
+             timeout_s: int = TIMEOUT_S) -> AdapterResult:
+        step = self._script.pop(0)
+        if step[0] == "ok":
+            _, text, tokens = step
+            return AdapterResult(text=text, tokens=int(tokens), latency_ms=0,
+                                 key_visible_name=key_visible_name, ok=True)
+        return AdapterResult(key_visible_name=key_visible_name, error=step[0])

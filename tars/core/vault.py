@@ -42,7 +42,9 @@ class Vault:
     def __init__(self, path: Path):
         self._path = Path(path)
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(str(self._path))
+        # check_same_thread=False lets council-lane worker threads ledger under
+        # the router's single writer lock; every write still commits+fsyncs.
+        self._db = sqlite3.connect(str(self._path), check_same_thread=False)
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute("PRAGMA synchronous=FULL")
         self._db.executescript(_SCHEMA)
@@ -85,6 +87,14 @@ class Vault:
 
     def ledger_total(self) -> int:
         return int(self._db.execute("SELECT COALESCE(SUM(tokens), 0) FROM ledger").fetchone()[0])
+
+    def ledger_tail(self, limit: int = 5) -> list:
+        """Newest ledger rows, chronological order (the gauge's audit trail)."""
+        rows = self._db.execute(
+            "SELECT ts, lane, keyindex, tokens FROM ledger ORDER BY id DESC LIMIT ?", (int(limit),)
+        ).fetchall()
+        return [{"ts": ts, "lane": lane, "keyindex": keyindex, "tokens": tokens}
+                for ts, lane, keyindex, tokens in reversed(rows)]
 
     def integrity(self) -> str:
         return str(self._db.execute("PRAGMA integrity_check").fetchone()[0])

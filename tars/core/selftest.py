@@ -1,9 +1,12 @@
-"""P-CORE-0 selftest — proof, not claims (roadmap §3 doctrine).
+"""CORE selftest — proof, not claims (roadmap §3 doctrine).
 
-Runs the headless demochat twice against one data dir, drives every state
-machine transition, asserts canon byte-exactness (including the honesty
-refusal), exercises the real CLI entry point, and SIGKILLs a child process
-mid-write to prove vault.db and logs.jsonl survive with zero corruption.
+P-CORE-0 battery: demochat twice, every state machine transition, canon
+byte-exactness (incl. the honesty refusal), the real CLI, and a SIGKILLed
+child proving vault.db / logs.jsonl survive mid-write with zero corruption.
+P-CORE-1 battery: the 8-key ring — rotation, budget skip, drained canon
+line, timeout/429/5xx/garbage retry paths, gate arithmetic, council quota
+math, ledger exactness, clock-injected midnight rollover, gauge shape and
+warn boundary, fixture determinism, and the real adapters' no-keys refusal.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -15,13 +18,17 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from tars.core import canon
 from tars.core.__main__ import Printer, run_demochat
+from tars.core.adapters import GROQ_URL, OPENROUTER_URL, TIMEOUT_S, FixtureAdapter, GroqAdapter
 from tars.core.bus import EVENT_TYPES, Bus
+from tars.core.gauge import council_note, gauge_rows
+from tars.core.keys import LANE_CAPS, load_ring, parse_env_file
 from tars.core.logx import LogX
+from tars.core.router import LANE_MODELS, LENGTH_THRESHOLD, Router
 from tars.core.settings import DIAL_DEFAULTS, Settings
 from tars.core.state import ARMED, ERROR, LISTENING, Machine, OFF, SPEAKING, THINKING
 from tars.core.vault import Vault
@@ -126,6 +133,7 @@ def _functional_checks(base: Path, out) -> None:
     vault.spend("fast", 0, 80)
     expect(out, vault.ledger_total() == 200, "ledger append + token total")
     expect(out, vault.integrity() == "ok", "sqlite integrity_check ok on clean store")
+    expect(out, [row["tokens"] for row in vault.ledger_tail(1)] == [80], "ledger tail returns newest rows chronologically")
     vault.close()
 
     lx = LogX(zone / "logs2.jsonl")
@@ -257,6 +265,176 @@ def _demochat_checks(base: Path, out) -> None:
     expect(out, bare.returncode == 2 and "demochat" in bare.stdout, "CLI without a flag prints help and refuses to run")
 
 
+def _ring_checks(base: Path, out) -> None:
+    zone = base / "ring"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    cases = 0
+
+    def universe(groq_script, or_script, source=None, clock=None):
+        nonlocal cases
+        cases += 1
+        vault = Vault(zone / f"case{cases}" / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        ring = load_ring(full_source if source is None else source, clock=clock)
+        router = Router(ring, {"groq": FixtureAdapter("groq", groq_script),
+                               "openrouter": FixtureAdapter("openrouter", or_script)}, vault, bus)
+        return router, ring, vault, events
+
+    env_file = zone / "sample.env"
+    env_file.write_text("GROQ_KEY_1=gsk_a\n# comment line\n\nOPENROUTER_KEY_2=or_b\n", encoding="utf-8")
+    expect(out, parse_env_file(env_file) == {"GROQ_KEY_1": "gsk_a", "OPENROUTER_KEY_2": "or_b"},
+           "caller-provided .env file parses (comments/blanks ignored), ring never auto-reads")
+
+    ring = load_ring(full_source)
+    states = ring.keys()
+    expect(out, [k.index for k in states] == [1, 2, 3, 4, 5, 6, 7, 8]
+           and states[0].provider == "groq" and states[6].provider == "openrouter",
+           "ring loads 8 slots in slot order with providers (Groq x6 + OpenRouter x2)")
+    expect(out, states[0].spent_today == 0 and states[0].budget_pct == 0.0 and states[0].lane_seen == [],
+           "fresh KeyState summary fields zeroed")
+    expect(out, "gsk-1" not in repr(states[0]), "key material never leaks into a repr")
+    sparse = load_ring({"GROQ_KEY_2": "x", "GROQ_KEY_4": "y"})
+    expect(out, [k.index for k in sparse.keys()] == [2, 4], "missing slots absent, indexes stay slot-stable")
+
+    router1, _r1, vault1, events1 = universe([("ok", f"answer {i}", 1) for i in range(6)], [])
+    replies = [router1.route(f"question {i}") for i in range(6)]
+    expect(out, [rep["key_visible_name"] for rep in replies] == [f"groq#{i}" for i in range(1, 7)],
+           "rotation: 6 fast calls walk groq#1..#6 round-robin")
+    expect(out, all(rep["lane"] == "fast" and rep["ok"] and rep["hue"] == "cloud" for rep in replies)
+           and vault1.ledger_total() == 6,
+           "plain short text gates to fast; every call ledgered (6 x 1 token)")
+    expect(out, any(kind == "gauge" and detail["keyIndex"] == 1 and detail["lane"] == "fast"
+                    for kind, detail in events1), "every call pushes a contract gauge event")
+    vault1.close()
+
+    router2, ring2, vault2, _e = universe([], [], source={"OPENROUTER_KEY_1": "a", "OPENROUTER_KEY_2": "b"})
+    key7 = ring2.next_key("openrouter", "ultra")
+    for _n in range(LANE_CAPS["ultra"]):
+        key7.record("ultra")
+    expect(out, key7.index == 7 and ring2.next_key("openrouter", "ultra").index == 8 and key7.budget_pct == 100.0,
+           "a key AT budget is skipped without a failing call")
+    vault2.close()
+
+    router3, ring3, vault3, _e = universe([], [], source={"OPENROUTER_KEY_1": "solo"})
+    solo_key = ring3.next_key("openrouter", "ultra")
+    for _n in range(LANE_CAPS["ultra"]):
+        solo_key.record("ultra")
+    reply3 = router3.route("ultra: heavy")
+    expect(out, reply3["ok"] is False and reply3["text"] == canon.LINE_ALL_SPENT,
+           "drained ring answers the canon all-spent line, byte-exact, zero exceptions")
+    vault3.close()
+
+    router4, _r4, vault4, _e = universe([("timeout",), ("ok", "recovered", 11)], [])
+    reply4 = router4.route("hi")
+    expect(out, reply4["ok"] and reply4["key_visible_name"] == "groq#2" and reply4["tokens"] == 11,
+           "timeout on key #1 -> retry succeeds on the next healthy key")
+    expect(out, reply4["notices"] == [canon.LINE_CLOUD_FAIL], "mid-fail canon line byte-exact (demo scene 7)")
+    vault4.close()
+
+    for kind in ("http_429", "http_5xx", "garbage_json"):
+        router_x, _rx, vault_x, _ex = universe([(kind,), ("ok", f"after {kind}", 5)], [])
+        reply_x = router_x.route("hi")
+        expect(out, reply_x["ok"] and reply_x["key_visible_name"] == "groq#2"
+               and reply_x["notices"] == [canon.LINE_CLOUD_FAIL],
+               f"{kind} -> retry-once path recovers on the next key, no crash")
+        vault_x.close()
+
+    router5, _r5, vault5, _e = universe([("ok", "smart-answer", 20)], [])
+    reply5 = router5.route("x" * (LENGTH_THRESHOLD + 1))
+    expect(out, reply5["ok"] and reply5["lane"] == "smart", "long message routes to smart with fast healthy")
+    vault5.close()
+    router5b, _r5b, vault5b, _e5b = universe([("ok", "smart-kw", 20)], [])
+    expect(out, router5b.route("explain photosynthesis")["lane"] == "smart", "complexity keyword routes to smart")
+    vault5b.close()
+    router5c, _r5c, vault5c, _e5c = universe([], [("ok", "ultra-answer", 40)])
+    reply5c = router5c.route("ultra: derive this properly")
+    expect(out, reply5c["lane"] == "ultra" and reply5c["key_visible_name"] == "openrouter#7",
+           "named ultra routes to the OpenRouter ultra lane")
+    vault5c.close()
+    expect(out, LANE_MODELS[("groq", "fast")] == "llama-3.1-8b-instant"
+           and LANE_MODELS[("groq", "smart")] == "llama-3.3-70b-versatile" and TIMEOUT_S == 30,
+           "lane map + 30s ceiling byte-exact to bible §26")
+
+    router6, _r6, vault6, _e6 = universe([("ok", "fast vote", 10), ("ok", "smart vote", 20)],
+                                         [("ok", "spare vote", 30)])
+    reply6 = router6.route("council on this: skip leg day?")
+    expect(out, reply6["ok"] and reply6["note"] == council_note(3) == "council of 3 — 3x quota",
+           "council quota note plain-text byte-exact")
+    expect(out, len(reply6["votes"]) == 3 and [vote["lane"] for vote in reply6["votes"]] == ["fast", "smart", "council"],
+           "council fires 3 parallel votes in plan order")
+    tail6 = vault6.ledger_tail(10)
+    expect(out, len(tail6) == 3 and vault6.ledger_total() == 60
+           and {row["lane"] for row in tail6} == {"fast", "smart", "council"},
+           "council ledger: exactly 3 entries, token arithmetic exact (10+20+30)")
+    expect(out, reply6["votes"][0]["key_visible_name"] != reply6["votes"][1]["key_visible_name"],
+           "council votes ride separate ring keys (bible §23)")
+    vault6.close()
+
+    clock_box = {"today": date(2026, 8, 17)}
+    router7, ring7, vault7, _e7 = universe([("ok", "a", 3), ("ok", "b", 3)], [],
+                                           clock=lambda: clock_box["today"])
+    router7.route("hi")
+    router7.route("hi again")
+    first_key = ring7.keys()[0]
+    first_key.failed = True
+    clock_box["today"] = date(2026, 8, 18)
+    rolled = ring7.keys()[0]
+    expect(out, rolled.spent_today == 0 and rolled.budget_pct == 0.0 and rolled.lane_seen == []
+           and rolled.failed is False, "midnight rollover clears counters and failures (clock injected)")
+    expect(out, vault7.ledger_total() == 6, "ledger is history — rollover never rewrites it")
+    vault7.close()
+
+    rows = gauge_rows(ring)
+    expect(out, len(rows) == 8 and all(set(row) == {"index", "lane", "remainingPct", "state"} for row in rows),
+           "gauge rows match contract §4 keys[] shape exactly")
+    expect(out, rows[0]["remainingPct"] == 100 and rows[0]["state"] == "ok" and rows[0]["lane"] == "fast"
+           and rows[6]["lane"] == "ultra", "fresh keys gauge 100% ok on their default lanes")
+    key8 = ring.keys()[7]
+    for _n in range(40):
+        key8.record("ultra")  # exactly 80% of the 50/day budget spent
+    warn_row = gauge_rows(ring)[7]
+    for _n in range(10):
+        key8.record("ultra")
+    spent_row = gauge_rows(ring)[7]
+    expect(out, warn_row["remainingPct"] == 20 and warn_row["state"] == "warn"
+           and spent_row["remainingPct"] == 0 and spent_row["state"] == "spent",
+           "warn rule declared INCLUSIVE at 20% remaining (scene 8); 0% renders spent")
+
+    def battery():
+        router_b, _rb, vault_b, _eb = universe([("ok", "d1", 7), ("timeout",), ("ok", "d2", 9)],
+                                               [("ok", "du", 40)])
+        results = (router_b.route("hi"), router_b.route("hi again"), router_b.route("ultra: check"))
+        vault_b.close()
+        return results
+
+    expect(out, json.dumps(battery(), sort_keys=True) == json.dumps(battery(), sort_keys=True),
+           "determinism: fixture battery runs twice, identical outputs")
+
+    bare = GroqAdapter().call([{"role": "user", "content": "hi"}], key_string="",
+                              key_visible_name="groq#1", model=LANE_MODELS[("groq", "fast")])
+    expect(out, bare.ok is False and bare.error == "no_keys" and bare.text == canon.LINE_ALL_SPENT,
+           "real adapter with no keys returns the refusal dict — no crash, no wire")
+    expect(out, GROQ_URL == "https://api.groq.com/openai/v1/chat/completions"
+           and OPENROUTER_URL == "https://openrouter.ai/api/v1/chat/completions",
+           "adapter endpoints byte-exact (real codepath written, unreachable without keys)")
+
+
+def _ringdemo_checks(base: Path, out) -> None:
+    env = _child_env()
+    env["TARS_DATA"] = str(base / "ringdemo-cli")
+    cli = subprocess.run([sys.executable, "-m", "tars.core.ring_demo"], capture_output=True, text=True, env=env)
+    text = cli.stdout
+    expect(out, cli.returncode == 0 and "fixture tour" in text and "council of 3 — 3x quota" in text,
+           "ring_demo CLI runs the scripted tour clean")
+    expect(out, canon.LINE_ALL_SPENT in text and "warn=True" in text and "event gauge" in text
+           and "ledger tail" in text and "lane=ultra" in text,
+           "tour shows the warn flag, drained canon line, gauge events, and ledger tail")
+
+
 def _await_ready(proc) -> bool:
     while True:
         line = proc.stdout.readline()
@@ -321,13 +499,15 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("P-CORE-0 SELFTEST — AGENT CORE — proof, not claims", file=out)
-    base = Path(tempfile.mkdtemp(prefix="tars-core0-"))
+    print("CORE SELFTEST — P-CORE-0 battery + P-CORE-1 brain-ring battery — proof, not claims", file=out)
+    base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
     _canon_checks(out)
     _functional_checks(base, out)
     _machine_checks(base, out)
     _demochat_checks(base, out)
+    _ring_checks(base, out)
+    _ringdemo_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0
