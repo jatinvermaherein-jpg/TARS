@@ -103,3 +103,10 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Known-limit accepts: mock speechSynthesis is engine-voice (real voice = P-CORE-3) · per-chat scroll memory in-process only (none specified) · redo alternates mock-canned (variation = CORE's job).
 - Courier note: screenshots sit in the APP lane's sandbox — Cooper may attach p1-streaming-midflight.png / p1-jump-pill.png to the archive for eyeballing; non-blocking.
 - **Next: Lane B P-CORE-1 (ring) — prompt already in vault (9369f12). APP lane stands parked for P-APP-2 (Settings pages) on "next batch".**
+
+## ⚖️ AUDIT P-CORE-1 — ✅ PASS (banked) · Aug 17, 2026
+- Selftest re-executed in audit sandbox: **96/96 green, rc=0** (62 P-CORE-0 preserved + 34 ring battery). Crash-kill battery still green (integrity ok, 5/5 kv, logs parseable).
+- Line counts exact · jurisdiction clean (core/* + sanctioned agent-log append) · zero emoji/dead-code sweeps · real adapter endpoints byte-exact yet unreachable sans keys (decree honored: first live call = P3 AiO ceremony).
+- Router eyeballed: gate order council→ultra→smart→fast exact · failed keys sit out to midnight (declared rule) · council 3 seats parallel on separate ring keys · ledger arithmetic exact · warn INCLUSIVE at 20% (matches scene 8 + APP mock's warn-ochre assertion).
+- Commendation logged: ok 62 "key material never leaks into a repr" — un-briefed security instinct by the lane.
+- **P-APP-2 prompt SHIPPED** (Settings app-page: Dials+presets · Voice ID · Key Gauge live · Privacy legend · Memory explorer · System meters · About). Sequential lane order resumes: APP lane turn.
