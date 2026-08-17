@@ -95,3 +95,11 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Footnote: `confirm_line()` composer present + exercised, wired in the P-CORE-5 operator grammar (phase boundary respected — no violation, noted so nobody "discovers" a hanging composer later; it IS reached by selftest ok 13). Chain Protocol: agent-log [CORE] entry appended by the lane itself.
 - **P-CORE-1 prompt SHIPPED** (ring: keys/adapters-with-fixtures/router/gauge; real-call codepaths written but sandbox-unreachable without keys; first live call stays the P3 AiO ceremony).
 - **RING DECREE (Cooper, with the P-CORE-0 courier): "8 — 2 OpenRouter" → RING = 8 KEYS, FROZEN.** Groq ×6 + OpenRouter ×2 stands; no §26 patch needed (bible already speaks 8). Gauge rows = 8.
+
+## ⚖️ AUDIT P-APP-1 — ✅ PASS (banked) · Aug 17, 2026
+- Clone-verified: commit 38d1c8a atop 9369f12 · jurisdiction clean (4 tars/app/ files only) · line counts exact · zero emoji bytes · exactly 13 §14 hexes · zero dead-code markers · mock surface = exactly the 10 v1.1 names · A1 payloads correct both sides · rAF batching + jump-pill + speaking/copied states present in code.
+- **The lane caught its own visible defect by screenshot** (pill slicing mid-word through a reply; fixed + re-shot): second consecutive phase where the visual gate outperformed DOM assertions. The gate stays mandatory, by evidence.
+- Honest-limit #3 triggered a real contract fix: **A2 (v1.2)** — `done` events now carry `messageId`(additive; APP fallback allowed until P-CORE-2). Pushed 2dbb497.
+- Known-limit accepts: mock speechSynthesis is engine-voice (real voice = P-CORE-3) · per-chat scroll memory in-process only (none specified) · redo alternates mock-canned (variation = CORE's job).
+- Courier note: screenshots sit in the APP lane's sandbox — Cooper may attach p1-streaming-midflight.png / p1-jump-pill.png to the archive for eyeballing; non-blocking.
+- **Next: Lane B P-CORE-1 (ring) — prompt already in vault (9369f12). APP lane stands parked for P-APP-2 (Settings pages) on "next batch".**
