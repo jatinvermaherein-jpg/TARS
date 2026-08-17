@@ -1,5 +1,6 @@
 /* TARS Bridge app — renderer.
-   Contract v1.1 §3-§5 (incl. Amendment A1: quick_action 'read_aloud' | 'redo' with {chatId, messageId}):
+   Contract v1.2 §3-§5 (A1: quick_action 'read_aloud' | 'redo' with {chatId, messageId};
+   A2: done carries messageId):
    CORE owns state, hue and lane; this file only renders what it is told, and calls
    window.tarsBridge methods (never invents one). */
 
@@ -371,6 +372,9 @@
     paint();
     var rec = openStream;
     if (!rec) { return; }
+    /* A2: take the id straight from the event when CORE sends it; the open_chat
+       who+text lookup in resolveMessageId stays as the fallback. */
+    if (d.messageId) { rec.messageId = d.messageId; }
     rec.box.classList.remove("is-redoing");
     if (d.hue) { rec.box.classList.add("hue-" + d.hue); }
     if (d.lane) { rec.note.textContent = String(d.lane).toUpperCase(); }
@@ -459,6 +463,8 @@
   }
 
   function onGauge(d) {
+    var panelRow = document.querySelector('[data-key-row="' + d.keyIndex + '"]');
+    if (panelRow) { setKeyRow(panelRow, d.remainingPct, d.lane); }
     if (!lastGaugeCard) { return; }
     var row = lastGaugeCard.querySelector('[data-key="' + d.keyIndex + '"]');
     if (!row) { return; }
@@ -592,7 +598,10 @@
   function showSettings(show) {
     viewSettings.hidden = !show;
     viewChat.hidden = show;
-    if (show) { dialNotice.textContent = ""; }
+    if (!show) { return; }
+    dialNotice.textContent = "";
+    dialNotice.classList.remove("is-refusal");
+    showPanel(activePanel);
   }
 
   function wireDial(name) {
@@ -613,6 +622,330 @@
         }
       });
     });
+  }
+
+  /* ── settings panels (bible §13 · lazy-built on first open, then kept) ──
+     Panel data comes from the contract surface (get_status) or, where the contract has
+     no channel yet, from mock-side payloads on window.tarsMockPayloads. When those
+     payloads are absent the tab is hidden outright — no stub panels. */
+
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var builtPanels = { dials: true };
+  var activePanel = "dials";
+
+  function payloads() {
+    return (typeof window.tarsMockPayloads === "object" && window.tarsMockPayloads)
+      ? window.tarsMockPayloads : null;
+  }
+
+  function mk(tag, cls, text) {
+    var node = document.createElement(tag);
+    if (cls) { node.className = cls; }
+    if (text !== undefined && text !== null) { node.textContent = text; }
+    return node;
+  }
+
+  function glyphOf(name, cls) {
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", cls || "glyph");
+    svg.setAttribute("aria-hidden", "true");
+    var use = document.createElementNS(SVG_NS, "use");
+    use.setAttribute("href", "#" + name);
+    svg.appendChild(use);
+    return svg;
+  }
+
+  function panelHead(panel, title, note) {
+    panel.appendChild(mk("h2", "panel-title", title));
+    panel.appendChild(mk("p", "panel-note", note));
+  }
+
+  function sectionTitle(panel, text) {
+    var wrap = mk("div", "panel-section");
+    wrap.appendChild(mk("div", "panel-section-title", text));
+    panel.appendChild(wrap);
+    return wrap;
+  }
+
+  function stateWord(pct) {
+    if (pct <= 0) { return "spent"; }
+    return (pct <= 20) ? "warn" : "ok";
+  }
+
+  /* Voice ID — member files, tiers, the enrollment illustration. Embeddings are never
+     rendered: the voiceprint shows as a glyph row, never as numbers. */
+  function buildVoicePanel(panel) {
+    var data = payloads();
+    panelHead(panel, "Voice ID",
+      "Convenience-grade recognition, like face-unlock on a phone. A good recording could fool it, which is why dangerous work still asks for a typed YES.");
+
+    var members = sectionTitle(panel, "MEMBER FILES");
+    var badge = mk("span", "local-badge", "ALL DATA LOCAL");
+    members.querySelector(".panel-section-title").appendChild(badge);
+    var set = mk("div", "rowset");
+    (data.members || []).forEach(function (m) {
+      var row = mk("div", "set-row");
+      row.appendChild(mk("span", "set-key", m.name));
+      row.appendChild(mk("span", "set-val", m.relationship));
+
+      var filed = (m.tier !== "GUEST");
+      var print = mk("span", "print-glyph" + (filed ? "" : " is-none"));
+      print.appendChild(glyphOf("ic-wave"));
+      print.appendChild(mk("span", null, filed ? "voiceprint on file" : "no voiceprint"));
+      row.appendChild(print);
+
+      var tierCls = "tier-chip";
+      if (m.tier === "COOPER") { tierCls += " is-cooper"; }
+      if (m.tier === "FAMILY-STANDARD") { tierCls += " is-family"; }
+      row.appendChild(mk("span", tierCls, m.tier));
+      row.appendChild(mk("span", "set-num", m.enrolledOn));
+      set.appendChild(row);
+    });
+    members.appendChild(set);
+
+    var wiz = sectionTitle(panel, "ENROLLMENT — " + (data.enrollPhrases || []).length +
+      " PHRASES x " + data.enrollRounds + " QUIET ROUNDS");
+    var list = mk("ul", "wizard-list");
+    (data.enrollPhrases || []).forEach(function (phrase, i) {
+      var li = mk("li", "wizard-step");
+      li.appendChild(mk("span", "w-num", "phrase " + (i + 1)));
+      li.appendChild(mk("span", "w-text", phrase));
+      li.appendChild(mk("span", "w-rounds", data.enrollRounds + " rounds"));
+      list.appendChild(li);
+    });
+    wiz.appendChild(list);
+    wiz.appendChild(mk("p", "panel-foot",
+      "Threshold calibration and the spoken passphrase are set on this pass. The list is the script, shown read-only."));
+
+    var run = mk("button", "panel-btn", "run enrollment");
+    run.type = "button";
+    run.id = "enroll-btn";
+    run.addEventListener("click", function () {
+      showSettings(false);
+      redoTarget = null;
+      call("quick_action", ["enroll_voice", {}]).then(function (res) {
+        if (res && res.chatId) { currentChatId = res.chatId; }
+        refreshChatList();
+      });
+    });
+    panel.appendChild(run);
+    panel.appendChild(mk("p", "panel-foot",
+      "In mock this button only proves the channel and answers with the enrollment-failure line. Real enrollment is CORE's, P-CORE-4."));
+  }
+
+  /* Key gauge — StatusReport.keys[], live on gauge events. */
+  function slotName(index) {
+    return (index < 6) ? ("groq #" + (index + 1)) : ("openrouter #" + (index - 5));
+  }
+
+  function keyRow(k) {
+    var row = mk("div", "key-row");
+    row.setAttribute("data-key-row", String(k.index));
+    row.appendChild(mk("span", "k-slot", slotName(k.index)));
+    row.appendChild(mk("span", "k-lane", String(k.lane).toUpperCase()));
+
+    var track = mk("span", "key-track");
+    track.appendChild(mk("span", "key-fill"));
+    row.appendChild(track);
+    row.appendChild(mk("span", "k-pct"));
+    row.appendChild(mk("span", "k-state"));
+    setKeyRow(row, k.remainingPct, k.lane);
+    return row;
+  }
+
+  function setKeyRow(row, pct, lane) {
+    var clamped = Math.max(0, Math.min(100, pct));
+    var word = stateWord(clamped);
+    var fill = row.querySelector(".key-fill");
+    fill.style.width = clamped + "%";
+    fill.classList.toggle("is-warn", word === "warn");
+    fill.classList.toggle("is-spent", word === "spent");
+    row.classList.toggle("is-warn", word === "warn");
+    row.classList.toggle("is-spent", word === "spent");
+    row.querySelector(".k-pct").textContent = clamped + "%";
+    row.querySelector(".k-state").textContent = word;
+    if (lane) { row.querySelector(".k-lane").textContent = String(lane).toUpperCase(); }
+  }
+
+  function buildKeysPanel(panel) {
+    panelHead(panel, "Key gauge",
+      "Eight free-tier keys in rotation order: Groq one through six, then the OpenRouter pair. Warn at twenty percent remaining.");
+    var set = mk("div", "rowset");
+    set.id = "key-rows";
+    panel.appendChild(set);
+    panel.appendChild(mk("p", "panel-foot", "ULTRA + Council spare ride the OpenRouter pair."));
+    fillKeysPanel();
+  }
+
+  function fillKeysPanel() {
+    var set = el("key-rows");
+    if (!set) { return; }
+    call("get_status", []).then(function (report) {
+      if (!report) { return; }
+      set.textContent = "";
+      (report.keys || []).forEach(function (k) { set.appendChild(keyRow(k)); });
+    });
+  }
+
+  /* Privacy — this panel teaches; §31 is law, not a toggle. */
+  function buildPrivacyPanel(panel) {
+    panelHead(panel, "Privacy",
+      "Privacy is enforced by who is listening, not by where the data sits.");
+
+    var legend = sectionTitle(panel, "HUE LEGEND");
+    var set = mk("div", "rowset");
+    [
+      ["LOCAL", "is-local", "Nothing leaves this machine. Local ears, local mouth, local files."],
+      ["CLOUD", "is-cloud", "Data may leave this machine on a brain-ring key. The pill turns ochre before it does."]
+    ].forEach(function (pair) {
+      var row = mk("div", "legend-row");
+      row.appendChild(mk("span", "legend-chip " + pair[1], pair[0]));
+      row.appendChild(mk("span", "set-val", pair[2]));
+      set.appendChild(row);
+    });
+    legend.appendChild(set);
+
+    var rules = sectionTitle(panel, "THE RULES");
+    rules.appendChild(mk("p", "rule-line",
+      "Tier-Gated: a filed voice with a tier gets personal answers under the discretion dial, and an unfiled voice gets none — no name on file, no personal access."));
+    rules.appendChild(mk("p", "rule-quote", "private documents refused at the classifier, not at the cloud"));
+    rules.appendChild(mk("p", "panel-foot",
+      "The vault and the brain stay local source-of-truth. The cloud only ever sees a request slice, and every personal send is flagged in the log."));
+  }
+
+  /* Memory — read-only explorer of the Living Brain tree. */
+  function buildMemoryPanel(panel) {
+    var data = payloads();
+    panelHead(panel, "Memory",
+      "The Living Brain, read-only. TARS writes it, curates it, and never hides it.");
+
+    var body = mk("div", "brain-body");
+    var tree = mk("div", "brain-tree");
+    tree.id = "brain-tree";
+    var pane = mk("div", "brain-pane");
+    pane.id = "brain-pane";
+    pane.appendChild(mk("p", "pane-empty", "Pick a file to read it."));
+
+    (data.brain || []).forEach(function (node) {
+      var isDir = (node.kind === "dir");
+      var row = mk(isDir ? "div" : "button", "tree-row " + (isDir ? "tree-dir" : "tree-file"));
+      if (!isDir) { row.type = "button"; }
+      row.setAttribute("data-path", node.path);
+      row.appendChild(glyphOf(isDir ? "ic-dir" : "ic-doc"));
+      var short = isDir ? node.path + "/" : node.path.split("/").pop();
+      row.appendChild(mk("span", "t-name", short));
+      row.appendChild(mk("span", "t-size", node.sizeKb + " KB"));
+      if (!isDir) {
+        row.addEventListener("click", function () { openBrainFile(node); });
+      }
+      tree.appendChild(row);
+    });
+
+    body.appendChild(tree);
+    body.appendChild(pane);
+    panel.appendChild(body);
+    panel.appendChild(mk("p", "panel-foot", "Grows for life. No cap — meter only."));
+  }
+
+  function openBrainFile(node) {
+    var data = payloads();
+    var pane = el("brain-pane");
+    if (!pane || !data) { return; }
+    Array.prototype.forEach.call(document.querySelectorAll("#brain-tree .tree-file"), function (row) {
+      row.classList.toggle("is-on", row.getAttribute("data-path") === node.path);
+    });
+    pane.textContent = "";
+    pane.appendChild(mk("div", "pane-path", node.path));
+    pane.appendChild(mk("div", "pane-meta", node.sizeKb + " KB · last written " + node.modifiedDay));
+    pane.appendChild(mk("p", "pane-text", (data.brainText || {})[node.path] || ""));
+  }
+
+  /* System — meters only (Law 7: visibility, not enforcement). */
+  function buildSystemPanel(panel) {
+    panelHead(panel, "System", "Meters only. The Watcher shows the numbers; it never enforces them.");
+    var set = mk("div", "rowset");
+    set.id = "system-rows";
+    panel.appendChild(set);
+    panel.appendChild(mk("p", "panel-foot",
+      "No storage cap by decree — the brain grows for life and this meter only reports it."));
+    fillSystemPanel();
+  }
+
+  function meterRow(name, text, pct) {
+    var row = mk("div", "meter-row");
+    row.appendChild(mk("span", "m-name", name));
+    if (typeof pct === "number") {
+      var track = mk("span", "meter-track");
+      var fill = mk("span", "meter-fill");
+      var clamped = Math.max(0, Math.min(100, pct));
+      fill.style.width = clamped + "%";
+      fill.classList.toggle("is-warn", clamped >= 80);
+      track.appendChild(fill);
+      row.appendChild(track);
+    } else {
+      row.appendChild(mk("span", "set-val", ""));
+    }
+    row.appendChild(mk("span", "m-num", text));
+    return row;
+  }
+
+  function uptimeText(seconds) {
+    var s = Math.max(0, parseInt(seconds, 10) || 0);
+    return Math.floor(s / 3600) + "h " + Math.floor((s % 3600) / 60) + "m";
+  }
+
+  function fillSystemPanel() {
+    var set = el("system-rows");
+    if (!set) { return; }
+    call("get_status", []).then(function (report) {
+      if (!report) { return; }
+      set.textContent = "";
+      var storage = report.storage || {};
+      set.appendChild(meterRow("vault.db", storage.vaultMb + " MB", null));
+      set.appendChild(meterRow("tars-brain", storage.brainMb + " MB", null));
+      set.appendChild(meterRow("disk free", storage.diskFreeGb + " GB", null));
+      if (report.ram) {
+        set.appendChild(meterRow("ram pressure", report.ram.mb + " / " + report.ram.ceiling + " MB",
+          Math.round((report.ram.mb / report.ram.ceiling) * 100)));
+      }
+      set.appendChild(meterRow("uptime", uptimeText(report.uptimeS), null));
+      set.appendChild(meterRow("windows update", report.windowsUpdate || "not reported", null));
+      if (report.powerNote) { set.appendChild(meterRow("power", report.powerNote, null)); }
+    });
+  }
+
+  function buildAboutPanel(panel) {
+    panel.appendChild(mk("h2", "about-name", "TARS — resident desktop crew member"));
+    panel.appendChild(mk("p", "about-line is-version", "Bridge v1.0 (App-Era)"));
+    panel.appendChild(mk("p", "about-line", "Designed in Agra. Honesty fixed at ninety."));
+  }
+
+  var PANEL_BUILDERS = {
+    voice: buildVoicePanel,
+    keys: buildKeysPanel,
+    privacy: buildPrivacyPanel,
+    memory: buildMemoryPanel,
+    system: buildSystemPanel,
+    about: buildAboutPanel
+  };
+
+  function showPanel(name) {
+    activePanel = name;
+    Array.prototype.forEach.call(document.querySelectorAll(".panel-tab"), function (tab) {
+      tab.classList.toggle("is-on", tab.getAttribute("data-panel") === name);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".panel"), function (panel) {
+      panel.hidden = (panel.id !== "panel-" + name);
+    });
+    var target = el("panel-" + name);
+    if (!target) { return; }
+    if (!builtPanels[name]) {
+      builtPanels[name] = true;
+      PANEL_BUILDERS[name](target);
+      return;
+    }
+    if (name === "keys") { fillKeysPanel(); }
+    if (name === "system") { fillSystemPanel(); }
   }
 
   /* ── push to talk ── */
@@ -653,6 +986,20 @@
     el("new-chat-btn").addEventListener("click", startNewChat);
     el("settings-btn").addEventListener("click", function () { showSettings(true); });
     el("settings-back").addEventListener("click", function () { showSettings(false); });
+
+    /* A panel with no data source is hidden, never stubbed. */
+    if (!payloads()) {
+      ["voice", "memory"].forEach(function (name) {
+        var tab = document.querySelector('.panel-tab[data-panel="' + name + '"]');
+        var panel = el("panel-" + name);
+        if (tab) { tab.remove(); }
+        if (panel) { panel.remove(); }
+      });
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll(".panel-tab"), function (tab) {
+      tab.addEventListener("click", function () { showPanel(tab.getAttribute("data-panel")); });
+    });
 
     transcript.addEventListener("scroll", function () {
       stick = atBottom();

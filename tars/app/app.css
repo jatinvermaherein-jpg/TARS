@@ -389,8 +389,96 @@ input:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 .preset { padding: 6px 14px; font-size: 12px; color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--border); }
 .preset:hover { color: var(--text); border-color: var(--steel); }
 
+.preset-spec { display: block; margin-top: 3px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 9.5px; letter-spacing: .12em; color: var(--text-dim); }
+
 .dial-notice { min-height: 18px; margin-top: 16px; font-size: 12.5px; color: var(--local); }
 .dial-notice.is-refusal { color: var(--cloud); }
+
+/* ── settings panels (P-APP-2) ─────────────────────────── */
+.panel[hidden] { display: none; }
+.panel-wide { max-width: 860px; }
+.panel-foot { margin-top: 18px; font-size: 11.5px; color: var(--text-dim); }
+.panel-section { margin-top: 24px; }
+.panel-section-title { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 10px; letter-spacing: .2em; color: var(--text-dim); margin-bottom: 10px; }
+
+.rowset { border: 1px solid var(--border); background: var(--surface-1); }
+.set-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.set-row:last-child { border-bottom: none; }
+.set-key { flex: none; width: 118px; color: var(--text); }
+.set-val { flex: 1; min-width: 0; color: var(--text-dim); }
+.set-row .set-val { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.set-num { flex: none; width: 84px; text-align: right; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 10.5px; color: var(--text-dim); white-space: nowrap; }
+
+.tier-chip { flex: none; width: 132px; text-align: center; padding: 2px 4px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 9.5px; letter-spacing: .1em; white-space: nowrap; color: var(--text-dim); border: 1px solid var(--border); }
+.tier-chip.is-cooper { color: var(--bg); background: var(--local); border-color: var(--local); }
+.tier-chip.is-family { color: var(--local); border-color: var(--local); }
+
+.print-glyph { display: flex; align-items: center; gap: 6px; flex: none; width: 126px; font-size: 11px; white-space: nowrap; color: var(--text-dim); }
+.print-glyph .glyph { width: 14px; height: 14px; color: var(--steel); }
+.print-glyph.is-none { color: var(--border); }
+.print-glyph.is-none .glyph { color: var(--border); }
+
+.wizard-list { list-style: none; border: 1px solid var(--border); background: var(--surface-1); }
+.wizard-step { display: flex; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--text-dim); }
+.wizard-step:last-child { border-bottom: none; }
+.wizard-step .w-num { flex: none; width: 44px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 10.5px; color: var(--steel); }
+.wizard-step .w-text { flex: 1; color: var(--text); }
+.wizard-step .w-rounds { flex: none; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 10px; letter-spacing: .1em; }
+
+.panel-btn { margin-top: 14px; padding: 7px 16px; font-size: 12.5px; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); }
+.panel-btn:hover { border-color: var(--steel); }
+.local-badge { display: inline-block; margin-left: 10px; padding: 2px 7px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 9.5px; letter-spacing: .12em; color: var(--local); border: 1px solid var(--local); }
+
+.key-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 10.5px; color: var(--text-dim); }
+.key-row:last-child { border-bottom: none; }
+.key-row.is-spent { color: var(--border); }
+.key-row .k-slot { flex: none; width: 108px; color: var(--text); }
+.key-row.is-spent .k-slot { color: var(--text-dim); }
+.key-row .k-lane { flex: none; width: 66px; letter-spacing: .12em; }
+.key-track { display: block; flex: 1; height: 7px; background: var(--surface-2); border: 1px solid var(--border); }
+.key-fill { display: block; height: 100%; background: var(--steel); }
+.key-fill.is-warn { background: var(--cloud); }
+.key-fill.is-spent { background: var(--border); }
+.key-row .k-pct { flex: none; width: 42px; text-align: right; }
+.key-row .k-state { flex: none; width: 46px; text-align: right; letter-spacing: .1em; }
+.key-row.is-warn .k-state { color: var(--cloud); }
+
+.legend-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--text-dim); }
+.legend-row:last-child { border-bottom: none; }
+.legend-chip { flex: none; width: 66px; text-align: center; padding: 2px 0; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 9.5px; letter-spacing: .14em; color: var(--bg); background: var(--local); }
+.legend-chip.is-cloud { background: var(--cloud); }
+
+.rule-line { font-size: 13px; line-height: 1.55; color: var(--text); margin-bottom: 10px; }
+.rule-quote { padding: 10px 12px; border-left: 3px solid var(--local); background: var(--surface-1); font-size: 12.5px; color: var(--text); }
+
+.brain-body { display: flex; gap: 16px; align-items: flex-start; }
+.brain-tree { flex: none; width: 330px; max-height: 380px; overflow-y: auto; border: 1px solid var(--border); background: var(--surface-1); padding: 6px 0; }
+.tree-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 12px; text-align: left; font-size: 12.5px; color: var(--text-dim); }
+.tree-row .glyph { width: 14px; height: 14px; color: var(--steel); }
+.tree-dir { color: var(--text); font-weight: 600; }
+.tree-file { padding-left: 30px; }
+.tree-file:hover { background: var(--surface-2); color: var(--text); }
+.tree-file.is-on { background: var(--surface-2); color: var(--text); font-weight: 600; }
+.tree-row .t-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tree-row .t-size { flex: none; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 9.5px; color: var(--text-dim); }
+
+.brain-pane { flex: 1; min-width: 0; min-height: 200px; border: 1px solid var(--border); background: var(--surface-1); padding: 12px 14px; }
+.pane-path { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 10.5px; letter-spacing: .08em; color: var(--steel); margin-bottom: 4px; }
+.pane-meta { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 9.5px; color: var(--text-dim); margin-bottom: 12px; }
+.pane-text { font-size: 12.5px; line-height: 1.6; color: var(--text); white-space: pre-wrap; }
+.pane-empty { font-size: 12.5px; color: var(--text-dim); }
+
+.meter-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 10.5px; color: var(--text-dim); }
+.meter-row:last-child { border-bottom: none; }
+.meter-row .m-name { flex: none; width: 118px; color: var(--text); }
+.meter-track { display: block; flex: 1; height: 7px; background: var(--surface-2); border: 1px solid var(--border); }
+.meter-fill { display: block; height: 100%; background: var(--steel); }
+.meter-fill.is-warn { background: var(--cloud); }
+.meter-row .m-num { flex: none; width: 150px; text-align: right; }
+
+.about-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+.about-line { font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; }
+.about-line.is-version { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: .1em; color: var(--steel); }
 
 /* ── OFF screen ────────────────────────────────────────── */
 .closed-screen {

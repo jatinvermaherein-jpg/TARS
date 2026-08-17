@@ -1,4 +1,4 @@
-/* TARS Bridge app — the Mock bridge (contract v1.1 §6, incl. Amendment A1).
+/* TARS Bridge app — the Mock bridge (contract v1.2 §6, incl. Amendments A1 and A2).
    Activates ONLY when a real window.tarsBridge is absent, so opening index.html in any
    browser gives a living demo with zero backend. Implements all ten bridge methods and
    plays the canon demo script on natural triggers:
@@ -14,7 +14,12 @@
                                   the real Piper voice belongs to CORE, P-CORE-3)
      redo action               -> a different canned reply for the same scene, streamed
                                   over the old one, hue and lane kept honest
+     enroll_voice action       -> the §22 failure line, the honest demo path (real
+                                  enrollment is CORE, P-CORE-4)
      10 idle minutes           -> "Standing down." + close
+   Settings data (member files, the Living Brain tree, brain previews) has no contract
+   channel yet, so it rides host.tarsMockPayloads as plain data — mock-side only, never
+   a smuggled bridge method.
    Runs in a browser (window) and headless in Node (globalThis) — same code, same script. */
 
 (function (host) {
@@ -48,15 +53,66 @@
   var chatSeq = 0;
   var idleTimer = null;
 
+  /* Ring order is the rotation order: Groq #1-#6, then the OpenRouter pair (bible §26).
+     state words match core/gauge.py exactly: spent at 0, warn at <=20, else ok. */
   var keys = [
-    { index: 0, lane: "fast", remainingPct: 94, state: "healthy" },
-    { index: 1, lane: "fast", remainingPct: 88, state: "healthy" },
-    { index: 2, lane: "smart", remainingPct: 71, state: "healthy" },
-    { index: 3, lane: "smart", remainingPct: 46, state: "healthy" },
-    { index: 4, lane: "eyes", remainingPct: 97, state: "healthy" },
-    { index: 5, lane: "ears", remainingPct: 82, state: "healthy" },
+    { index: 0, lane: "fast", remainingPct: 94, state: "ok" },
+    { index: 1, lane: "fast", remainingPct: 88, state: "ok" },
+    { index: 2, lane: "smart", remainingPct: 71, state: "ok" },
+    { index: 3, lane: "smart", remainingPct: 46, state: "ok" },
+    { index: 4, lane: "eyes", remainingPct: 97, state: "ok" },
+    { index: 5, lane: "ears", remainingPct: 82, state: "ok" },
     { index: 6, lane: "ultra", remainingPct: 18, state: "warn" },
-    { index: 7, lane: "council", remainingPct: 62, state: "healthy" }
+    { index: 7, lane: "council", remainingPct: 62, state: "ok" }
+  ];
+
+  /* Settings payloads (P-APP-2). These are NOT bridge methods: the contract has no
+     channel for member files or the brain tree yet, so the mock hands them over as
+     plain data on host.tarsMockPayloads and the app reads them defensively. Declared
+     in the phase report as "needs contract note". */
+  var members = [
+    { name: "Cooper", relationship: "commander", tier: "COOPER", enrolledOn: "2026-08-14" },
+    { name: "Bhaiya", relationship: "elder brother", tier: "FAMILY-STANDARD", enrolledOn: "2026-08-15" },
+    { name: "Ma", relationship: "mother", tier: "FAMILY-STANDARD", enrolledOn: "2026-08-15" },
+    { name: "unfiled voice", relationship: "no file", tier: "GUEST", enrolledOn: "never" }
+  ];
+
+  var brain = [
+    { path: "people", kind: "dir", sizeKb: 44, modifiedDay: "2026-08-17" },
+    { path: "people/cooper.md", kind: "file", sizeKb: 12, modifiedDay: "2026-08-17" },
+    { path: "people/bhaiya.md", kind: "file", sizeKb: 18, modifiedDay: "2026-08-16" },
+    { path: "people/ma.md", kind: "file", sizeKb: 14, modifiedDay: "2026-08-12" },
+    { path: "journal", kind: "dir", sizeKb: 61, modifiedDay: "2026-08-17" },
+    { path: "journal/2026-08-15.md", kind: "file", sizeKb: 22, modifiedDay: "2026-08-15" },
+    { path: "journal/2026-08-16.md", kind: "file", sizeKb: 19, modifiedDay: "2026-08-16" },
+    { path: "journal/2026-08-17.md", kind: "file", sizeKb: 20, modifiedDay: "2026-08-17" },
+    { path: "lessons", kind: "dir", sizeKb: 17, modifiedDay: "2026-08-16" },
+    { path: "lessons/never-guess-a-transcript.md", kind: "file", sizeKb: 9, modifiedDay: "2026-08-14" },
+    { path: "lessons/ask-before-deleting.md", kind: "file", sizeKb: 8, modifiedDay: "2026-08-16" },
+    { path: "plans", kind: "dir", sizeKb: 12, modifiedDay: "2026-08-17" },
+    { path: "plans/result-day-reminder.md", kind: "file", sizeKb: 5, modifiedDay: "2026-08-17" },
+    { path: "plans/physics-revision.md", kind: "file", sizeKb: 7, modifiedDay: "2026-08-13" }
+  ];
+
+  var brainText = {
+    "people/cooper.md": "Commander. Builds late, tests before he trusts. Wants the honest number first and the comfort never. Asks for physics in plain words, then argues with the plain words.",
+    "people/bhaiya.md": "Elder brother. Speaks fast when excited, slows down when it matters. Result day sits on his calendar and on mine. Prefers files over links.",
+    "people/ma.md": "Mother. The worry-voice is a different voice; when I hear it I keep answers short and certain. No personal data spoken unless she is filed and cleared.",
+    "journal/2026-08-15.md": "Cooper moved humor to sixty for an hour and moved it back. Search lane answered twice, ultra key untouched. I lost a transcript to room noise and said so instead of guessing.",
+    "journal/2026-08-16.md": "Long session on projectile motion. Smart lane timed out once; the second key answered. Cooper asked for the letter about power cuts and kept the second draft.",
+    "journal/2026-08-17.md": "Quiet morning. Watcher reported the disk unchanged. Consolidation folded two journal days into the people files and pruned a duplicate note.",
+    "lessons/never-guess-a-transcript.md": "Heard a command at low confidence and nearly ran it. Rule written: below the hearing threshold I repeat the question, I do not guess. A wrong guess costs more than a second ask.",
+    "lessons/ask-before-deleting.md": "Cooper said clear the folder and meant one file. Rule written: every red verb names its target back and waits for a typed YES.",
+    "plans/result-day-reminder.md": "Remind Cooper the morning Bhaiya's result posts. Open loop until the date passes.",
+    "plans/physics-revision.md": "Rotational motion next, then a quiz from the chapters already read aloud. Cooper asked for spaced repetition, not a lecture."
+  };
+
+  var enrollPhrases = [
+    "TARS, are you awake?",
+    "Open my physics notes.",
+    "Honesty ninety, humor five.",
+    "Send this to Bhaiya on Telegram.",
+    "Stand down for now."
   ];
 
   var chats = [];
@@ -105,8 +161,9 @@
 
   function record(who, text, msgHue, msgLane) {
     var chat = ensureChat(null);
+    var id = chat.id + "-m" + store[chat.id].length;
     store[chat.id].push({
-      id: chat.id + "-m" + store[chat.id].length,
+      id: id,
       who: who,
       text: text,
       ts: now(),
@@ -116,6 +173,7 @@
     });
     if (who === "tars") { chat.lastHue = msgHue || chat.lastHue; }
     chat.ts = now();
+    return id;
   }
 
   function chunksOf(text) {
@@ -140,8 +198,10 @@
       }, TICK * (i + 1));
     });
     host.setTimeout(function () {
-      emit({ type: "done", chatId: chatId, hue: replyHue, lane: replyLane });
-      if (typeof onDone === "function") { onDone(); }
+      /* A2: done carries messageId, so the message is filed first and the event
+         reports the id it was filed under. */
+      var messageId = (typeof onDone === "function") ? onDone() : null;
+      emit({ type: "done", chatId: chatId, messageId: messageId, hue: replyHue, lane: replyLane });
       setState("IDLE", replyHue, replyLane);
       if (typeof after === "function") { after(); }
     }, TICK * (groups.length + 1));
@@ -150,14 +210,14 @@
   function speak(text, replyHue, replyLane, after) {
     var chat = ensureChat(null);
     stream(chat.id, text, replyHue, replyLane, function () {
-      record("tars", text, replyHue, replyLane);
+      return record("tars", text, replyHue, replyLane);
     }, after);
   }
 
   function spendKey(index, cost) {
     var key = keys[index];
     key.remainingPct = Math.max(0, key.remainingPct - cost);
-    key.state = key.remainingPct === 0 ? "spent" : (key.remainingPct <= 20 ? "warn" : "healthy");
+    key.state = key.remainingPct === 0 ? "spent" : (key.remainingPct <= 20 ? "warn" : "ok");
     emit({ type: "gauge", keyIndex: key.index, lane: key.lane, remainingPct: key.remainingPct });
   }
 
@@ -240,6 +300,7 @@
     stream(chatId, next, msg.hue || null, msg.lane || null, function () {
       msg.text = next;
       msg.ts = now();
+      return msg.id;
     });
     return { ok: true, chatId: chatId };
   }
@@ -386,7 +447,8 @@
         ram: { mb: 312, ceiling: 2000 },
         storage: { vaultMb: 6, brainMb: 21, diskFreeGb: 209 },
         uptimeS: 15060,
-        powerNote: null
+        powerNote: null,
+        windowsUpdate: "Up to date. Last checked today, 09:12."
       });
     },
 
@@ -410,6 +472,15 @@
 
     quick_action: function (name, payload) {
       armIdle();
+
+      /* enroll_voice: the demo path only. Real enrollment is CORE P-CORE-4; the button
+         proves the channel and the mock answers with the §22 failure line. */
+      if (name === "enroll_voice") {
+        var enrollChat = ensureChat("Voice enrollment");
+        record("cooper", "run enrollment", null, null);
+        speak("Voiceprint unclear. Quiet room, one more round.", "local", null);
+        return Promise.resolve({ chatId: enrollChat.id });
+      }
 
       if (name === "read_aloud" || name === "redo") {
         var target = (payload && payload.chatId) ? payload.chatId : (current ? current.id : null);
@@ -455,6 +526,13 @@
 
   host.tarsBridge = api;
   host.tarsBridgeIsMock = true;
+  host.tarsMockPayloads = {
+    members: members,
+    brain: brain,
+    brainText: brainText,
+    enrollPhrases: enrollPhrases,
+    enrollRounds: 3
+  };
 
   host.setTimeout(function () {
     ensureChat("First contact");
