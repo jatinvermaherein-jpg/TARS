@@ -1,6 +1,6 @@
-/* TARS Bridge app — the Mock bridge (contract v1.0 §6).
+/* TARS Bridge app — the Mock bridge (contract v1.1 §6, incl. Amendment A1).
    Activates ONLY when a real window.tarsBridge is absent, so opening index.html in any
-   browser gives a living demo with zero backend. Implements all nine bridge methods and
+   browser gives a living demo with zero backend. Implements all ten bridge methods and
    plays the canon demo script on natural triggers:
      load                      -> boot line
      "humor 60"                -> "Humor adjusted to sixty percent."
@@ -10,6 +10,10 @@
      "explain ..."             -> cloud failure line, then the smart-lane answer
      "shutdown"                -> red-verb action gate -> cancel -> "Cancelled. Nothing changed."
      push-to-talk twice        -> Cooper's voice, then the unrecognized-voice guest line
+     read_aloud action         -> browser-native speechSynthesis (engine default voice;
+                                  the real Piper voice belongs to CORE, P-CORE-3)
+     redo action               -> a different canned reply for the same scene, streamed
+                                  over the old one, hue and lane kept honest
      10 idle minutes           -> "Standing down." + close
    Runs in a browser (window) and headless in Node (globalThis) — same code, same script. */
 
@@ -114,9 +118,7 @@
     chat.ts = now();
   }
 
-  function speak(text, replyHue, replyLane, after) {
-    var chat = ensureChat(null);
-    setState("THINKING", replyHue, replyLane);
+  function chunksOf(text) {
     var pieces = text.match(/\S+\s*/g) || [text];
     var groups = [];
     var buf = "";
@@ -125,19 +127,31 @@
       if ((i + 1) % 4 === 0) { groups.push(buf); buf = ""; }
     });
     if (buf) { groups.push(buf); }
+    return groups;
+  }
 
+  function stream(chatId, text, replyHue, replyLane, onDone, after) {
+    setState("THINKING", replyHue, replyLane);
+    var groups = chunksOf(text);
     setState("SPEAKING", replyHue, replyLane);
     groups.forEach(function (g, i) {
       host.setTimeout(function () {
-        emit({ type: "chunk", chatId: chat.id, seq: i, text: g });
+        emit({ type: "chunk", chatId: chatId, seq: i, text: g });
       }, TICK * (i + 1));
     });
     host.setTimeout(function () {
-      emit({ type: "done", chatId: chat.id, hue: replyHue, lane: replyLane });
-      record("tars", text, replyHue, replyLane);
+      emit({ type: "done", chatId: chatId, hue: replyHue, lane: replyLane });
+      if (typeof onDone === "function") { onDone(); }
       setState("IDLE", replyHue, replyLane);
       if (typeof after === "function") { after(); }
     }, TICK * (groups.length + 1));
+  }
+
+  function speak(text, replyHue, replyLane, after) {
+    var chat = ensureChat(null);
+    stream(chat.id, text, replyHue, replyLane, function () {
+      record("tars", text, replyHue, replyLane);
+    }, after);
   }
 
   function spendKey(index, cost) {
@@ -155,6 +169,86 @@
         emit({ type: "close" });
       });
     }, IDLE_MS);
+  }
+
+  /* ── read aloud: browser-native voice only. The real Piper voice is CORE's, P-CORE-3. ── */
+
+  var synth = (typeof host.speechSynthesis === "object") ? host.speechSynthesis : null;
+
+  function readAloud(msg) {
+    if (!synth || typeof host.SpeechSynthesisUtterance !== "function") {
+      return { ok: false, line: "No speech engine in this browser." };
+    }
+    if (synth.speaking || synth.pending) {
+      synth.cancel();
+      setState("IDLE", hue, lane);
+      return { ok: true, line: "Stopped." };
+    }
+    var utter = new host.SpeechSynthesisUtterance(msg.text);
+    utter.rate = 1;
+    utter.pitch = 1;
+    utter.onend = function () { setState("IDLE", msg.hue || hue, msg.lane || lane); };
+    setState("SPEAKING", msg.hue || hue, msg.lane || lane);
+    synth.speak(utter);
+    return { ok: true, line: "Reading aloud." };
+  }
+
+  /* ── redo: a genuinely different wording of the same scene, hue and lane unchanged ── */
+
+  var ALTERNATES = [
+    { match: /^Ready, Cooper\.$/, text: "Standing by, Cooper. Say the word." },
+    {
+      match: /^TARS online\./,
+      text: "Systems up. Honesty holds at ninety, humor low, vernacular modest."
+    },
+    {
+      match: /^Three results\./,
+      text: "Same three hits, tighter: one, the latest Vines upload at eleven minutes. Two, a twenty-two minute interview clip. Three, an eight minute shorts compilation. Say open the second."
+    },
+    {
+      match: /^Projectile motion/,
+      text: "Try it this way: horizontal and vertical are separate problems. Sideways the speed never changes, downward gravity pulls at a steady rate, and the clock they share is the time of flight."
+    },
+    {
+      match: /^Uptime four hours/,
+      text: "Four hours and eleven minutes up. Seven keys comfortable, the ultra key thin at eighteen percent. Memory sits near three hundred megabytes against a two gigabyte ceiling, and the disk has plenty left."
+    },
+    {
+      match: /^Opening result two\./,
+      text: "Playing the second one now: the Ashish Chanchlani interview clip."
+    },
+    {
+      match: /^Watching the screen\./,
+      text: "Eyes on the screen. Say enough to stop. Frames travel to the eyes lane, which is why the pill reads ochre."
+    },
+    {
+      match: /^Three hundred twelve megabytes\./,
+      text: "About three hundred megabytes in use. Nowhere near the ceiling."
+    }
+  ];
+
+  function alternateFor(text) {
+    var hit = null;
+    ALTERNATES.forEach(function (alt) {
+      if (!hit && alt.match.test(text)) { hit = alt.text; }
+    });
+    return hit || "Second pass, same answer in fewer words: " + text;
+  }
+
+  function redo(msg, chatId) {
+    var next = alternateFor(msg.text);
+    stream(chatId, next, msg.hue || null, msg.lane || null, function () {
+      msg.text = next;
+      msg.ts = now();
+    });
+    return { ok: true, chatId: chatId };
+  }
+
+  function findMessage(chatId, messageId) {
+    var list = store[chatId] || [];
+    var found = null;
+    list.forEach(function (m) { if (m.id === messageId) { found = m; } });
+    return found;
   }
 
   /* ── the demo script ── */
@@ -225,7 +319,7 @@
     speak("Ready, Cooper.", "cloud", "fast");
   }
 
-  /* ── the nine bridge methods ── */
+  /* ── the ten bridge methods ── */
 
   var api = {
     send: function (text) {
@@ -316,6 +410,14 @@
 
     quick_action: function (name, payload) {
       armIdle();
+
+      if (name === "read_aloud" || name === "redo") {
+        var target = (payload && payload.chatId) ? payload.chatId : (current ? current.id : null);
+        var msg = target ? findMessage(target, payload && payload.messageId) : null;
+        if (!msg) { return Promise.resolve({ ok: false, line: "That message is gone." }); }
+        return Promise.resolve(name === "read_aloud" ? readAloud(msg) : redo(msg, target));
+      }
+
       var scripted = {
         open: "open chrome",
         search: "search Ashish Chanchlani on YouTube",

@@ -139,14 +139,13 @@ input:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
   align-items: baseline;
   gap: 8px;
   width: 100%;
-  padding: 8px 14px;
+  padding: 8px 16px;
   color: var(--text-dim);
   font-size: 13px;
   text-align: left;
-  border-left: 2px solid transparent;
 }
-.chat-item:hover { background: var(--surface-2); color: var(--text); }
-.chat-item.is-on { background: var(--surface-2); color: var(--text); border-left-color: var(--steel); }
+.chat-item:not(.is-on):hover { background: var(--surface-2); color: var(--text-dim); }
+.chat-item.is-on { background: var(--surface-2); color: var(--text); font-weight: 600; }
 .chat-item .ci-title { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .chat-item .ci-hue { width: 6px; height: 6px; flex: none; background: var(--border); }
 .chat-item .ci-hue.hue-local { background: var(--local); }
@@ -256,8 +255,14 @@ input:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 .msg-tars:hover .msg-foot,
 .msg-tars:focus-within .msg-foot { visibility: visible; }
 .msg-foot .lane-note { visibility: visible; }
-.msg-act { color: var(--text-dim); }
-.msg-act:hover { color: var(--text); }
+.msg-act { color: var(--text-dim); padding: 1px 4px; border: 1px solid transparent; }
+.msg-act:hover { color: var(--text); border-color: var(--border); }
+.msg-act:active { color: var(--bg); background: var(--steel); border-color: var(--steel); }
+.msg-act.is-copied { color: var(--bg); background: var(--success); border-color: var(--success); }
+.msg-act.is-speaking { color: var(--bg); background: var(--local); border-color: var(--local); }
+
+.msg-tars.is-redoing .msg-text { color: var(--thinking); }
+.msg-tars.is-redoing .msg-text:empty::after { content: "thinking"; letter-spacing: .16em; font-size: 10px; }
 
 .msg-transcript {
   align-self: flex-start;
@@ -277,6 +282,28 @@ input:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 .gauge-fill.is-warn { background: var(--cloud); }
 .gauge-fill.is-over { background: var(--error); }
 .gauge-row .g-num { width: 76px; flex: none; text-align: right; }
+
+/* ── jump to latest ────────────────────────────────────── */
+.jump-pill {
+  align-self: center;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  margin: 8px auto 0;
+  padding: 0 12px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 9.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--steel);
+}
+.jump-pill[hidden] { display: none; }
+.jump-pill:hover { color: var(--bg); background: var(--steel); }
+.jump-pill .glyph { width: 13px; height: 13px; }
 
 /* ── voice strip ───────────────────────────────────────── */
 .voice-strip {

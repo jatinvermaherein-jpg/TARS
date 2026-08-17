@@ -1,6 +1,7 @@
 /* TARS Bridge app — renderer.
-   Contract v1.0 §3-§5: CORE owns state, hue and lane; this file only renders what it is told,
-   and calls window.tarsBridge methods (never invents one). */
+   Contract v1.1 §3-§5 (incl. Amendment A1: quick_action 'read_aloud' | 'redo' with {chatId, messageId}):
+   CORE owns state, hue and lane; this file only renders what it is told, and calls
+   window.tarsBridge methods (never invents one). */
 
 (function () {
   "use strict";
@@ -33,6 +34,7 @@
   var hero = el("hero");
   var heroNote = el("hero-note");
   var messages = el("messages");
+  var jumpPill = el("jump-pill");
   var voiceStrip = el("voice-strip");
   var voiceLabel = el("voice-label");
   var voiceBars = el("voice-bars");
@@ -51,12 +53,16 @@
   var DIALS = ["honesty", "humor", "vernacular", "discretion", "trust"];
 
   var currentChatId = null;
-  var openStream = null;      // {chatId, textNode, box}
-  var lastCooperText = "";
+  var openStream = null;      // the rec currently receiving chunks
+  var redoTarget = null;      // rec whose reply is being replaced in place
   var pttActive = false;
   var lastGaugeCard = null;
   var pendingActionId = null;
   var settled = { honesty: 90, humor: 5, vernacular: 30, discretion: 95, trust: 25 };
+  var speaking = null;        // {rec, btn} of the message being read aloud
+  var stick = true;           // is the transcript pinned to the bottom
+  var rafId = null;
+  var scrollPos = {};         // chatId -> scrollTop, remembered across switches
 
   function bridge() {
     return (typeof window.tarsBridge === "object" && window.tarsBridge) ? window.tarsBridge : null;
@@ -83,6 +89,7 @@
       voiceLabel.textContent = (s === "SPEAKING") ? "SPEAKING" : "LISTENING";
       voiceStrip.classList.toggle("is-cloud", notice.hue === "cloud");
     }
+    if (s !== "SPEAKING") { clearSpeaking(); }
 
     if (notice.hue) { renderHue(notice.hue); }
     renderLane(notice.lane);
@@ -129,9 +136,44 @@
     modalScrim.hidden = true;
   }
 
-  /* ── transcript rendering ── */
+  /* ── scroll discipline: autoscroll only while pinned to the bottom ── */
 
-  function scrollDown() { transcript.scrollTop = transcript.scrollHeight; }
+  function atBottom() {
+    return (transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight) < 24;
+  }
+
+  function showJump(on) { jumpPill.hidden = !on; }
+
+  function scrollDown() {
+    showJump(false);
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function afterGrowth() {
+    if (stick) { scrollDown(); } else { showJump(true); }
+  }
+
+  function pinBottom() {
+    stick = true;
+    scrollDown();
+  }
+
+  function restoreScroll(id) {
+    var y = scrollPos[id];
+    if (typeof y === "number") {
+      transcript.scrollTop = y;
+      stick = atBottom();
+      showJump(false);
+    } else {
+      pinBottom();
+    }
+  }
+
+  function rememberScroll() {
+    if (currentChatId) { scrollPos[currentChatId] = transcript.scrollTop; }
+  }
+
+  /* ── transcript rendering ── */
 
   function showHero(show) { hero.hidden = !show; }
 
@@ -141,7 +183,7 @@
     box.className = "msg msg-cooper";
     box.textContent = text;
     messages.appendChild(box);
-    scrollDown();
+    pinBottom();
   }
 
   function addTranscriptLine(who, text) {
@@ -150,10 +192,10 @@
     box.className = "msg-transcript";
     box.textContent = String(who).toUpperCase() + " heard: " + text;
     messages.appendChild(box);
-    scrollDown();
+    afterGrowth();
   }
 
-  function makeTarsBox(hue, lane) {
+  function makeRec(chatId, hue, lane) {
     showHero(false);
     var box = document.createElement("div");
     box.className = "msg msg-tars";
@@ -169,32 +211,47 @@
     foot.appendChild(note);
     box.appendChild(foot);
     messages.appendChild(box);
-    scrollDown();
-    return { box: box, body: body, foot: foot, note: note };
+    afterGrowth();
+    return {
+      chatId: chatId, messageId: null, box: box, body: body, foot: foot, note: note,
+      text: "", pending: "", acted: false, copyTimer: null
+    };
   }
 
-  function addActionButtons(parts, text) {
-    var copyBtn = document.createElement("button");
-    copyBtn.type = "button";
-    copyBtn.className = "msg-act";
-    copyBtn.textContent = "copy";
-    copyBtn.addEventListener("click", function () {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).catch(function () { selectText(parts.body); });
-      } else {
-        selectText(parts.body);
-      }
-    });
-    parts.foot.appendChild(copyBtn);
+  function addErrorLine(line) {
+    var rec = makeRec(null, null, null);
+    rec.box.classList.add("is-error");
+    rec.body.textContent = line;
+  }
 
-    var redoBtn = document.createElement("button");
-    redoBtn.type = "button";
-    redoBtn.className = "msg-act";
-    redoBtn.textContent = "redo";
-    redoBtn.addEventListener("click", function () {
-      if (lastCooperText) { submit(lastCooperText); }
-    });
-    parts.foot.appendChild(redoBtn);
+  /* ── hover actions (bible §13 · contract A1) ── */
+
+  /* contract ChatMessage.actions = ['copy','read_aloud','redo']; data-act carries the
+     contract name, the label stays human. */
+  function actButton(action, label) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "msg-act";
+    btn.setAttribute("data-act", action);
+    btn.textContent = label;
+    return btn;
+  }
+
+  function addActions(rec) {
+    if (rec.acted) { return; }
+    rec.acted = true;
+
+    var copyBtn = actButton("copy", "copy");
+    copyBtn.addEventListener("click", function () { doCopy(rec, copyBtn); });
+    rec.foot.appendChild(copyBtn);
+
+    var readBtn = actButton("read_aloud", "read aloud");
+    readBtn.addEventListener("click", function () { doReadAloud(rec, readBtn); });
+    rec.foot.appendChild(readBtn);
+
+    var redoBtn = actButton("redo", "redo");
+    redoBtn.addEventListener("click", function () { doRedo(rec); });
+    rec.foot.appendChild(redoBtn);
   }
 
   function selectText(node) {
@@ -205,31 +262,121 @@
     sel.addRange(range);
   }
 
-  function addErrorLine(line) {
-    var parts = makeTarsBox(null, null);
-    parts.box.classList.add("is-error");
-    parts.body.textContent = line;
+  function flashCopy(rec, btn, label) {
+    btn.textContent = label;
+    btn.classList.add("is-copied");
+    if (rec.copyTimer) { window.clearTimeout(rec.copyTimer); }
+    rec.copyTimer = window.setTimeout(function () {
+      btn.textContent = "copy";
+      btn.classList.remove("is-copied");
+      rec.copyTimer = null;
+    }, 1200);
   }
 
-  /* ── streaming ── */
+  function doCopy(rec, btn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(rec.text).then(function () {
+        flashCopy(rec, btn, "copied");
+      }, function () {
+        selectText(rec.body);
+        flashCopy(rec, btn, "selected");
+      });
+      return;
+    }
+    selectText(rec.body);
+    flashCopy(rec, btn, "selected");
+  }
+
+  function clearSpeaking() {
+    if (!speaking) { return; }
+    speaking.btn.classList.remove("is-speaking");
+    speaking.btn.textContent = "read aloud";
+    speaking = null;
+  }
+
+  function markSpeaking(rec, btn) {
+    clearSpeaking();
+    btn.classList.add("is-speaking");
+    btn.textContent = "stop";
+    speaking = { rec: rec, btn: btn };
+  }
+
+  /* A1 needs a messageId; the stream events carry only chatId, so ids come from
+     open_chat — a contract method — and are cached on the rec. */
+  function resolveMessageId(rec) {
+    if (rec.messageId) { return Promise.resolve(rec.messageId); }
+    if (!rec.chatId) { return Promise.resolve(null); }
+    return call("open_chat", [rec.chatId]).then(function (msgs) {
+      var found = null;
+      (msgs || []).forEach(function (m) {
+        if (m.who === "tars" && m.text === rec.text) { found = m.id; }
+      });
+      rec.messageId = found;
+      return found;
+    });
+  }
+
+  function doReadAloud(rec, btn) {
+    var stopping = !!(speaking && speaking.btn === btn);
+    if (stopping) { clearSpeaking(); } else { markSpeaking(rec, btn); }
+    resolveMessageId(rec).then(function (id) {
+      if (!id) { clearSpeaking(); return null; }
+      return call("quick_action", ["read_aloud", { chatId: rec.chatId, messageId: id }]);
+    });
+  }
+
+  function doRedo(rec) {
+    resolveMessageId(rec).then(function (id) {
+      if (!id) { return null; }
+      rec.box.classList.add("is-redoing");
+      rec.text = "";
+      rec.pending = "";
+      rec.body.textContent = "";
+      redoTarget = rec;
+      return call("quick_action", ["redo", { chatId: rec.chatId, messageId: id }]);
+    });
+  }
+
+  /* ── streaming: chunks are batched one paint per animation frame ── */
+
+  function streamFor(chatId) {
+    if (openStream && openStream.chatId === chatId) { return openStream; }
+    if (redoTarget && redoTarget.chatId === chatId) {
+      openStream = redoTarget;
+      redoTarget = null;
+      return openStream;
+    }
+    openStream = makeRec(chatId, null, null);
+    return openStream;
+  }
+
+  function paint() {
+    rafId = null;
+    var rec = openStream;
+    if (!rec || !rec.pending) { return; }
+    rec.text += rec.pending;
+    rec.pending = "";
+    rec.body.textContent = rec.text;
+    afterGrowth();
+  }
 
   function onChunk(d) {
-    if (!openStream || openStream.chatId !== d.chatId) {
-      openStream = { chatId: d.chatId, parts: makeTarsBox(null, null), text: "" };
-    }
-    openStream.text += d.text;
-    openStream.parts.body.textContent = openStream.text;
-    scrollDown();
+    var rec = streamFor(d.chatId);
+    rec.pending += d.text;
+    if (rafId === null) { rafId = window.requestAnimationFrame(paint); }
   }
 
   function onDone(d) {
-    if (!openStream) { return; }
-    var parts = openStream.parts;
-    if (d.hue) { parts.box.classList.add("hue-" + d.hue); }
-    if (d.lane) { parts.note.textContent = String(d.lane).toUpperCase(); }
-    addActionButtons(parts, openStream.text);
+    if (rafId !== null) { window.cancelAnimationFrame(rafId); }
+    paint();
+    var rec = openStream;
+    if (!rec) { return; }
+    rec.box.classList.remove("is-redoing");
+    if (d.hue) { rec.box.classList.add("hue-" + d.hue); }
+    if (d.lane) { rec.note.textContent = String(d.lane).toUpperCase(); }
+    addActions(rec);
     openStream = null;
-    scrollDown();
+    afterGrowth();
   }
 
   /* ── gauges (Watcher StatusReport + live gauge deltas) ── */
@@ -261,7 +408,7 @@
 
     messages.appendChild(card);
     lastGaugeCard = card;
-    scrollDown();
+    afterGrowth();
   }
 
   function gaugeRow(name, pct, suffix, keyIndex) {
@@ -349,7 +496,8 @@
 
   function renderChatList(list) {
     chatList.textContent = "";
-    (list || []).forEach(function (c) {
+    var items = (list || []).slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+    items.forEach(function (c) {
       var li = document.createElement("li");
       var btn = document.createElement("button");
       btn.type = "button";
@@ -371,25 +519,29 @@
   }
 
   function loadChat(id, title) {
+    rememberScroll();
     currentChatId = id;
     chatTitle.textContent = title || "Conversation";
     call("open_chat", [id]).then(function (msgs) {
       messages.textContent = "";
       openStream = null;
+      redoTarget = null;
       lastGaugeCard = null;
+      clearSpeaking();
       showHero(!msgs || msgs.length === 0);
       (msgs || []).forEach(function (m) {
         if (m.who === "cooper") {
           addCooper(m.text);
-          lastCooperText = m.text;
-        } else {
-          var parts = makeTarsBox(m.hue, m.lane);
-          parts.body.textContent = m.text;
-          addActionButtons(parts, m.text);
+          return;
         }
+        var rec = makeRec(id, m.hue, m.lane);
+        rec.messageId = m.id;
+        rec.text = m.text;
+        rec.body.textContent = m.text;
+        addActions(rec);
       });
       refreshChatList();
-      scrollDown();
+      restoreScroll(id);
     });
   }
 
@@ -398,14 +550,18 @@
   }
 
   function startNewChat() {
+    rememberScroll();
     call("new_chat", []).then(function (res) {
       currentChatId = res ? res.id : null;
       chatTitle.textContent = "New chat";
       messages.textContent = "";
       openStream = null;
+      redoTarget = null;
       lastGaugeCard = null;
+      clearSpeaking();
       showHero(true);
       refreshChatList();
+      pinBottom();
     });
   }
 
@@ -414,7 +570,7 @@
   function submit(text) {
     var clean = String(text).trim();
     if (!clean) { return; }
-    lastCooperText = clean;
+    redoTarget = null;
     addCooper(clean);
     call("send", [clean]).then(function (res) {
       if (res && res.chatId) { currentChatId = res.chatId; }
@@ -423,6 +579,7 @@
   }
 
   function runQuick(name) {
+    redoTarget = null;
     call("quick_action", [name, null]).then(function (res) {
       if (res && res.chatId) { currentChatId = res.chatId; }
       if (name === "status") { call("get_status", []).then(renderStatus); }
@@ -497,6 +654,12 @@
     el("settings-btn").addEventListener("click", function () { showSettings(true); });
     el("settings-back").addEventListener("click", function () { showSettings(false); });
 
+    transcript.addEventListener("scroll", function () {
+      stick = atBottom();
+      if (stick) { showJump(false); }
+    });
+    jumpPill.addEventListener("click", pinBottom);
+
     Array.prototype.forEach.call(document.querySelectorAll("[data-quick]"), function (btn) {
       btn.addEventListener("click", function () {
         showSettings(false);
@@ -570,6 +733,7 @@
       if (ev.key !== "Escape") { return; }
       if (!modalScrim.hidden) { answerAction(false); return; }
       if (!viewSettings.hidden) { showSettings(false); return; }
+      if (!jumpPill.hidden) { showJump(false); return; }
       submit("stand down");
     });
   }
