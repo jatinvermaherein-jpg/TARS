@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TARS</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ic-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16"></rect><line x1="10" y1="4" x2="10" y2="20"></line></symbol>
+  <symbol id="ic-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></symbol>
+  <symbol id="ic-gauge" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14"></rect><line x1="7" y1="15" x2="7" y2="9"></line><line x1="12" y1="15" x2="12" y2="11"></line><line x1="17" y1="15" x2="17" y2="8"></line></symbol>
+  <symbol id="ic-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"></path><polyline points="14 3 14 7 18 7"></polyline><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="15" y2="16"></line></symbol>
+  <symbol id="ic-send" viewBox="0 0 24 24"><polygon points="3 12 21 4 15 20 11 13"></polygon></symbol>
+  <symbol id="ic-eye" viewBox="0 0 24 24"><path d="M2 12l4-5h12l4 5-4 5H6z"></path><rect x="10" y="10" width="4" height="4"></rect></symbol>
+  <symbol id="ic-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11"></rect><path d="M5 12a7 7 0 0 0 14 0"></path><line x1="12" y1="19" x2="12" y2="22"></line></symbol>
+  <symbol id="ic-clip" viewBox="0 0 24 24"><path d="M17 8v9a5 5 0 0 1-10 0V7a3 3 0 0 1 6 0v9a1 1 0 0 1-2 0V8"></path></symbol>
+  <symbol id="ic-gear" viewBox="0 0 24 24"><rect x="9" y="9" width="6" height="6"></rect><rect x="4" y="4" width="16" height="16"></rect><line x1="4" y1="9" x2="9" y2="9"></line><line x1="15" y1="15" x2="20" y2="15"></line></symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></symbol>
+  <symbol id="ic-back" viewBox="0 0 24 24"><line x1="20" y1="12" x2="5" y2="12"></line><polyline points="11 6 5 12 11 18"></polyline></symbol>
+  <symbol id="ic-mark" viewBox="0 0 24 24"><rect x="2" y="9" width="4" height="12"></rect><rect x="8" y="3" width="4" height="18"></rect><rect x="14" y="6" width="4" height="15"></rect><rect x="20" y="12" width="2" height="9"></rect></symbol>
+</svg>
+
+<div class="shell" id="shell">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="side-head">
+      <span class="mark" aria-hidden="true"><svg class="glyph glyph-mark"><use href="#ic-mark"></use></svg></span>
+      <span class="wordmark">TARS</span>
+      <button type="button" class="icon-btn" id="collapse-btn" title="Collapse sidebar" aria-label="Collapse sidebar"><svg class="glyph"><use href="#ic-panel"></use></svg></button>
+    </div>
+
+    <div class="side-state" id="side-state">
+      <span class="state-dot" id="state-dot" aria-hidden="true"></span>
+      <span class="state-label" id="state-label">IDLE</span>
+    </div>
+
+    <button type="button" class="side-btn" id="new-chat-btn"><svg class="glyph"><use href="#ic-plus"></use></svg><span>New chat</span></button>
+
+    <div class="side-section-title">Conversations</div>
+    <ul class="chat-list" id="chat-list"></ul>
+
+    <div class="side-section-title">Quick actions</div>
+    <div class="quick-list" id="quick-list">
+      <button type="button" class="side-btn" data-quick="status"><svg class="glyph"><use href="#ic-gauge"></use></svg><span>Status</span></button>
+      <button type="button" class="side-btn" data-quick="document"><svg class="glyph"><use href="#ic-doc"></use></svg><span>New document</span></button>
+      <button type="button" class="side-btn" data-quick="telesend"><svg class="glyph"><use href="#ic-send"></use></svg><span>TeleSend</span></button>
+      <button type="button" class="side-btn" data-quick="look"><svg class="glyph"><use href="#ic-eye"></use></svg><span>LOOK</span></button>
+    </div>
+
+    <div class="side-foot">
+      <span class="id-chip" id="id-chip">COOPER</span>
+      <span class="mock-tag" id="mock-tag" hidden>MOCK</span>
+      <button type="button" class="icon-btn" id="settings-btn" title="Settings" aria-label="Settings"><svg class="glyph"><use href="#ic-gear"></use></svg></button>
+    </div>
+  </aside>
+
+  <main class="stage" id="stage">
+
+    <section class="view view-chat" id="view-chat">
+      <header class="stage-head">
+        <h1 class="chat-title" id="chat-title">New chat</h1>
+        <span class="hue-pill" id="hue-pill">LOCAL</span>
+        <span class="lane-tag" id="lane-tag">LANE —</span>
+        <button type="button" class="icon-btn" id="head-mic-btn" title="Push to talk" aria-label="Push to talk"><svg class="glyph"><use href="#ic-mic"></use></svg></button>
+      </header>
+
+      <div class="transcript" id="transcript">
+        <div class="hero" id="hero">
+          <svg class="hero-art" viewBox="0 0 240 120" aria-hidden="true">
+            <rect x="24" y="30" width="26" height="66"></rect>
+            <rect x="62" y="14" width="26" height="82"></rect>
+            <rect x="100" y="38" width="26" height="58"></rect>
+            <rect x="152" y="24" width="26" height="72"></rect>
+            <rect x="190" y="46" width="26" height="50"></rect>
+          </svg>
+          <p class="hero-note" id="hero-note">Bridge shell. Assets land at Merge Day.</p>
+        </div>
+        <div class="messages" id="messages"></div>
+      </div>
+
+      <div class="voice-strip" id="voice-strip" hidden>
+        <span class="voice-label" id="voice-label">LISTENING</span>
+        <span class="voice-bars" id="voice-bars" aria-hidden="true"></span>
+      </div>
+
+      <div class="composer">
+        <div class="chip-row" id="chip-row">
+          <button type="button" class="chip" data-fill="open ">Open</button>
+          <button type="button" class="chip" data-fill="search ">Search</button>
+          <button type="button" class="chip" data-fill="find file ">Find file</button>
+          <button type="button" class="chip" data-fill="document ">Document</button>
+          <button type="button" class="chip" data-fill="telesend ">TeleSend</button>
+          <button type="button" class="chip" data-fill="look">LOOK</button>
+          <button type="button" class="chip" data-fill="status">Status</button>
+          <button type="button" class="chip" data-fill="council ">Council</button>
+        </div>
+        <div class="input-bar">
+          <textarea id="composer-input" class="composer-input" rows="1" placeholder="Message TARS" aria-label="Message TARS"></textarea>
+          <input type="file" id="attach-input" class="attach-input" aria-hidden="true" tabindex="-1">
+          <button type="button" class="icon-btn" id="attach-btn" title="Attach a file" aria-label="Attach a file"><svg class="glyph"><use href="#ic-clip"></use></svg></button>
+          <button type="button" class="icon-btn" id="mic-btn" title="Push to talk" aria-label="Push to talk"><svg class="glyph"><use href="#ic-mic"></use></svg></button>
+          <button type="button" class="go-btn" id="send-btn" title="Send" aria-label="Send"><svg class="glyph"><use href="#ic-send"></use></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view view-settings" id="view-settings" hidden>
+      <header class="stage-head">
+        <button type="button" class="icon-btn" id="settings-back" title="Back to conversation" aria-label="Back to conversation"><svg class="glyph"><use href="#ic-back"></use></svg></button>
+        <h1 class="chat-title">Settings</h1>
+      </header>
+      <div class="settings-body">
+        <nav class="panel-nav"><button type="button" class="panel-tab is-on" id="tab-dials">Dials</button></nav>
+        <div class="panel" id="panel-dials">
+          <h2 class="panel-title">Command dials</h2>
+          <p class="panel-note">Numbers, not personalities. Cooper's verified voice or this panel moves them.</p>
+
+          <div class="dial-row is-locked">
+            <div class="dial-head"><span class="dial-name"><svg class="glyph glyph-lock"><use href="#ic-lock"></use></svg>HONESTY</span><span class="dial-value" id="val-honesty">90</span></div>
+            <input type="range" min="0" max="100" value="90" id="dial-honesty" class="dial-range" aria-label="Honesty">
+          </div>
+
+          <div class="dial-row">
+            <div class="dial-head"><span class="dial-name">HUMOR</span><span class="dial-value" id="val-humor">5</span></div>
+            <input type="range" min="0" max="100" value="5" id="dial-humor" class="dial-range" aria-label="Humor">
+          </div>
+
+          <div class="dial-row">
+            <div class="dial-head"><span class="dial-name">VERNACULAR</span><span class="dial-value" id="val-vernacular">30</span></div>
+            <input type="range" min="0" max="100" value="30" id="dial-vernacular" class="dial-range" aria-label="Vernacular">
+          </div>
+
+          <div class="dial-row">
+            <div class="dial-head"><span class="dial-name">DISCRETION</span><span class="dial-value" id="val-discretion">95</span></div>
+            <input type="range" min="0" max="100" value="95" id="dial-discretion" class="dial-range" aria-label="Discretion">
+          </div>
+
+          <div class="dial-row">
+            <div class="dial-head"><span class="dial-name">TRUST</span><span class="dial-value" id="val-trust">25</span></div>
+            <input type="range" min="0" max="100" value="25" id="dial-trust" class="dial-range" aria-label="Trust">
+          </div>
+
+          <div class="preset-row">
+            <button type="button" class="preset" data-humor="5" data-vernacular="30">Recruit</button>
+            <button type="button" class="preset" data-humor="0" data-vernacular="0">Docking</button>
+            <button type="button" class="preset" data-humor="60" data-vernacular="60">Endurance</button>
+          </div>
+
+          <p class="dial-notice" id="dial-notice"></p>
+        </div>
+      </div>
+    </section>
+
+    <div class="closed-screen" id="closed-screen" hidden>
+      <svg class="hero-art" viewBox="0 0 240 120" aria-hidden="true">
+        <rect x="62" y="14" width="26" height="82"></rect>
+        <rect x="100" y="38" width="26" height="58"></rect>
+        <rect x="152" y="24" width="26" height="72"></rect>
+      </svg>
+      <p class="closed-label">OFF</p>
+    </div>
+
+  </main>
+</div>
+
+<div class="modal-scrim" id="modal-scrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h2 class="modal-title" id="modal-title">Confirm required</h2>
+    <p class="modal-summary" id="modal-summary"></p>
+    <p class="modal-target" id="modal-target"></p>
+    <label class="modal-label" for="modal-input">Type YES to confirm</label>
+    <input type="text" id="modal-input" class="modal-input" autocomplete="off" spellcheck="false">
+    <div class="modal-actions">
+      <button type="button" class="btn-quiet" id="modal-cancel">Cancel</button>
+      <button type="button" class="btn-danger" id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="mock.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
