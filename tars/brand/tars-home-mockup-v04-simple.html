@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TARS HOME — Mockup v0.4 "Simple Pane" (ChatGPT/Claude-style)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#101114; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:'Segoe UI Variable','Segoe UI',system-ui,sans-serif; padding:24px;
+  }
+  .window {
+    width:400px; height:620px; background:#15171B; border-radius:0; overflow:hidden;
+    border:1px solid #34383D; position:relative; display:flex; flex-direction:column; user-select:none;
+  }
+  /* ── minimal strip (only law-mandated items + quiet mode glyphs) ── */
+  .strip {
+    height:40px; display:flex; align-items:center; gap:8px; padding:0 12px;
+    background:#15171B; border-bottom:0.5px solid #34383D;
+  }
+  .mark { display:flex; gap:2px; align-items:flex-end; height:14px; }
+  .mark i { display:block; width:4px; background:#7C8791; }
+  .mark i:nth-child(1){height:8px} .mark i:nth-child(2){height:14px} .mark i:nth-child(3){height:11px} .mark i:nth-child(4){height:6px}
+  .brand { font-weight:600; font-size:13px; letter-spacing:.22em; color:#D9D6CF; }
+  .dials {
+    font-family:ui-monospace,'Cascadia Mono',monospace; font-size:10px; color:#9A9DA1;
+    font-variant-numeric:tabular-nums;
+  }
+  .chip { font-size:9px; letter-spacing:.12em; font-weight:600; padding:2px 6px; border-radius:2px; color:#15171B; background:#7C8791; }
+  .grow { flex:1; }
+  .glyph { color:#9A9DA1; font-size:11px; padding:2px 4px; }
+  /* ── voice strip: EXISTS ONLY while voice is active (shown here in LISTENING) ── */
+  .voicestrip {
+    display:flex; align-items:center; gap:10px; padding:8px 12px;
+    background:#1D2024; border-bottom:0.5px solid #34383D;
+  }
+  .voicestrip .slabel { font-size:10px; font-weight:600; letter-spacing:.3em; color:#D9D6CF; }
+  .voicestrip .timer { font-family:ui-monospace,monospace; font-size:10px; color:#9A9DA1; }
+  .voicewave { display:flex; gap:2px; align-items:center; height:18px; flex:1; }
+  .voicewave i { display:block; width:3px; background:#7C8791; }
+  .micdot { display:flex; align-items:center; gap:5px; font-family:ui-monospace,monospace; font-size:9px; letter-spacing:.18em; color:#4C8F86; }
+  .micdot::before { content:''; width:6px; height:6px; background:#4C8F86; animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  /* ── airy transcript (Claude-style: TARS flat on bg, user in soft slab) ── */
+  .chat { flex:1; padding:20px 18px; display:flex; flex-direction:column; gap:16px; overflow:hidden; }
+  .msg { max-width:90%; font-size:14px; line-height:1.6; }
+  .msg.you {
+    align-self:flex-end; background:#262A2F; color:#D9D6CF;
+    padding:9px 12px; border-radius:4px; border:1px solid #34383D;
+  }
+  .msg.tars {
+    align-self:flex-start; color:#D9D6CF; padding-left:10px;
+    border-left:2px solid #C98A3B; /* ochre = this answer left the machine */
+  }
+  .msg.tars.priv { border-left-color:#4C8F86; } /* teal = vaulted */
+  .meta { margin-top:6px; font-size:11px; color:#9A9DA1; display:flex; gap:8px; }
+  .meta .acts { opacity:0; transition:opacity .1s ease-out; }
+  .msg:hover .meta .acts { opacity:1; }
+  .meta em { font-style:normal; color:#4C8F86; }
+  /* ── roomy input ── */
+  .inputbar {
+    display:flex; align-items:center; gap:8px; margin:0 14px 12px; padding:10px 12px;
+    background:#1D2024; border:1px solid #34383D; border-radius:4px;
+  }
+  .inputbar .ph { flex:1; font-size:13px; color:#9A9DA1; }
+  .ibtn { width:28px; height:26px; border-radius:2px; background:transparent; border:1px solid #34383D; color:#9A9DA1; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  .ibtn.go { background:#7C8791; color:#15171B; border-color:#7C8791; font-weight:700; }
+  /* ── hue strip: the only always-on instrument, bottom edge (law) ── */
+  .huestrip { height:2px; background:#4C8F86; position:relative; }
+  .huestrip::after { content:''; position:absolute; left:0; bottom:0; height:2px; width:42%; background:#C98A3B; }
+</style>
+</head>
+<body>
+  <div class="window">
+
+    <!-- strip: brand + law chips + quiet mode glyphs (👁 eyes, 📊 gauge, ⚙ settings replace the mode row) -->
+    <div class="strip">
+      <span class="mark"><i></i><i></i><i></i><i></i></span>
+      <span class="brand">TARS</span>
+      <span class="dials">90H·5Hu·30V</span>
+      <span class="chip">COMMANDER ✓</span>
+      <span class="grow"></span>
+      <span class="glyph">👁</span><span class="glyph">📊</span><span class="glyph">⚙</span>
+      <span class="glyph">◧</span><span class="glyph">─</span><span class="glyph">╳</span>
+    </div>
+
+    <!-- voice strip: this band EXISTS ONLY while voice is active (shown: LISTENING). Hidden = pure chat app. Kokonut ai-voice lives here. -->
+    <div class="voicestrip">
+      <span class="slabel">LISTENING</span>
+      <div class="voicewave">
+        <i style="height:6px"></i><i style="height:11px"></i><i style="height:16px"></i><i style="height:9px"></i><i style="height:14px"></i><i style="height:18px"></i><i style="height:8px"></i><i style="height:13px"></i><i style="height:17px"></i><i style="height:7px"></i>
+      </div>
+      <span class="timer">00:04</span>
+      <span class="micdot">MIC LIVE</span>
+    </div>
+
+    <!-- transcript -->
+    <div class="chat">
+      <div class="msg you">TARS, humor 60.</div>
+      <div class="msg tars">Humor adjusted to sixty percent. Brace yourself.
+        <div class="meta"><span>14:31</span><span class="acts">🔊 📋</span></div>
+      </div>
+      <div class="msg you">what's my RAM at?</div>
+      <div class="msg tars">6.2 of 16 GB. Healthy. Chrome is eating half of it, as tradition demands.
+        <div class="meta"><span>14:31</span><span class="acts">🔊 📋</span></div>
+      </div>
+      <div class="msg tars priv">Vaulted offline. Not sent anywhere.
+        <div class="meta"><span>14:32 · <em>vaulted</em></span><span class="acts">🔊</span></div>
+      </div>
+    </div>
+
+    <!-- input -->
+    <div class="inputbar">
+      <span class="ph">Type to TARS… or say "Hey TARS"</span>
+      <span class="ibtn">📎</span><span class="ibtn">◉</span><span class="ibtn go">⏎</span>
+    </div>
+
+    <!-- the glance-test strip (law) -->
+    <div class="huestrip"></div>
+
+  </div>
+</body>
+</html>

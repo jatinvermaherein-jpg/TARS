@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TARS HOME — Mockup v0.3 · "Instrument, not app" (Claude commission)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#101114; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:'Segoe UI Variable','Segoe UI',system-ui,sans-serif; padding:24px;
+  }
+  .window {
+    width:400px; height:620px; background:#15171B; border-radius:0; overflow:hidden;
+    border:1px solid #34383D; /* no shadows — elevation by fill step only */
+    display:flex; flex-direction:column; user-select:none;
+  }
+  /* ── STATUS STRIP (40px — title bar merged into one instrument row) ── */
+  .strip {
+    height:40px; display:flex; align-items:center; gap:8px; padding:0 12px;
+    background:#1D2024; border-bottom:0.5px solid #34383D;
+  }
+  .mark { display:flex; gap:2px; align-items:flex-end; height:16px; }
+  .mark i { display:block; width:5px; background:#7C8791; border-radius:0; }
+  .mark i:nth-child(1){height:9px} .mark i:nth-child(2){height:16px} .mark i:nth-child(3){height:12px} .mark i:nth-child(4){height:7px}
+  .brand { font-weight:600; font-size:13px; letter-spacing:.22em; color:#D9D6CF; }
+  .dials {
+    font-family:ui-monospace,'Cascadia Mono',Consolas,monospace; font-size:10px; color:#9A9DA1;
+    background:#262A2F; border:1px solid #34383D; border-radius:2px; padding:2px 6px;
+    font-variant-numeric:tabular-nums;
+  }
+  .chip {
+    font-size:10px; letter-spacing:.12em; font-weight:600; padding:3px 7px; border-radius:2px;
+    color:#15171B; background:#7C8791;
+  }
+  .grow { flex:1; }
+  .glyph { color:#9A9DA1; font-size:12px; padding:2px 5px; cursor:default; }
+  /* ── HERO BAND (128px — fixed instrument band, never grows) ── */
+  .hero {
+    height:128px; position:relative; display:flex; align-items:center; justify-content:center;
+    background:#15171B; border-bottom:0.5px solid #34383D;
+  }
+  .slabel {
+    position:absolute; left:12px; bottom:12px;
+    font-size:11px; font-weight:600; letter-spacing:.34em; color:#D9D6CF;
+  }
+  .micdot {
+    position:absolute; right:12px; top:12px; display:flex; align-items:center; gap:6px;
+    font-family:ui-monospace,monospace; font-size:10px; letter-spacing:.2em; color:#4C8F86;
+  }
+  .micdot::before { content:''; width:7px; height:7px; background:#4C8F86; animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  /* Kokonut ai-voice approximation: mic button + timer + waveform */
+  .voice { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .voice .micbtn {
+    width:30px; height:30px; border-radius:2px; background:#262A2F; border:1px solid #34383D;
+    display:flex; align-items:center; justify-content:center; color:#D9D6CF; font-size:14px;
+  }
+  .voice .timer { font-family:ui-monospace,monospace; font-size:11px; color:#9A9DA1; font-variant-numeric:tabular-nums; }
+  .wave { display:flex; gap:3px; align-items:center; height:28px; }
+  .wave i { display:block; width:3px; background:#7C8791; border-radius:0; }
+  /* ── TRANSCRIPT ── */
+  .chat { flex:1; padding:12px; display:flex; flex-direction:column; gap:9px; overflow:hidden; }
+  .msg { max-width:82%; font-size:14px; line-height:1.5; padding:8px 11px; position:relative; }
+  .msg.you {
+    align-self:flex-end; background:#262A2F; color:#D9D6CF; border-radius:2px; border:1px solid #34383D;
+  }
+  .msg.tars {
+    align-self:flex-start; background:#1D2024; color:#D9D6CF; border-radius:2px;
+    border:1px solid #34383D; border-left:2px solid #C98A3B; /* ochre = this answer left the machine */
+  }
+  .msg.tars.priv { border-left-color:#4C8F86; } /* teal = vaulted, stayed home */
+  .meta { margin-top:5px; font-size:11px; color:#9A9DA1; display:flex; gap:8px; }
+  .meta .acts { opacity:0; transition:opacity .1s ease-out; } /* hover-reveal law */
+  .msg:hover .meta .acts { opacity:1; }
+  .meta em { font-style:normal; color:#4C8F86; }
+  /* ── INPUT BAR (56px) ── */
+  .inputbar {
+    height:56px; display:flex; align-items:center; gap:8px; margin:0 12px 10px; padding:0 10px;
+    background:#1D2024; border:1px solid #34383D; border-radius:4px;
+  }
+  .inputbar .ph { flex:1; font-size:13px; color:#9A9DA1; }
+  .ibtn { width:28px; height:26px; border-radius:2px; background:transparent; border:1px solid #34383D; color:#9A9DA1; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  .ibtn.go { background:#7C8791; color:#15171B; border-color:#7C8791; font-weight:700; }
+  /* ── MODE ROW (32px, underline-slab active) ── */
+  .modes { height:32px; display:flex; background:#1D2024; border-top:0.5px solid #34383D; }
+  .modes div {
+    flex:1; text-align:center; padding:8px 0 0; font-size:9px; letter-spacing:.14em; color:#9A9DA1;
+    border-right:0.5px solid #2a2e33;
+  }
+  .modes div:last-child { border-right:0; }
+  .modes div.on { color:#D9D6CF; box-shadow:inset 0 2px 0 #7C8791; }
+  /* ── FOOTER 24px + hue strip at literal bottom edge ── */
+  .footer {
+    height:24px; position:relative; display:flex; align-items:center; justify-content:space-between;
+    padding:0 12px 2px; background:#15171B; border-top:0.5px solid #34383D;
+    font-family:ui-monospace,monospace; font-size:10px; color:#9A9DA1;
+    font-variant-numeric:tabular-nums;
+  }
+  .huestrip { position:absolute; left:0; right:0; bottom:0; height:2px; background:#4C8F86; }
+  .huestrip::after { content:''; position:absolute; left:0; bottom:0; height:2px; width:42%; background:#C98A3B; } /* cloud call in flight */
+</style>
+</head>
+<body>
+  <div class="window">
+
+    <!-- STATUS STRIP -->
+    <div class="strip">
+      <span class="mark"><i></i><i></i><i></i><i></i></span>
+      <span class="brand">TARS</span>
+      <span class="dials">90H·5Hu·30V</span>
+      <span class="chip">COMMANDER ✓</span>
+      <span class="grow"></span>
+      <span class="glyph">◧</span><span class="glyph">─</span><span class="glyph">╳</span>
+    </div>
+
+    <!-- HERO BAND: Kokonut ai-voice dock (FINAL) -->
+    <div class="hero">
+      <span class="micdot">MIC LIVE</span>
+      <div class="voice">
+        <span class="micbtn">🎙</span>
+        <div class="wave">
+          <i style="height:8px"></i><i style="height:14px"></i><i style="height:22px"></i><i style="height:12px"></i><i style="height:26px"></i><i style="height:16px"></i><i style="height:10px"></i><i style="height:20px"></i><i style="height:13px"></i><i style="height:24px"></i><i style="height:9px"></i><i style="height:17px"></i><i style="height:11px"></i><i style="height:21px"></i><i style="height:15px"></i><i style="height:8px"></i>
+        </div>
+        <span class="timer">00:04</span>
+      </div>
+      <span class="slabel">LISTENING</span>
+    </div>
+
+    <!-- TRANSCRIPT -->
+    <div class="chat">
+      <div class="msg you">TARS, humor 60.</div>
+      <div class="msg tars">Humor adjusted to sixty percent. Brace yourself.
+        <div class="meta"><span>14:31 · fast lane · cloud</span><span class="acts">🔊 📋</span></div>
+      </div>
+      <div class="msg you">what's my RAM at?</div>
+      <div class="msg tars">6.2 of 16 GB. Healthy. Chrome is eating half of it, as tradition demands.
+        <div class="meta"><span>14:31 · watcher probe · local</span><span class="acts">🔊 📋</span></div>
+      </div>
+      <div class="msg tars priv">Vaulted offline. Not sent anywhere.
+        <div class="meta"><span>14:32 · <em>teal — nothing left this machine</em></span><span class="acts">🔊</span></div>
+      </div>
+    </div>
+
+    <!-- INPUT BAR -->
+    <div class="inputbar">
+      <span class="ph">Type to TARS… or say "Hey TARS"</span>
+      <span class="ibtn">📎</span><span class="ibtn">◉</span><span class="ibtn go">⏎</span>
+    </div>
+
+    <!-- MODE ROW -->
+    <div class="modes">
+      <div class="on">💬 CHAT</div><div>🎙 VOICE</div><div>👁 EYES</div><div>📊 GAUGE</div><div>⚙ SET</div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <span>🔑 key-2 · 14,281 left</span>
+      <span>RAM 61MB</span>
+      <span class="huestrip"></span>
+    </div>
+
+  </div>
+</body>
+</html>

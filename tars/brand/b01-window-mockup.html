@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TARS HOME — B-01 Mockup v0.2 · Mission Display</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#101114; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:'Segoe UI Variable','Segoe UI',system-ui,sans-serif; padding:24px;
+  }
+  .window {
+    width:400px; height:620px; background:#15171B; border-radius:10px; overflow:hidden;
+    border:1px solid #34383D; box-shadow:0 24px 70px rgba(0,0,0,.65);
+    display:flex; flex-direction:column; user-select:none;
+  }
+  /* ── title bar ── */
+  .titlebar {
+    display:flex; align-items:center; gap:8px; padding:10px 12px;
+    background:#1D2024; border-bottom:1px solid #34383D;
+  }
+  .mark { display:flex; gap:2px; align-items:flex-end; height:16px; }
+  .mark i { display:block; width:5px; background:linear-gradient(180deg,#c3c9d2,#4a5261); border-radius:1px; }
+  .mark i:nth-child(1){height:10px} .mark i:nth-child(2){height:16px} .mark i:nth-child(3){height:13px} .mark i:nth-child(4){height:8px}
+  .appname { font-weight:600; font-size:12.5px; letter-spacing:.22em; color:#D9D6CF; }
+  .dials {
+    font-family:ui-monospace,'Cascadia Mono',Consolas,monospace; font-size:9.5px; color:#9A9DA1;
+    background:#262A2F; border:1px solid #34383D; border-radius:4px; padding:3px 7px; white-space:nowrap;
+  }
+  .dials b { color:#7C8791; font-weight:600; }
+  .chip {
+    font-size:9px; letter-spacing:.14em; font-weight:700; padding:3px 7px; border-radius:4px;
+    color:#15171B; background:#7C8791; /* COMMANDER = filled steel, dark text (contrast law) */
+  }
+  .grow { flex:1; }
+  .tbtn {
+    width:24px; height:22px; border-radius:4px; border:1px solid #34383D; background:#1D2024; color:#9A9DA1;
+    font-size:11px; display:flex; align-items:center; justify-content:center; cursor:default;
+  }
+  /* ── hero ── */
+  .hero {
+    position:relative; height:200px; display:flex; align-items:center; justify-content:center;
+    border-bottom:1px solid #34383D; background:radial-gradient(ellipse at 50% 130%, #1d2126 0%, #15171B 62%);
+  }
+  .slabs { display:flex; gap:14px; align-items:flex-end; height:120px; }
+  .slab {
+    width:34px; border-radius:3px;
+    background:linear-gradient(180deg,#3a4048,#1D2024 60%,#15171B);
+    border:1px solid #34383D;
+    box-shadow:0 0 12px rgba(76,143,134,.14), inset 0 0 8px rgba(76,143,134,.08);
+  }
+  .slab:nth-child(1){height:78px}
+  .slab:nth-child(2){height:118px}
+  .slab:nth-child(3){height:96px}
+  /* slab 4 = CLOUD call in flight (ochre) — the hue-law lesson */
+  .slab.cloud {
+    height:60px; border-color:#6b4d20;
+    background:linear-gradient(180deg,#4d3a1e,#26201a 60%,#17151a);
+    box-shadow:0 0 16px rgba(201,138,59,.30), inset 0 0 10px rgba(201,138,59,.12);
+  }
+  .state {
+    position:absolute; bottom:12px; left:0; right:0; text-align:center;
+    font-family:ui-monospace,'Cascadia Mono',monospace; font-size:10px; letter-spacing:.34em; color:#4C8F86;
+  }
+  .micdot {
+    position:absolute; top:10px; right:12px; display:flex; align-items:center; gap:5px;
+    font-family:ui-monospace,monospace; font-size:9px; letter-spacing:.2em; color:#4C8F86;
+  }
+  .micdot::before { content:''; width:7px; height:7px; background:#4C8F86; box-shadow:0 0 8px rgba(76,143,134,.8); }
+  /* ── transcript ── */
+  .chat { flex:1; padding:12px 14px; display:flex; flex-direction:column; gap:9px; overflow:hidden; }
+  .msg { max-width:82%; font-size:12.5px; line-height:1.45; padding:8px 11px; }
+  .msg.you {
+    align-self:flex-end; background:#262A2F; color:#D9D6CF; border-radius:8px 8px 2px 8px; border:1px solid #34383D;
+  }
+  .msg.tars {
+    align-self:flex-start; background:#1D2024; color:#D9D6CF; border-radius:2px 8px 8px 8px;
+    border:1px solid #34383D; border-left:3px solid #C98A3B; /* this reply came from a cloud brain */
+  }
+  .msg.tars .meta { margin-top:6px; font-size:9.5px; color:#9A9DA1; letter-spacing:.1em; }
+  .msg.tars .meta span { cursor:default; }
+  .msg.tars.priv { border-left-color:#4C8F86; } /* vaulted — teal carries private now */
+  .msg.tars.priv .meta em { color:#4C8F86; font-style:normal; }
+  /* ── input ── */
+  .inputbar {
+    display:flex; align-items:center; gap:8px; margin:0 12px 10px; padding:8px 10px;
+    background:#1D2024; border:1px solid #34383D; border-radius:8px;
+  }
+  .inputbar .ph { flex:1; font-size:12px; color:#9A9DA1; }
+  .ibtn { width:28px; height:26px; border-radius:4px; background:#262A2F; border:1px solid #34383D; color:#9A9DA1; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  .ibtn.go { background:#7C8791; color:#15171B; border-color:#7C8791; font-weight:700; }
+  /* ── mode row ── */
+  .modes { display:flex; border-top:1px solid #34383D; background:#1D2024; }
+  .modes div {
+    flex:1; text-align:center; padding:9px 0; font-size:10px; letter-spacing:.12em; color:#9A9DA1;
+    border-right:1px solid #2a2e33;
+  }
+  .modes div:last-child { border-right:0; }
+  .modes div.on { color:#D9D6CF; box-shadow:inset 0 2px 0 #7C8791; }
+  /* ── footer ── */
+  .footer {
+    display:flex; align-items:center; justify-content:space-between; padding:7px 12px;
+    background:#15171B; border-top:1px solid #34383D;
+    font-family:ui-monospace,monospace; font-size:9.5px; color:#9A9DA1;
+  }
+  .huestrip { display:flex; gap:4px; align-items:center; }
+  .huestrip i { width:14px; height:5px; border-radius:1px; }
+  .huestrip .c { background:#C98A3B; box-shadow:0 0 6px rgba(201,138,59,.5); } /* cloud in flight */
+  .huestrip .a { background:#4C8F86; } /* local idle */
+</style>
+</head>
+<body>
+  <div class="window">
+
+    <!-- B-02 title bar -->
+    <div class="titlebar">
+      <span class="mark"><i></i><i></i><i></i><i></i></span>
+      <span class="appname">TARS</span>
+      <span class="dials"><b>90</b>H · <b>5</b>Hu · <b>30</b>V</span>
+      <span class="chip">COMMANDER ✓</span>
+      <span class="grow"></span>
+      <span class="tbtn">📌</span><span class="tbtn">—</span><span class="tbtn">×</span>
+    </div>
+
+    <!-- Hero: slab motif · teal = ears local · slab 4 ochre = cloud brain in flight · Kokonut ai-voice docks here (FINAL) -->
+    <div class="hero">
+      <span class="micdot">MIC LIVE</span>
+      <div class="slabs"><i class="slab"></i><i class="slab"></i><i class="slab"></i><i class="slab cloud"></i></div>
+      <div class="state">LISTENING</div>
+    </div>
+
+    <!-- B-03 transcript · hue-law: ochre left-slab = cloud answer · teal = vaulted -->
+    <div class="chat">
+      <div class="msg you">TARS, humor 60.</div>
+      <div class="msg tars">Humor adjusted to sixty percent. Brace yourself.
+        <div class="meta">14:31 · fast lane · cloud · <span>🔊</span> <span>📋</span></div>
+      </div>
+      <div class="msg you">what's my RAM at?</div>
+      <div class="msg tars">6.2 of 16 GB. Healthy. Chrome is eating half of it, as tradition demands.
+        <div class="meta">14:31 · watcher probe · local · <span>🔊</span> <span>📋</span></div>
+      </div>
+      <div class="msg tars priv">Vaulted offline. Not sent anywhere.
+        <div class="meta">14:32 · <em>teal — nothing left this machine</em> · <span>🔊</span></div>
+      </div>
+    </div>
+
+    <!-- B-04 input -->
+    <div class="inputbar">
+      <span class="ph">Type to TARS… or say "Hey TARS"</span>
+      <span class="ibtn">📷</span><span class="ibtn">🎙️</span><span class="ibtn go">⏎</span>
+    </div>
+
+    <!-- B-05 mode row -->
+    <div class="modes">
+      <div class="on">💬 CHAT</div><div>🎙️ VOICE</div><div>👁️ EYES</div><div>📊 GAUGE</div><div>⚙️</div>
+    </div>
+
+    <!-- B-06 footer -->
+    <div class="footer">
+      <span>🔑 key-2 · 14,281 left</span>
+      <span class="huestrip"><i class="c"></i><i class="a"></i></span>
+      <span>RAM 61MB</span>
+    </div>
+
+  </div>
+</body>
+</html>

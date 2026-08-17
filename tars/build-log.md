@@ -1,0 +1,76 @@
+# 📜 TARS — Build Log (the war diary)
+*Every phase, its evidence, its date. Honesty: ninety.*
+
+| Phase | Status | Date | Evidence / notes |
+|---|---|---|---|
+| Design intel (4 repos + TARS-AI mothership vetted) | ✅ | Aug 10, 2026 | `tars/field-intel.md` |
+| Palette: Scheme A "Mission Display" locked | ✅ | Aug 10, 2026 | Claude consult → `tars/brand/palette-mission-display.md` (neon-gamer scheme vetoed dead) |
+| Icon: Cooper's walk-art master + slab glyph smalls | ✅ | Aug 10, 2026 | `tars/brand/art-tars-walk-commander.png` (exact-image decree) |
+| Voice UI: Kokonut `ai-voice` | ✅ FINAL | Aug 10, 2026 | docks in the visiting voice strip |
+| Face: **v0.5 "Plain"** | ✅ FINAL | Aug 10, 2026 | `tars/brand/tars-home-mockup-v05-plain.html` · emoji-free law (Pack E) · Claude commission = `tars/design-commission-v1.md` · error matrix 16 lines final |
+| **P0 — Vault & Gauge ("Tars Vault" Replit)** | ✅ **PASSED 5/5** | Aug 10, 2026, 9:11 PM IST | Cooper's screenshots: T0.1 table set/missing only · T0.2 key-1 OVER + key-2 WARN → `--next` returned **key-3** · T0.3 `banana` clean-error · T0.4 no key chars · T0.5 reset-to-zeros · built on Replit **Lite (free)** |
+| P1 — Soul (router + dials + honesty governor) | ✅ **PASSED** | Aug 10, 2026 | Cooper-declared in chat; T1 transcripts Cooper-filed; repo live (private) |
+| **Chain Protocol v1 adopted** (knowledge + live agent log system) | ✅ DECREED | Aug 10, 2026 | `tars/tars-knowledge.md` (v1.0) · `tars/agent-log.md` (seed: P0/P1/SYS entries) — both embed into repl via P2-A Section 1 |
+| P2-A — Operator core (tool grammar + mock-Windows sim) | 🟡 ARMED | — | prompt: `tars/p2a-operator-build-prompt.md` — TARS-API v1 `[[ACT:verb:arg]]`, winmock SIM_ABI 1, RED-confirm flow, 20-vector battery, T2.1–T2.8 acceptance |
+| **AUD-1 — Evidence Audit** ("prove it, don't tell it") | 🟡 ARMED | — | prompt: `tars/aud1-audit-prompt.md` — read-only law, 15-call budget, dead-code AST scan, kill -9 crash drills on usage.jsonl + simstate.json, honesty-bait re-run, verdict matrix + defect ledger + mandatory confession section |
+| **Challenger audit: cr0271in (7520U)** | ❌ REJECTED | Aug 11, 2026 | 4C/8T Zen2 · soldered LPDDR5 kills year-3 lever · 610M 4× weaker GPU · same street price → dossier §11 |
+| **Aug 11 decrees logged** | ✅ | Aug 11, 2026 | ① web+search verbs ② Office Studio (.docx/.pptx gen) ③ Council Mode (P4) ④ RAM Charter extended — advance without footprint ⑤ **storage cap LIFTED** (meter stays, no limit) |
+| **Master Brief v1.0** (restart-proof handoff) | ✅ SHIPPED | Aug 11, 2026 | `tars/tars-master-brief.md` — complete project brain for any AI session |
+| **Title decree: Cooper, not Commander** | ✅ SWEPT | Aug 11, 2026 | Interstellar-canonical (Cooper = TARS's pilot); rename swept across 16 corpus files, zero clashes |
+| **Aug 11 decrees wave-3 — Tier E correction** | ✅ LOGGED | Aug 11, 2026 | Projects get a **mode switch**: MODE 1 SOLO (TARS builds it himself on his ring) / MODE 2 ORCHESTRA (TARS = operator over external agents: NVIDIA-plans, prompt-smiths, Cooper-bus dispatch, foraging, NVIDIA co-review, confirm-gated recommendations, audits, mid-mission `MISSION REQUEST` asks) |
+| **Aug 11 decrees wave-4 — HANDS + LOOK** | ✅ LOGGED | Aug 11, 2026 | ① **HANDS dispatch** (pywinauto native + Playwright web, headed/visible, narrated batches, typed-YES for external acts, NO captcha-evasion ever, C-bus fallback). ② **LOOK MODE** (Tier-A screen-watch: rolling captures→eyes lane, only in Cooper-opened session, hue-honest, private-doc classifier first) |
+| **Aug 11 wave-5 — session protocol** | ✅ LOGGED | Aug 11, 2026 | **Cooper-once login** (human logs in once per guarded site → session profile local → TARS reuses; never solves CAPTCHAs; expiry → MISSION REQUEST for 20s re-login) |
+| **~~SIFT filter engine~~ — WITHDRAWN** | ↩️ UNDONE | Aug 11, 2026 | Cooper: "filter" meant *filter the design for contradictions*, not a search engine. Search stays simple: ask → TARS searches → delivers. SIFT text purged from spec/brief. |
+| **🔍 DESIGN FILTER #1 — full-corpus contradiction sweep** | ✅ DONE | Aug 11, 2026 | 6 findings fixed: C1 SIFT over-spec ↩️ · C2 10GB-cap ghost purged from knowledge+p2a copies · C3 RAM bands harmonized (Charter pairs target+allowance) · C4 hue drift cyan/amber→ochre/teal (incl. Consent Gate "ring") · C5 stale checklist items closed (face reference, Groq-keys-before-P0) · C6 Tier E + P5 unified spec/brief/phase-map · version v2.0 |
+| P2-B — Companion memory | 🔲 | — | |
+| P2-C — Watcher | 🔲 | — | |
+| P2-D — Professor | 🔲 | — | |
+| P3 — Body on the AiO | 🔲 | — | ~~GATE: BUY~~ ✅ **MACHINE IN HAND** (Cooper confirm Aug 17) |
+| P3.5 — The Face (v0.5 implementation) | 🔲 | — | design canon ready |
+| P4 — Polish | 🔲 | — | earcons, screensaver-HUD elective, QC sweep |
+
+## 🛒 EXTERNAL CRITICAL PATH — THE PURCHASE ~~(standalone clock)~~ ✅ MACHINE DELIVERED
+HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding ledger entries for honesty: final price paid · seller · invoice # · 600VA UPS y/n. *War-diary keeps the record; the gate is closed.*
+
+*Filed by the Architect. The vault has a heartbeat; the soul is next.* 🛰️
+
+---
+
+## 🔄 RESTART DECREE — Aug 11, 2026 (Cooper, verbatim intent: "P0 has not been done — complete new beginning")
+- Everything above this line is the **first era** — kept as honest history, NOT as build credit.
+- The new era starts with a fresh agent deployment. Counter resets to zero. P0/P1 pass-claims from the old repl are demoted to *reference only* — the new repl re-earns them or it doesn't have them.
+- Carried forward as foundation (design, not code-credit): definition bible `tars/tars-definition.md` v1.0 · master spec v2.0 · Chain Protocol · armed prompts (P0/P1/P2-A/AUD-1 and all decree waves) ready for re-issue.
+- **Restart-era status:** awaiting new-agent deployment. The purchase clock (~Aug 12) does not reset.
+- **Aug 11 wave-6 decrees (definition v1.0 amendments):** ① **The Living Brain** (new §25.5 — TARS-owned `tars-brain/` tree, self-curating, no size limit, people profiles + journal + lessons + plans, sleep-cycle consolidation, honesty frame: memory-architecture that gets read back) · ② **TeleSend clarified two-lane** (USER lane = sends as Cooper via Telethon/MTProto, Cooper-Once login; BOT lane = separate bot entity, contact-reach limits) — NVIDIA NIM setup discussion OPEN (Cooper to table an AI response for adjudication).
+- **Aug 11 wave-6b — Privacy AMENDED: "Tier-Gated Personal Cloud"** (replaces pure vault-only Consent Gate): cloud MAY process personal data; gate = audience identity. Member File mandatory: name + relationship-to-Cooper + tier + voiceprint + date. Unfiled voice = GUEST-private-lock ("no name on file = no access"). Local vault stays source-of-truth; hue law, classifier, doc red-line unchanged. Mirrored into spec §6 + definition §22/§31.
+- **Aug 11 — Machine setup guide shipped:** `hp-aio-tars-setup-guide.md` — 13 phases: delivery-day proof (return window) → S-Mode exit → updates → clean → **Agra UPS protocol + pull-plug drill** → security/Office → winget apps (Never-List compliant) → **TARS foundation** (C:\TARS spine, 11-key .env, git clone, staged pip table per phase) → voice audition + enrollment prep → wake/chords + no-auto-start law audit → play → monthly ritual → year-3 lever. Day-order wall summary included.
+
+---
+
+## 🎛️ APP-ERA DECREES — Aug 17, 2026 (Cooper, three rulings)
+- ① **Tier ⑤ MISSION CONTROL — CANCELLED.** Roles are now FOUR: Operator → Companion → Watcher → Professor. Purged from scope: SOLO builds, ORCHESTRA, C-bus, HANDS, mission sealing, MISSION REQUEST records, NVIDIA ammo lanes. Key manifest shrinks 11 → **8** (Groq ×6 chat engine + OpenRouter ×2 = ULTRA 550B + Council spare); the "ammo" gauge class retires — everything is now daily-renewing QUOTA. NVIDIA keys remain revivable in a day if a future decree restores missions (console work only).
+- ② **Face v0.5 "Plain" RETIRED → "Bridge" app v1.0.** TARS's presence is now a FULL Windows application (ChatGPT/Copilot-class anatomy): collapsible sidebar · main stage with honest-hue privacy pill · input bar with operator-intent chips · voice strip (docks only while voice active) · real Settings app-page (Dials / Voice ID / Key gauge / Privacy / Memory explorer / System / About). Palette, honest-hue law, zero-emoji law, art laws carried over unchanged. `tars-home-mockup-v05-plain.html` → design museum.
+- ③ **Machine CONFIRMED IN HAND: HP 24-cr0023in AiO (x86).** ARM-lane contingency pack (sherpa-onnx voice-ID, Silero VAD, cloud-ears fallback plan) scrapped — original body design stands: whisper small local · Piper/SAPI/edge-tts ladder · Porcupine wake · pywebview + WebView2 static bundle. UPS purchase status pending confirm.
+- **Canon-line amendment:** "All six keys are spent. Standing by until reset." → **"All keys are spent. Standing by until reset."** (6-key → 8-key ring).
+- **Bible versioned v1.0 → v1.1 (App-Era edition).** ⚠️ SYNC DEBT: `tars-knowledge.md`, the embedded Block-A copy inside `p2a-operator-build-prompt.md`, and `tars-master-spec.md` v2.0 still carry Tier-⑤ / 11-key / face-v0.5 references — they must be synchronized BEFORE the new agent ingests them per Chain Protocol. Bible v1.1 alone is feed-safe.
+- **Restart-era status:** awaiting new-agent deployment (feed `tars-definition.md` v1.1 FIRST, recite-the-7-Laws gate, then chain files).
+
+## 🔀 TWO-LANE BUILD DECREE — Aug 17, 2026 (Cooper: "two setup — one agent builds TARS main, another makes the app")
+- **AGENT CORE** (Arena AI main agent) → TARS main Python backend. Jurisdiction: `tars/core/` only.
+- **AGENT APP** (Arena AI Battle-Mode agent) → the Bridge app as a hand-written STATIC bundle (zero npm/frameworks/build step — "zero-build law"). Jurisdiction: `tars/app/` only.
+- **The Bridge Contract `tars/bridge-contract.md` v1.0 SHIPPED** — the border between lanes: `window.tarsBridge` API (9 methods) · `__tarsEvent` channel (8 event types) · byte-exact message shapes · core-owned state machine + hue law · Mock law (both lanes independently testable via shared canon demo script) · Merge Day 10-check smoke test at P3.
+- Deploy order: APP lane first (no secrets needed; can start today) · CORE lane gated on 8-key secrets + GITHUB_TOKEN sitting.
+- ⚠️ SYNC DEBT still open for knowledge.md / p2a-Block-A / master spec (Tier-⑤, 11-key, v0.5-face references) — must clear before either agent ingests chain files; bible v1.1 + bridge contract are feed-safe now.
+
+## 🧭 OPS RE-ORG — Aug 17, 2026 (Cooper: "you are operator, I am the delivery guy")
+- **New org chart:** Architect-Operator = this seat (all prompts, roadmap, audits, repo plumbing) · Delivery = Cooper (GitHub clicks, prompt courier, machine-day rituals). Old Replit-Builder plan fully replaced by the two Arena lanes.
+- **Repo decree:** NEW clean private repo `tars` (empty start; `tars-vault` retires to museum). **SSH deploy keys ×3 minted** (`tars-architect` / `tars-core` / `tars-app`; ed25519, repo-scoped, write-enabled) — GITHUB_TOKEN retired from the plan. SSH-over-443 config standard (port 22 often blocked in sandboxes).
+- **Strict-Prompt Doctrine (no-dead-code law) codified** — roadmap §3: whole files only · jurisdiction · every import used / every function reached by selftest / zero TODOs · contract compliance · proof-not-claims REPORT block (§3.5).
+- **`tars/roadmap.md` v1.0 SHIPPED** — crew · repo/key protocol · Strict-Prompt Doctrine · **capability ledger (~90% agent-buildable; residues = physical ceremonies + first-live-key smoke + WebView2 reality at Merge Day)** · full phase maps APP (P-APP-0…3 → freeze) + CORE (P-CORE-0…12) · convergence P3 + machine days M-1/M-2/M-3 + GO-LIVE.
+- **Prompts shipped:** `p-app-0-shell-prompt.md` (Bridge shell + full mock, zero secrets) · `p-core-0-skeleton-prompt.md` (state machine + vault + canon + crash-safe selftest, stdlib-only). Next batches on Delivery's "next batch" call.
+- **Secrets ledger:** repo auth = SSH (done) · LLM ring = 8 keys still to sit (Groq ×6 + OpenRouter ×2) — needed only before P-CORE-1; APP lane needs nothing.
+
+## 🌱 REPO SEED + LEDGER CLOSE — Aug 17, 2026 (Cooper: "seed. ledger complete everything ok, working on AiO")
+- **Buy-gate ledger CLOSED** per Cooper's verbal confirmation Aug 17 — itemized values (price/seller/UPS) unrecorded at owner's option. Machine actively in setup: Cooper on the AiO bench per `hp-aio-tars-setup-guide.md`.
+- **DEPLOY-GATE CORRECTION (Architect honesty note):** P-CORE-0 needs ZERO secrets (stdlib-only + mock adapters) and SSH replaces the PAT — so **BOTH lanes are deployable immediately**. The 8 LLM keys (Groq ×6 + OpenRouter ×2) are needed only on the AiO before the P3 first-live-call ceremony; they live in the AiO's `.env`, never in sandbox or repo.
+- **REPO SEEDED:** corpus pushed as commit #1 to the clean private repo via the `tars-architect` deploy key (SSH over 443). From this push on, both lanes read one shared truth — sandbox sync-debt moot.
