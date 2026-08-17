@@ -122,3 +122,8 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Judgment calls accepted: .panel-wide 860px for data-heavy panels; hide-don't-stub behavior on missing channels.
 - Recital note (minor, logged): the report's recital field riffed on honesty rather than listing the 7 Laws — the field exists as a drift tripwire; reminded lane: field = the laws, verbatim-ish. Non-blocking; evidence shows laws internalized (meters read-only, mock-labelled, canon refusals).
 - **P-APP-3 SHIPPED** (tool-call cards · result cards · TeleSend stage card · LOOK banner · chords in About · full mock operator arc). On its PASS: APP lane FREEZES until Merge Day (P3).
+
+## 🎨 SKIN OVERRIDE DECREE (open vote) — Aug 17, 2026
+- Cooper: "override Mission Display — modern and aesthetic version." Via structured ballot: geometry = **soft-round (8/12/16px)** · depth = **soft-glass (subtle shadow + 3.5% sheen)** · accents = **warm amber + mint** (honest-hue semantics unchanged: mint=LOCAL, amber=CLOUD). Laws NOT on the ballot: zero-emoji art law · Cooper-art-only · hue honesty.
+- **"Mission Display v2 preview" rendered** (`tars/brand/mission-display-v2-preview.html`, static tokens + applied app mock) — awaiting Cooper's ratification, exactly like the v0.5 face lock. On ratify: bible §13–§14 v2 + palette md + contract geometry line + audit hex-lists all patch in one surgical wave; P-APP-3 holds until skin locks; reskin = dedicated P-APP-2.5 phase order.
+- Pushed to repo so both lanes read it.
