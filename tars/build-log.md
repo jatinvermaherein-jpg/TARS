@@ -110,3 +110,7 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Router eyeballed: gate order council→ultra→smart→fast exact · failed keys sit out to midnight (declared rule) · council 3 seats parallel on separate ring keys · ledger arithmetic exact · warn INCLUSIVE at 20% (matches scene 8 + APP mock's warn-ochre assertion).
 - Commendation logged: ok 62 "key material never leaks into a repr" — un-briefed security instinct by the lane.
 - **P-APP-2 prompt SHIPPED** (Settings app-page: Dials+presets · Voice ID · Key Gauge live · Privacy legend · Memory explorer · System meters · About). Sequential lane order resumes: APP lane turn.
+
+## 🎨 PATTERN-REFERENCE DECREE — Aug 17, 2026 (Cooper: two Figma AI-agent UI kits, "I need this type of system")
+- Ruling: **patterns yes, assets never.** Adopted conventions catalogued in `tars/brand/ui-pattern-reference.md` v1.0 (message grouping, streaming pulse, status chips, hover bar, empty-state composition — mostly already aligned). 🆕 **TOOL-CALL CARDS** (intent→target→status cards in transcript) + result cards ASSIGNED to P-APP-3 spec.
+- Rejected on the record: kit colors/fonts (Inter), rounded geometry, shadows/glass, imported art, light mode. Art laws + Mission Display remain sovereign. CC BY 4.0 credit noted for the readable kit (Miki Mouse).
