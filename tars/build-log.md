@@ -82,3 +82,9 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Footnote ②: covenant gap (Architect's) — shared canon demo script was referenced in contract §6 but unshipped; agent embedded scenes in mock.js comments (declared). **Shored now: `tars/bridge-demo-script.md` v1.0 shipped** — 10 scenes of record for both lanes.
 - Carry to P-APP-1: screenshot-gated visual checks lesson (gauge-fill inline-span bug) · token-by-token streaming re-flow smoothing flagged by builder.
 - **Next: Lane B (AGENT CORE) phase P-CORE-0 — ARMED for Deployment.**
+
+## 🛰️ FIELD + CONTRACT LOG — Aug 17, 2026 (Cooper bench + ring question)
+- **Bench:** S-Mode EXITED ✅ (hard gate dead — TARS cannot run under S Mode) · UPS "soon" 🟡 (M-3 drill blocked until in hand) · Lane B (AGENT CORE) deployed by Delivery, P-CORE-0 in flight.
+- **Contract v1.0 → v1.1 (Amendment A1):** `quick_action` gains `read_aloud` + `redo` (payload `{chatId,messageId}`) — bible §13 hover actions had no contract channel; copy stays client-side. Both lanes re-read: APP wires in P-APP-1; CORE implements in P-CORE-2.
+- **P-APP-1 prompt SHIPPED** (conversations wiring: functional hover actions, rAF-batched streaming + jump-to-latest pill, scroll-per-chat memory, mock speechSynthesis read-aloud, screenshot-gated visuals).
+- **OPEN DECISION — ring size:** Cooper floated "only the 6 Groq keys?" Consequence map delivered in chat (ULTRA+council-spare die; gauge 8→6 rows; bible §26/roadmap/demo-script patch list). Architect recommendation: keep 8 (OpenRouter ×2 = free 550B cannon + council independence, ~20 min total setup). Awaiting decree.

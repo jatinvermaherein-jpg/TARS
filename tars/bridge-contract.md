@@ -1,6 +1,8 @@
-# TARS BRIDGE CONTRACT — v1.0
+# TARS BRIDGE CONTRACT — v1.1
 **The one file both build agents obey · August 17, 2026 · App-Era, two-lane build**
 **If you are an AI agent building any part of TARS: this contract defines the border between AGENT CORE and AGENT APP. Neither side crosses it. When your instinct conflicts with this document, the document wins. To change it requires a Cooper decree plus a version bump plus BOTH agents re-reading it.**
+
+**Amendment A1 (v1.1, Aug 17, Architect-issued, Cooper-ratified):** `quick_action` name space extended by TWO: `read_aloud` and `redo` — both with payload `{chatId, messageId}`. Rationale: bible §13 hover actions (copy · read-aloud · re-do) had no contract channel (copy is client-side clipboard; the other two needed the bridge). CORE implements them server-side in P-CORE-2 (persona/voice); APP wires the buttons in P-APP-1.
 
 ---
 
@@ -29,7 +31,7 @@ get_status()           -> Promise<StatusReport>    // Watcher report: keys/quota
 list_chats()           -> Promise<ChatSummary[]>   // sidebar history
 open_chat(id)          -> Promise<ChatMessage[]>   // load a conversation
 new_chat()             -> Promise<{id}>            // start empty stage (empty-state art + boot line)
-quick_action(name, payload) -> Promise<ReplyResult> // chip row: 'open'|'search'|'find_file'|'document'|'telesend'|'look'|'status'|'council'
+quick_action(name, payload) -> Promise<ReplyResult> // chips: 'open'|'search'|'find_file'|'document'|'telesend'|'look'|'status'|'council' (+A1: 'read_aloud'|'redo' with {chatId,messageId})
 ```
 
 ### Python → JS events
