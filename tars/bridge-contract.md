@@ -1,6 +1,8 @@
-# TARS BRIDGE CONTRACT — v1.1
+# TARS BRIDGE CONTRACT — v1.2
 **The one file both build agents obey · August 17, 2026 · App-Era, two-lane build**
 **If you are an AI agent building any part of TARS: this contract defines the border between AGENT CORE and AGENT APP. Neither side crosses it. When your instinct conflicts with this document, the document wins. To change it requires a Cooper decree plus a version bump plus BOTH agents re-reading it.**
+
+**Amendment A2 (v1.2, Aug 17, Architect-post-audit):** `done` events now carry `messageId`. P-APP-1 exposed that APP could only resolve message ids by who+text matching inside open_chat — fragile. A2 removes the guess; APP may keep the fallback until CORE ships messageId in P-CORE-2. Backward compatible (additive field).
 
 **Amendment A1 (v1.1, Aug 17, Architect-issued, Cooper-ratified):** `quick_action` name space extended by TWO: `read_aloud` and `redo` — both with payload `{chatId, messageId}`. Rationale: bible §13 hover actions (copy · read-aloud · re-do) had no contract channel (copy is client-side clipboard; the other two needed the bridge). CORE implements them server-side in P-CORE-2 (persona/voice); APP wires the buttons in P-APP-1.
 
@@ -40,7 +42,7 @@ CORE pushes events by invoking `window.__tarsEvent(detail)` with a JSON object. 
 ```
 'state'   StateNotice   — {state, dials:{humor,vernacular,discretion,trust}, audience:'cooper|family|guest', lane:'fast|smart|eyes|ears|ultra|council|null', hue:'local'|'cloud'}
 'chunk'   ReplyChunk    — {chatId, seq, text} streaming pieces of TARS's reply (app appends)
-'done'    — {chatId, hue, lane} reply complete (app finalizes borders/actions)
+'done'    — {chatId, messageId, hue, lane} reply complete (app finalizes borders/actions)  [A2: messageId added]
 'action'  ActionRequest — {actionId, kind:'red-verb', summary, target} confirm gate modal content (typed YES flow per bible §16)
 'transcript' — {who:'cooper'|…, text} what the ears heard, shown dimmed above the reply
 'gauge'   GaugeDelta     — {keyIndex, lane, remainingPct} key-ring spend update
