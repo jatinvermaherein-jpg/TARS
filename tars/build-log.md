@@ -114,3 +114,11 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 ## 🎨 PATTERN-REFERENCE DECREE — Aug 17, 2026 (Cooper: two Figma AI-agent UI kits, "I need this type of system")
 - Ruling: **patterns yes, assets never.** Adopted conventions catalogued in `tars/brand/ui-pattern-reference.md` v1.0 (message grouping, streaming pulse, status chips, hover bar, empty-state composition — mostly already aligned). 🆕 **TOOL-CALL CARDS** (intent→target→status cards in transcript) + result cards ASSIGNED to P-APP-3 spec.
 - Rejected on the record: kit colors/fonts (Inter), rounded geometry, shadows/glass, imported art, light mode. Art laws + Mission Display remain sovereign. CC BY 4.0 credit noted for the readable kit (Miki Mouse).
+
+## ⚖️ AUDIT P-APP-2 — ✅ PASS (banked) · Aug 17, 2026
+- Clone-verified: 57dd85f atop audit commits · only 4 tars/app/ files · line counts exact (207/540/1117/544) · my own byte-scans: zero emoji, exactly 13 §14 hexes, zero dead-code markers, zero external refs.
+- Screenshot gate earned its keep AGAIN: member-row date clipping + privacy-legend ellipsis leak — both invisible to DOM checks, both caught by pixels, both fixed with regression checks added. Three phases running: the visual gate is now statistically the MVP.
+- Four contract gaps declared honestly (never smuggled): enroll_voice / windowsUpdate / members[] / brain[]. **Resolution: contract Amendment A3 issued (v1.3)** — canonizes list_members(), list_brain(path)+brain_text(path) (CORE P-CORE-4/-10), enroll_voice quick_action (P-CORE-4), StatusReport.windowsUpdate (P-CORE-9). APP mock may supply equivalents until those land; panels may NEVER stub-render.
+- Judgment calls accepted: .panel-wide 860px for data-heavy panels; hide-don't-stub behavior on missing channels.
+- Recital note (minor, logged): the report's recital field riffed on honesty rather than listing the 7 Laws — the field exists as a drift tripwire; reminded lane: field = the laws, verbatim-ish. Non-blocking; evidence shows laws internalized (meters read-only, mock-labelled, canon refusals).
+- **P-APP-3 SHIPPED** (tool-call cards · result cards · TeleSend stage card · LOOK banner · chords in About · full mock operator arc). On its PASS: APP lane FREEZES until Merge Day (P3).

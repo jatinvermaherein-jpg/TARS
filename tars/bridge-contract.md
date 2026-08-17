@@ -1,6 +1,13 @@
-# TARS BRIDGE CONTRACT — v1.2
+# TARS BRIDGE CONTRACT — v1.3
 **The one file both build agents obey · August 17, 2026 · App-Era, two-lane build**
 **If you are an AI agent building any part of TARS: this contract defines the border between AGENT CORE and AGENT APP. Neither side crosses it. When your instinct conflicts with this document, the document wins. To change it requires a Cooper decree plus a version bump plus BOTH agents re-reading it.**
+
+**Amendment A3 (v1.3, Aug 17, Architect-post-audit of P-APP-2):** four lanes canonized so no Settings panel is orphaned at merge:
+- `quick_action` name space += `enroll_voice` (payload {}); CORE implements the enrollment wizard in P-CORE-4; interim replies use §22 canon lines.
+- `list_members() -> Promise<MemberFile[]>` — MemberFile = {name, relationship, tier:'cooper'|'family'|'guest', enrolledOn} — NEVER embeddings. CORE: P-CORE-4.
+- `list_brain(path) -> Promise<BrainNode[]>` + `brain_text(path) -> Promise<string>` — BrainNode = {path, kind:'dir'|'file', sizeKb, modifiedDay} — read-only Living Brain explorer. CORE: P-CORE-10.
+- StatusReport gains `windowsUpdate: string` (Watcher text). CORE: P-CORE-9.
+Until each CORE phase lands, the APP mock may supply equivalents (host.tarsMockPayloads); on a real bridge lacking a listed method, the affected panel MAY hide itself (never stub-render).
 
 **Amendment A2 (v1.2, Aug 17, Architect-post-audit):** `done` events now carry `messageId`. P-APP-1 exposed that APP could only resolve message ids by who+text matching inside open_chat — fragile. A2 removes the guess; APP may keep the fallback until CORE ships messageId in P-CORE-2. Backward compatible (additive field).
 
@@ -33,6 +40,9 @@ get_status()           -> Promise<StatusReport>    // Watcher report: keys/quota
 list_chats()           -> Promise<ChatSummary[]>   // sidebar history
 open_chat(id)          -> Promise<ChatMessage[]>   // load a conversation
 new_chat()             -> Promise<{id}>            // start empty stage (empty-state art + boot line)
+list_members()         -> Promise<MemberFile[]>   // [A3] voice member files, never embeddings
+list_brain(path)       -> Promise<BrainNode[]>    // [A3] read-only Living Brain tree
+brain_text(path)       -> Promise<string>         // [A3] leaf preview text
 quick_action(name, payload) -> Promise<ReplyResult> // chips: 'open'|'search'|'find_file'|'document'|'telesend'|'look'|'status'|'council' (+A1: 'read_aloud'|'redo' with {chatId,messageId})
 ```
 
@@ -56,8 +66,10 @@ ChatMessage   = {id, who:'cooper'|'tars', text, ts, hue:'local'|'cloud'|null, la
 ReplyResult   = {chatId}  (content arrives via chunk/done events)
 DialResult    = {ok, line}  // honesty attempt -> {ok:false, line:"Honesty is fixed at ninety."}
 ConfirmResult = {ok, line}  // cancel -> canon "Cancelled. Nothing changed."
-StatusReport  = {keys:[{index,lane,remainingPct,state}], ram:{mb,ceiling:2000}, storage:{vaultMb,brainMb,diskFreeGb}, uptimeS, powerNote:string|null}
+StatusReport  = {keys:[{index,lane,remainingPct,state}], ram:{mb,ceiling:2000}, storage:{vaultMb,brainMb,diskFreeGb}, uptimeS, powerNote:string|null, windowsUpdate:string}  // [A3: +windowsUpdate]
 ChatSummary   = {id, title, ts, lastHue}
+MemberFile    = {name, relationship, tier:'cooper'|'family'|'guest', enrolledOn}  // [A3] embeddings NEVER cross the bridge
+BrainNode     = {path, kind:'dir'|'file', sizeKb, modifiedDay}                    // [A3]
 ```
 
 ## 5. The rendering laws (APP lane owes these)
