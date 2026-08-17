@@ -52,3 +52,12 @@
 - Commit: carried in the P2-A push
 
 <!-- next entry appends below this line -->
+
+## [P-CORE-0] — CORE lane · Skeleton + state machine (App-Era two-lane build) — PASSED — 2026-08-17
+- Built: tars/core/__init__.py (package marker), canon.py (all bible §11 lines + dial-ack/confirm composers), logx.py (logs.jsonl append-only fsync'd), settings.py (5 dials, honesty hard-locked, atomic saves), vault.py (vault.db WAL crash-safe: kv/memory/ledger), bus.py (8 contract event types, fault-isolated), state.py (bible §32 machine + StateNotice single emit path), __main__.py (`python -m tars.core --demochat` headless demo + Printer transport), selftest.py (62-check proof incl. SIGKILL-mid-write child)
+- Modified: tars/agent-log.md (this entry, per bridge-contract §1 Chain Protocol [CORE] tag — Deployment: repo TARS, deploy-key auth per roadmap §2)
+- Key facts for future phases: data dir = TARS_DATA env or ~/.tars (M-1 wires C:\TARS); StateNotice keys exactly {state,dials,audience,lane,hue} with state tokens lowercase (off/armed/listening/thinking/speaking/error) — APP maps to labels at merge; machine mic_open is a pure function of state (true only in LISTENING); set_dial("honesty",…) returns {"ok": false, "line": "Honesty is fixed at ninety."} byte-exact; bad dial inputs return the canon catch-all; kill() from any state emits the 'close' event reason "kill-switch"; ERROR path: fail(cause) → recover() yields prior state; vault honesty note: memory/ledger strictly INSERT-only, kv upserts (WAL gives both crash-safety); audience static "cooper" until Cooper ID (P-CORE-4); lane null until router (P-CORE-1).
+- Self-tests: `python -m tars.core.selftest` → ALL GREEN (62/62): 13 canon byte-exact, 13 settings/vault/logx functional, 21 state machine + bus (incl. all 8 contract events through Printer), 9 demochat (2 runs + real CLI), 6 crash-kill — child SIGKILLed mid-burst after 6,052 memory commits / 6,051 log lines: integrity=ok, kv 5/5, zero corruption on re-open.
+- Acceptance: pending Cooper audit (REPORT block delivered to Delivery with verbatim selftest stdout)
+- Deviations: none (phase boundary respected: no router, audio, operator verbs, or pywebview)
+- Commit: "[CORE] P-CORE-0 — skeleton + state machine: canon, dials, crash-safe vault/logs, bridge bus, headless demochat, SIGKILL-proof selftest"
