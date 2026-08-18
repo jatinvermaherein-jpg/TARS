@@ -96,8 +96,20 @@ class Dialog:
             self._machine.summon()  # a bridge send implies a summoned app
         if self._chat_id is None:
             self.new_chat()
-        text = str(text)
         self._machine.text()
+        self._dispatch(str(text))
+        return {"chatId": self._chat_id}
+
+    def send_voice(self, text) -> dict:
+        """Voice entry: ears own capture + heard(); the dialog takes over from THINKING."""
+        if self._machine.state != "thinking":
+            return {"ok": False, "line": canon.LINE_CATCH_ALL}
+        if self._chat_id is None:
+            self.new_chat()
+        self._dispatch(str(text))
+        return {"chatId": self._chat_id}
+
+    def _dispatch(self, text: str) -> None:
         user_mid = self._vault.message_add(self._chat_id, "cooper", text, None, None)
         self._machine.reply()
         dial = parse_dial_command(text)
@@ -111,7 +123,15 @@ class Dialog:
             else:
                 self._brain_turn(text, user_mid)
         self._machine.spoken()
-        return {"chatId": self._chat_id}
+
+    def emit_line(self, line: str, hue: str = "local") -> int:
+        """A §22-family canon line as a persisted tars message (called from THINKING)."""
+        if self._chat_id is None:
+            self.new_chat()  # a line must persist into a real chat, never a null row
+        self._machine.reply()
+        mid = self._emit_message(line, hue, None)
+        self._machine.spoken()
+        return mid
 
     def quick_action(self, name, payload) -> dict:
         payload = payload or {}

@@ -78,6 +78,16 @@ class Vault:
         row = self._db.execute("SELECT value FROM kv WHERE name = ?", (name,)).fetchone()
         return row[0] if row else None
 
+    def kv_scan(self, prefix: str, only_value=None) -> list:
+        """[(name, value)] rows under a literal prefix — the speak queue's intake view."""
+        sql = "SELECT name, value FROM kv WHERE name LIKE ?"
+        params = [prefix + "%"]
+        if only_value is not None:
+            sql += " AND value = ?"
+            params.append(only_value)
+        sql += " ORDER BY name"
+        return [(name, value) for name, value in self._db.execute(sql, params).fetchall()]
+
     def remember(self, kind: str, text: str) -> int:
         cur = self._db.execute("INSERT INTO memory (ts, kind, text) VALUES (?, ?, ?)", (_now(), kind, text))
         self._db.commit()

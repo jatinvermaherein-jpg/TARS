@@ -7,6 +7,13 @@ P-CORE-1 battery: the 8-key ring — rotation, budget skip, drained canon
 line, timeout/429/5xx/garbage retry paths, gate arithmetic, council quota
 math, ledger exactness, clock-injected midnight rollover, gauge shape and
 warn boundary, fixture determinism, and the real adapters' no-keys refusal.
+P-CORE-3 battery: the voice pipelines — byte-pinned VAD spans on in-code
+fixtures, the ear ladder (local-miss -> groq-ears -> all-spent canon line),
+ears billing through keys.py alone, mic-cold guard law on both capture
+adapters, transcript-before-routing order, bad-audio/no-mic §22 honesty
+lines, kill mid-capture (Law 5), the mouth ladder with its per-tier cascade,
+private-never-edge proof, barge-in honored in-tick, and the speak-queue
+drain lifecycle queued -> done / failed:<tier>.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -18,17 +25,22 @@ import subprocess
 import sys
 import tempfile
 import time
+import wave
 from datetime import date, datetime
 from pathlib import Path
 
-from tars.core import canon, persona
+from tars.core import canon, persona, voicefix
 from tars.core.__main__ import Printer, run_demochat
 from tars.core.adapters import GROQ_URL, OPENROUTER_URL, TIMEOUT_S, FixtureAdapter, GroqAdapter
 from tars.core.bus import EVENT_TYPES, Bus
+from tars.core.capture import FakeCapture, SoundDeviceCapture
 from tars.core.dialog import Dialog, classify_memory
+from tars.core.ears import (RMS_THRESHOLD, EarLadder, FixtureEarEngine, GroqEarsAdapter, WhisperSmallLocal,
+                            build_multipart, frame_rms, run_voice_turn, slice_pcm, vad_spans)
 from tars.core.gauge import council_note, gauge_rows
 from tars.core.keys import LANE_CAPS, load_ring, parse_env_file
 from tars.core.logx import LogX
+from tars.core.mouth import EdgeTier, FixtureTier, Mouth, PiperTier, SapiTier
 from tars.core.router import LANE_MODELS, LENGTH_THRESHOLD, Router
 from tars.core.settings import DIAL_DEFAULTS, Settings
 from tars.core.state import ARMED, ERROR, LISTENING, Machine, OFF, SPEAKING, THINKING
@@ -86,12 +98,15 @@ def _canon_checks(out) -> None:
     expect(out, canon.LINE_HANDOVER_BOOT == "Factory state. New commander, identify yourself. Honesty: ninety. Humor: five.",
            "canon post-handover byte-exact")
     expect(out, canon.LINE_HONESTY_FIXED == "Honesty is fixed at ninety.", "canon honesty-fixed byte-exact")
-    expect(out, canon.LINE_NOTED == "Noted. I'll remember that.", "drafted remember-ack byte-exact (pending Cooper veto)")
-    expect(out, canon.LINE_GUEST == "Voice not recognized. Guest rules apply.", "drafted guest-recognition byte-exact (pending Cooper veto)")
-    expect(out, canon.LINE_GUEST_DIAL == "Only Cooper moves the dials.", "drafted guest-dial byte-exact (pending Cooper veto)")
+    expect(out, canon.LINE_NOTED == "Noted. I'll remember that.", "ratified remember-ack byte-exact (8706128)")
+    expect(out, canon.LINE_GUEST == "Voice not recognized. Guest rules apply.", "ratified guest-recognition byte-exact (8706128)")
+    expect(out, canon.LINE_GUEST_DIAL == "Only Cooper moves the dials.", "ratified guest-dial byte-exact (8706128)")
     expect(out, persona.HONESTY_CLAUSES == "Never flatter. If you do not know, say you do not know. "
            "Never invent facts, numbers, citations, or sources. When uncertain, say what part you are unsure of.",
            "bible §12 honesty clauses byte-exact, no paraphrase")
+    expect(out, canon.LINE_HEARD_BADLY == "Heard that badly. I don't guess — repeat, please.",
+           "§22 heard-badly row byte-exact for the ears")
+    expect(out, canon.LINE_NO_MIC == "No mic. Text mode it is.", "§22 no-mic row byte-exact for the ears")
     words = [(0, "zero"), (5, "five"), (19, "nineteen"), (20, "twenty"), (21, "twenty one"),
              (60, "sixty"), (95, "ninety five"), (100, "one hundred")]
     expect(out, all(canon.number_words(n) == w for n, w in words), "number_words covers 0..100 for dial-acks")
@@ -618,6 +633,333 @@ def _persona_checks(base: Path, out) -> None:
            "rolling context: system + last 10 messages + user; the window slides, oldest dropped")
 
 
+def _voice_checks(base: Path, out) -> None:
+    zone = base / "voice"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+
+    def universe(name, groq_script, ear_engines):
+        path = zone / name
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", groq_script)
+        router = Router(load_ring(full_source),
+                        {"groq": groq_fx, "openrouter": FixtureAdapter("openrouter", [])}, vault, bus)
+        dialog = Dialog(settings, vault, router, machine, bus)
+        machine.set_audience("cooper")
+        return dialog, vault, machine, groq_fx, bus, events, log, EarLadder(ear_engines, log)
+
+    # --- fixture law: bytes generated in code, pinned, deterministic
+    expect(out, voicefix.sine_ms(100) == voicefix.sine_ms(100) and voicefix.noise_ms(100) == voicefix.noise_ms(100),
+           "in-code fixtures deterministic: sine + seeded noise regenerate byte-identical")
+    sine100 = voicefix.sine_ms(100)
+    with wave.open(io.BytesIO(voicefix.wrap_wav(sine100)), "rb") as parsed:
+        params = (parsed.getnchannels(), parsed.getsampwidth(), parsed.getframerate(), parsed.getnframes())
+        payload = parsed.readframes(parsed.getnframes())
+    expect(out, params == (1, 2, voicefix.RATE, 1600) and payload == sine100,
+           "wrap_wav: valid mono 16-bit 16kHz RIFF; the PCM payload round-trips byte-exact")
+
+    # --- VAD pins (declared constants: 30ms frames, RMS 500, 270ms hangover, 90ms floor)
+    expect(out, vad_spans(voicefix.sine_ms(600)) == [(0, 600)], "VAD pin: 600ms voiced -> one exact (0,600) span")
+    bridged = voicefix.pcm([voicefix.silence_ms(300), voicefix.sine_ms(600), voicefix.silence_ms(150),
+                            voicefix.sine_ms(300), voicefix.silence_ms(300)])
+    expect(out, vad_spans(bridged) == [(300, 1350)], "VAD pin: 150ms silence inside speech bridges into one span")
+    split = voicefix.pcm([voicefix.silence_ms(300), voicefix.sine_ms(600), voicefix.silence_ms(480),
+                          voicefix.sine_ms(300), voicefix.silence_ms(300)])
+    expect(out, vad_spans(split) == [(300, 900), (1380, 1680)], "VAD pin: 480ms gap splits into two exact spans")
+    blip = voicefix.pcm([voicefix.silence_ms(300), voicefix.sine_ms(60), voicefix.silence_ms(600)])
+    expect(out, vad_spans(blip) == [] and vad_spans(voicefix.silence_ms(900)) == [],
+           "VAD pin: sub-90ms blips and pure silence hold no speech")
+    expect(out, frame_rms(voicefix.sine_ms(30)) >= RMS_THRESHOLD
+           and frame_rms(voicefix.silence_ms(30)) < RMS_THRESHOLD
+           and frame_rms(voicefix.noise_ms(30)) < RMS_THRESHOLD,
+           "declared VAD constants hold: voiced over RMS_THRESHOLD, silence and noise under it")
+    span_source = voicefix.pcm([voicefix.silence_ms(300), voicefix.sine_ms(600), voicefix.silence_ms(300)])
+    expect(out, slice_pcm(span_source, (300, 900)) == voicefix.sine_ms(600),
+           "slice_pcm cuts exactly the span bytes, nothing more")
+
+    # --- engine protocol: byte-compared transcripts, failure step-down, billing law
+    engine = FixtureEarEngine(["hello cooper"])
+    expect(out, engine.transcribe(b"any pcm bytes") == "hello cooper" and engine.calls == 1,
+           "FixtureEarEngine transcript byte-compared against the script, calls counted")
+    raised = False
+    try:
+        FixtureEarEngine(["fail"]).transcribe(b"x")
+    except RuntimeError:
+        raised = True
+    expect(out, raised, "a scripted ear failure raises; the ladder owns the step-down")
+
+    wires = []
+
+    def probe_transport(url, body, content_type, key_string):
+        wires.append((url, content_type, len(body), bool(key_string)))
+        return "heard by groq"
+
+    log_ladder = LogX(zone / "ladder.jsonl")
+    ring_ears = load_ring({"GROQ_KEY_1": "gsk-ears-fixture"})
+    local_miss = FixtureEarEngine(["unused"], loads=False)
+    ladder_eg = EarLadder([local_miss, GroqEarsAdapter(ring_ears, transport=probe_transport)], log_ladder)
+    heard_eg = ladder_eg.transcribe(voicefix.sine_ms(300))
+    expect(out, heard_eg == "heard by groq" and local_miss.calls == 0 and local_miss.load_calls == 1,
+           "ladder order proven: local load-miss steps down to groq-ears, the missed engine never transcribes")
+    key_ear = ring_ears.keys()[0]
+    expect(out, key_ear.lane_spent.get("ears") == 1 and key_ear.spent_today == 1,
+           "ears billing travels through keys.py record alone — ring counters, never the vault ledger")
+    expected_body = build_multipart({"model": GroqEarsAdapter.MODEL}, "file", "speech.wav",
+                                    voicefix.wrap_wav(voicefix.sine_ms(300)), "audio/wav")[0]
+    expect(out, wires == [(GroqEarsAdapter.URL, "multipart/form-data; boundary=----tars-ear-boundary",
+                           len(expected_body), True)],
+           "the transport fired exactly once: pinned endpoint, declared boundary, exact body bytes, key present")
+
+    ladder_fail = EarLadder([FixtureEarEngine(["fail"]), FixtureEarEngine(["second engine served"])], log_ladder)
+    fell = ladder_fail.transcribe(voicefix.sine_ms(300))
+    expect(out, fell == "second engine served" and any(row.get("kind") == "ears" for row in log_ladder.read_all()),
+           "a raised engine logs an ears entry and the ladder serves from the next engine")
+
+    body, content_type = build_multipart({"model": GroqEarsAdapter.MODEL}, "file", "speech.wav",
+                                         voicefix.wrap_wav(voicefix.sine_ms(60)), "audio/wav")
+    expect(out, content_type == "multipart/form-data; boundary=----tars-ear-boundary"
+           and b'--' + b"----tars-ear-boundary" in body and b'name="model"' in body
+           and GroqEarsAdapter.MODEL.encode() in body and body.count(b"RIFF") == 1,
+           "groq-ears multipart request: boundary, model field, wav payload present (shape reviewable, wire cold)")
+
+    # --- whisper-small local: lazy model path + RAM Charter policy + sandbox import guard
+    expect(out, WhisperSmallLocal(zone / "no-models").load() is False,
+           "whisper load: declared model slot absent -> honest False, the ladder steps down")
+    model_zone = zone / "models"
+    model_zone.mkdir(parents=True)
+    (model_zone / "whisper-small.bin").write_bytes(b"in-code staged model bytes")  # real weight lands at M-1
+    ram_pressured = WhisperSmallLocal(model_zone, ceiling_mb=2000, ram_probe=lambda: 1500)
+    expect(out, ram_pressured.load() is False,
+           "RAM Charter: 1500MB used + 900MB burst would cross the 2GB ceiling -> policy-falls to groq-ears")
+    ram_clear = WhisperSmallLocal(model_zone, ceiling_mb=2000, ram_probe=lambda: 100)
+    expect(out, ram_clear.load() is False,
+           "whisper import guard: faster_whisper staged on the AiO at M-1, honestly absent in a sandbox")
+
+    # --- mic-cold law: the guard raises outside LISTENING, on any OS, before any device
+    _dc, _vc, m_c, _gc, _bc, _ec, _lc, _lad_c = universe("u-cap", [], [FixtureEarEngine(["x"])])
+    guard = SoundDeviceCapture(m_c)
+    raised = False
+    try:
+        guard.open()
+    except RuntimeError:
+        raised = True
+    expect(out, raised and guard.closed, "mic guard raises in OFF, capture stays cold (mic-cold law)")
+    m_c.summon()
+    raised = False
+    try:
+        guard.open()
+    except RuntimeError:
+        raised = True
+    expect(out, raised, "mic guard raises in ARMED too — LISTENING or nothing")
+    m_c.voice_start()
+    expect(out, guard.open() is False and guard.closed,
+           "real device open is nt-only: the Linux sandbox answers False cleanly (canon skip; P3 proves hardware)")
+
+    # --- run_voice_turn: entry law, happy path, joined spans, honesty lines, kill
+    dlg_off, _vo, m_off, _go, bus_off, _eo, _lo, lad_off = universe("u-off", [], [FixtureEarEngine(["x"])])
+    cold = FakeCapture(m_off, [voicefix.sine_ms(300)])
+    refused = run_voice_turn(cold, lad_off, m_off, bus_off, dlg_off)
+    expect(out, refused == {"ok": False, "line": canon.LINE_CATCH_ALL} and cold.closed and m_off.state == OFF,
+           "voice turn from OFF: canon catch-all, capture never opened, machine untouched")
+
+    engine_h = FixtureEarEngine(["physics test on friday"])
+    dlg_h, v_h, m_h, gfx_h, bus_h, ev_h, _lh, lad_h = universe("u-happy", [("ok", "the voice answer", 10)],
+                                                               [engine_h])
+    m_h.summon()
+    cap_h = FakeCapture(m_h, [voicefix.silence_ms(120), voicefix.sine_ms(600), voicefix.silence_ms(120)])
+    happy = run_voice_turn(cap_h, lad_h, m_h, bus_h, dlg_h)
+    expect(out, happy == {"ok": True, "text": "physics test on friday", "chatId": 1},
+           "voice turn end to end: transcript text + new chatId returned")
+    kinds_h = [kind for kind, _detail in ev_h]
+    transcript_at = kinds_h.index("transcript")
+    expect(out, transcript_at < kinds_h.index("chunk") and transcript_at < kinds_h.index("done"),
+           "transcript fires BEFORE any routing output (contract §3: what was heard shows first, dimmed)")
+    transcript_detail = [detail for kind, detail in ev_h if kind == "transcript"][0]
+    expect(out, transcript_detail == {"who": "cooper", "text": "physics test on friday"},
+           "transcript detail shape exact: {who, text}, zero extra fields")
+    msgs_h = v_h.messages_for(1)
+    expect(out, [m["who"] for m in msgs_h] == ["cooper", "tars"]
+           and msgs_h[0]["text"] == "physics test on friday" and msgs_h[1]["text"] == "the voice answer",
+           "both sides of the voice turn persisted in the vault, append-only")
+    expect(out, m_h.state == LISTENING and cap_h.closed and engine_h.calls == 1,
+           "voice session returns to LISTENING with capture closed — mic law kept on every exit path")
+    expect(out, v_h.ledger_total() == 10 and {row["lane"] for row in v_h.ledger_tail(5)} == {"smart"},
+           "the reply's token billing lands in the vault ledger through the router alone ('physics' gates smart, §P1 list)")
+    m_h.voice_stop()
+
+    engine_j = FixtureEarEngine(["physics test", "on friday"])
+    dlg_j, _vj, m_j, _gj, bus_j, _ej, _lj, lad_j = universe("u-join", [("ok", "joined answer", 10)], [engine_j])
+    m_j.summon()
+    two_spans = voicefix.pcm([voicefix.silence_ms(300), voicefix.sine_ms(600), voicefix.silence_ms(480),
+                              voicefix.sine_ms(300), voicefix.silence_ms(300)])
+    joined = run_voice_turn(FakeCapture(m_j, [two_spans]), lad_j, m_j, bus_j, dlg_j)
+    expect(out, joined["ok"] and joined["text"] == "physics test on friday" and engine_j.calls == 2,
+           "two speech spans transcribe on separate engine calls and join with a single space")
+
+    engine_s = FixtureEarEngine(["never called"])
+    dlg_s, v_s, m_s, gfx_s, bus_s, ev_s, _ls, lad_s = universe("u-sil", [], [engine_s])
+    m_s.summon()
+    quiet = run_voice_turn(FakeCapture(m_s, [voicefix.silence_ms(900)]), lad_s, m_s, bus_s, dlg_s)
+    expect(out, quiet == {"ok": False, "line": canon.LINE_HEARD_BADLY} and engine_s.calls == 0,
+           "bad-audio honesty: silence never executes — no engine call, the §22 heard-badly line answers")
+    expect(out, v_s.messages_for(1)[-1]["text"] == canon.LINE_HEARD_BADLY
+           and v_s.messages_for(1)[-1]["hue"] == "local",
+           "heard-badly persisted as a local-hue tars message, byte-exact §22")
+    expect(out, not any(kind == "transcript" for kind, _d in ev_s) and gfx_s.received == [],
+           "silence emits no transcript and routes nothing to any brain")
+
+    ring_groq_ear = load_ring({"GROQ_KEY_1": "gsk-ear-test"})
+    groq_ear = GroqEarsAdapter(ring_groq_ear, transport=probe_transport)
+    dlg_g, v_g, m_g, _gg, bus_g, _eg, _lg, lad_g = universe("u-groqear", [("ok", "cloud-ear answer", 10)],
+                                                            [FixtureEarEngine(["x"], loads=False), groq_ear])
+    m_g.summon()
+    groq_turn = run_voice_turn(FakeCapture(m_g, [voicefix.sine_ms(300)]), lad_g, m_g, bus_g, dlg_g)
+    expect(out, groq_turn["ok"] and groq_turn["text"] == "heard by groq" and len(wires) == 2,
+           "local-miss voice turn served by groq-ears exactly once (the scripted transport's second call)")
+    expect(out, ring_groq_ear.keys()[0].lane_spent.get("ears") == 1
+           and {row["lane"] for row in v_g.ledger_tail(5)} == {"fast"},
+           "billing law: ears spend lives only on the ring key; the vault token ledger sees the router alone")
+
+    ring_dead = load_ring({})
+    dlg_d, v_d, m_d, _gd, bus_d, _ed, _ld, lad_d = universe("u-spent", [], [GroqEarsAdapter(ring_dead,
+                                                                                            transport=probe_transport)])
+    m_d.summon()
+    spent = run_voice_turn(FakeCapture(m_d, [voicefix.sine_ms(300)]), lad_d, m_d, bus_d, dlg_d)
+    expect(out, spent == {"ok": False, "line": canon.LINE_ALL_SPENT} and len(wires) == 2
+           and v_d.messages_for(1)[-1]["text"] == canon.LINE_ALL_SPENT,
+           "drained ears lane: canon all-spent byte-exact + persisted, the wire provably untouched (never keyless)")
+
+    dlg_nm, v_nm, m_nm, _gnm, bus_nm, _enm, _lnm, lad_nm = universe("u-nomic", [], [FixtureEarEngine(["x"])])
+    m_nm.summon()
+    real_cap = SoundDeviceCapture(m_nm)
+    nomic = run_voice_turn(real_cap, lad_nm, m_nm, bus_nm, dlg_nm)
+    expect(out, nomic == {"ok": False, "line": canon.LINE_NO_MIC}
+           and v_nm.messages_for(1)[-1]["text"] == canon.LINE_NO_MIC and real_cap.closed,
+           "device absent: the §22 no-mic line answers and persists, text mode stays home")
+
+    dlg_k, v_k, m_k, gfx_k, bus_k, ev_k, _lk, lad_k = universe("u-kill", [], [FixtureEarEngine(["too late"])])
+
+    def kill_at_five(index):
+        if index == 5:
+            m_k.kill()
+
+    m_k.summon()
+    cap_k = FakeCapture(m_k, [voicefix.sine_ms(30) for _n in range(10)], on_frame=kill_at_five)
+    killed = run_voice_turn(cap_k, lad_k, m_k, bus_k, dlg_k)
+    expect(out, killed == {"ok": False, "line": canon.LINE_CATCH_ALL}
+           and m_k.state == OFF and not m_k.mic_open and cap_k.closed,
+           "kill mid-capture (Law 5): state OFF instantly, mic cold, the turn aborts clean — zero trap")
+    expect(out, not any(kind == "transcript" for kind, _d in ev_k)
+           and v_k.chat_rows() == [] and gfx_k.received == [],
+           "a killed turn emits no transcript, persists nothing, routes nothing")
+
+    # --- mouth ladder: order, cascade, honest refusal, real-tier sandbox truth
+    log_m = LogX(zone / "mouth.jsonl")
+    sapi_down = FixtureTier("sapi", True, False)
+    piper_ok = FixtureTier("piper", True, True)
+    edge_ok = FixtureTier("edge", False, True)
+    spoke = Mouth([sapi_down, piper_ok, edge_ok], log_m).speak("report for duty")
+    expect(out, spoke == {"ok": True, "tier": "piper", "cancelled": False, "private": False}
+           and sapi_down.calls == [] and piper_ok.calls == ["report for duty"] and edge_ok.calls == [],
+           "mouth ladder order: unavailable sapi skipped uncalled, piper serves, edge stays cold")
+    sapi_fail = FixtureTier("sapi", True, True, "fail")
+    piper_ok2 = FixtureTier("piper", True, True)
+    edge_ok2 = FixtureTier("edge", False, True)
+    spoke_fail = Mouth([sapi_fail, piper_ok2, edge_ok2], log_m).speak("try again")
+    expect(out, spoke_fail["ok"] and spoke_fail["tier"] == "piper"
+           and sapi_fail.calls == ["try again"] and edge_ok2.calls == [],
+           "per-tier failure cascade: a failed local tier steps down inside the same speak call")
+    expect(out, edge_ok2.local is False and EdgeTier().local is False,
+           "edge declared CLOUD (local False) on the fixture and the real adapter alike")
+    dead = Mouth([FixtureTier("sapi", True, True, "fail"), FixtureTier("piper", True, False)], log_m).speak("nobody home")
+    expect(out, dead == {"ok": False, "tier": "sapi", "cancelled": False, "private": False}
+           and any(row.get("kind") == "mouth" and "stayed on screen" in row.get("note", "")
+                   for row in log_m.read_all()),
+           "no serving tier: the last attempted tier is named, the refusal is logged, the text stays on screen")
+    expect(out, SapiTier().available() is False and PiperTier(zone / "no-piper").available() is False,
+           "real local tiers honestly unavailable in a Linux sandbox (nt-first staging at M-1)")
+
+    # --- privacy routing is LAW: private never rides the edge, provably
+    log_p = LogX(zone / "privacy.jsonl")
+    piper_fail = FixtureTier("piper", True, True, "fail")
+    edge_watch = FixtureTier("edge", False, True)
+    mouth_p = Mouth([piper_fail, edge_watch], log_p)
+    private_turn = mouth_p.speak("Cooper's physics result", private=True)
+    expect(out, private_turn == {"ok": False, "tier": "piper", "cancelled": False, "private": True}
+           and piper_fail.calls == ["Cooper's physics result"] and edge_watch.calls == [],
+           "privacy LAW: a private utterance never reaches edge-tts — tier skipped (call proof), text stays local")
+    expect(out, sum(1 for row in log_p.read_all() if row.get("kind") == "privacy") == 1,
+           "the privacy skip leaves a logged audit line — no silent path, no configurable backdoor")
+    public_turn = mouth_p.speak("the weather today", private=False)
+    expect(out, public_turn["ok"] and public_turn["tier"] == "edge" and edge_watch.calls == ["the weather today"],
+           "control case: the same edge tier DOES serve a public utterance — privacy alone gates it")
+    piper_serve = FixtureTier("piper", True, True)
+    edge_watch2 = FixtureTier("edge", False, True)
+    local_private = Mouth([piper_serve, edge_watch2], LogX(zone / "privacy2.jsonl")).speak("family secret",
+                                                                                           private=True)
+    expect(out, local_private["ok"] and local_private["tier"] == "piper" and edge_watch2.calls == [],
+           "private with a healthy local tier: served locally, edge never consulted")
+
+    # --- barge-in: cancel honored in-tick; a fresh listen wins over an in-flight speak
+    log_barge = LogX(zone / "barge.jsonl")
+    ticks_seen = []
+
+    def on_tick(tick):
+        ticks_seen.append(tick)
+        if tick == 2:
+            mouth_barge.interrupt()
+
+    tier_barge = FixtureTier("piper", True, True, ticks=5, on_tick=on_tick)
+    mouth_barge = Mouth([tier_barge], log_barge)
+    cancelled = mouth_barge.speak("a long winding story")
+    expect(out, cancelled == {"ok": False, "tier": "piper", "cancelled": True}
+           and ticks_seen == [0, 1, 2] and tier_barge.stop_calls == 1,
+           "barge-in: interrupt() is honored exactly in-tick via the active tier's stop (§20)")
+
+    dlg_lw, _vlw, m_lw, _glw, bus_lw, _elw, log_lw, lad_lw = universe("u-lw", [("ok", "listen wins", 10)],
+                                                                      [FixtureEarEngine(["fresh listen"])])
+    in_flight = FixtureTier("piper", True, True)
+    mouth_lw = Mouth([in_flight], log_lw)
+    mouth_lw._active = in_flight  # an utterance mid-flight at the instant the push-to-talk press lands
+    m_lw.summon()
+    lw_turn = run_voice_turn(FakeCapture(m_lw, [voicefix.sine_ms(300)]), lad_lw, m_lw, bus_lw, dlg_lw,
+                             mouth=mouth_lw)
+    expect(out, lw_turn["ok"] and in_flight.stop_calls == 1 and in_flight.calls == [],
+           "a fresh listen wins over an in-flight speak: run_voice_turn interrupts the mouth first (§20)")
+
+    # --- A1 drain: queued -> done lifecycle, ghosts, and failed:<tier> honesty
+    dlg_q, v_q, m_q, _gq, _bq, _eq, log_q, _lad_q = universe("u-drain", [("ok", "read me aloud", 10)],
+                                                             [FixtureEarEngine(["x"])])
+    dlg_q.send("hello")
+    mid_q = v_q.messages_for(1)[-1]["id"]
+    dlg_q.quick_action("read_aloud", {"chatId": 1, "messageId": mid_q})
+    v_q.kv_set("speak_request:9999", "queued")  # a ghost intake whose message never existed
+    piper_drain = FixtureTier("piper", True, True)
+    report_q = Mouth([piper_drain], log_q).drain_speak_queue(v_q, m_q)
+    expect(out, report_q == {"drained": 1, "failed": 1}
+           and v_q.kv_get(f"speak_request:{mid_q}") == "done" and piper_drain.calls == ["read me aloud"],
+           "speak-queue drain: queued -> done with the exact message text spoken (A1 lifecycle closed)")
+    expect(out, v_q.kv_get("speak_request:9999") == "failed:no-message",
+           "a ghost intake marks failed:no-message and is logged — never a guessed target")
+    transitions_q = [(row.get("from"), row.get("to")) for row in log_q.read_all() if row.get("kind") == "transition"]
+    expect(out, transitions_q.count(("armed", "thinking")) == 2
+           and transitions_q.count(("thinking", "speaking")) == 2
+           and transitions_q.count(("speaking", "armed")) == 2,
+           "the drain's SPEAKING turns flow through state.py alone (typed turn + drained turn, transition log proves it)")
+    v_q.kv_set(f"speak_request:{mid_q}", "queued")
+    report_broken = Mouth([FixtureTier("piper", True, True, "fail")], log_q).drain_speak_queue(v_q, m_q)
+    expect(out, report_broken == {"drained": 0, "failed": 1}
+           and v_q.kv_get(f"speak_request:{mid_q}") == "failed:piper",
+           "speak failure marks failed:<tier> honestly — the queue lies to no one")
+
+
 def _await_ready(proc) -> bool:
     while True:
         line = proc.stdout.readline()
@@ -689,7 +1031,8 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + P-CORE-1 ring + P-CORE-2 persona batteries — proof, not claims", file=out)
+    print("CORE SELFTEST — P-CORE-0 + P-CORE-1 ring + P-CORE-2 persona + P-CORE-3 voice batteries — proof, not claims",
+          file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
     _canon_checks(out)
@@ -699,6 +1042,7 @@ def main() -> int:
     _ring_checks(base, out)
     _ringdemo_checks(base, out)
     _persona_checks(base, out)
+    _voice_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

@@ -15,10 +15,14 @@ LINE_CANCEL = "Cancelled. Nothing changed."
 LINE_HANDOVER_BOOT = "Factory state. New commander, identify yourself. Honesty: ninety. Humor: five."
 LINE_HONESTY_FIXED = "Honesty is fixed at ninety."
 
-# ARCHITECT-DRAFTED for P-CORE-2, pending Cooper veto (flagged in build-log; treat as canon unless vetoed)
+# Drafted in P-CORE-2, Cooper-RATIFIED in commit 8706128 (command-grammar v1.0 decree)
 LINE_NOTED = "Noted. I'll remember that."
 LINE_GUEST = "Voice not recognized. Guest rules apply."
 LINE_GUEST_DIAL = "Only Cooper moves the dials."
+
+# Bible §22 error-matrix rows, verbatim — declared here for the ears; P-CORE-4 wires the full matrix.
+LINE_HEARD_BADLY = "Heard that badly. I don't guess — repeat, please."
+LINE_NO_MIC = "No mic. Text mode it is."
 
 _ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
          "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
