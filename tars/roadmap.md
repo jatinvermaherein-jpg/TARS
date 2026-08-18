@@ -1,5 +1,5 @@
 # TARS MASTER ROADMAP — App-Era, Two-Lane Build
-**v1.0 · August 17, 2026 · Supersedes all previous phase maps · Governing docs: bible v1.1 (`tars-definition.md`) + `bridge-contract.md` v1.0. If this file conflicts with the bible, the bible wins.**
+**v1.1 · August 17, 2026 · Supersedes all previous phase maps · Governing docs: bible v1.2 (`tars-definition.md`) + `bridge-contract.md` v1.4. If this file conflicts with the bible, the bible wins.**
 
 ---
 
@@ -20,7 +20,7 @@
 - **SSH-over-443 config** (sandboxes often block port 22 — every agent sets this first):
   `~/.ssh/config` → `Host github.com / HostName ssh.github.com / Port 443 / IdentityFile ~/.ssh/tars_<lane>` → `git remote set-url origin git@github.com:jatinvermaherein-jpg/TARS.git`
 - **`.gitignore` from commit #1:** `.env` · `__pycache__/` · `*.pyc` · `tars-ssh/` · `uploads/` · nothing else exotic.
-- **Bootstrap:** Architect seeds the corpus (bible v1.1 · contract · roadmap · demo script · prompts · brand assets · knowledge · agent-log) as the first push. Lanes then `git clone` and never see stale docs.
+- **Bootstrap:** Architect seeds the corpus (bible v1.2 · contract · roadmap · demo script · prompts · brand assets · knowledge · agent-log) as the first push. Lanes then `git clone` and never see stale docs.
 - **Push ritual (both lanes, every phase):** commit message `[LANE] PHASE — one-line truth` → push → paste REPORT block to Delivery.
 
 ## 3. The Strict-Prompt Doctrine (no-dead-code law — verbatim in every prompt)
@@ -55,7 +55,8 @@
 | **P-APP-0** Bridge shell + mock | Full §13 anatomy (sidebar/stage/input/voice strip) · 5 states · palette §14 exact · zero-emoji · mock.js implements entire §3 bridge API · canon lines verbatim — **a living demo in any browser** | Demo script scenes 1–10 pass in mock · palette/zero-emoji/geometry audit green · REPORT block |
 | **P-APP-1** Conversations | Chat history list · streaming chunks · hover actions (copy/read-aloud/redo stubs into bridge) · empty state (walk-art + boot line) · Esc/stand-down behavior | Demo + multi-chat flow selftest |
 | **P-APP-2** Settings app-page | Dials panel (HONESTY locked slider + canon refuse) · Voice ID panel · **Key gauge panel (8 quotas)** · Privacy (hue legend) · Memory explorer (mock `tars-brain/` tree) · System · About | Panels live against mock; no placeholder text |
-| **P-APP-3** Operator surfaces | Chip-row flows · red-verb confirm modal (typed-YES) · TeleSend stage card (what→whom→YES) · LOOK banner (WATCHING + ochre) · file/result cards · keyboard map (Ctrl+Alt+T etc. shown in-page) | Contract §7 checks 1–8 all pass in mock → **APP FROZEN for merge** |
+| **P-APP-2.5** Mission Display v2 reskin (decreed + ratified Aug 17) | Style-only swap to skin v2: 15 tokens + 2 on-accent + 4 alpha utilities · soft-round geometry · soft-glass depth · v1 hex purge (byte-grep gate) · ZERO behavior change | 146 prior checks green + skin guards (v2 present / v1 absent, byte-level) · full screenshot re-sweep (11 shots) · REPORT block |
+| **P-APP-3** Operator surfaces | Chip-row flows · red-verb confirm modal (typed-YES) · TeleSend stage card (what→whom→YES) · LOOK banner (WATCHING + amber) · file/result cards · keyboard map (Ctrl+Alt+T etc. shown in-page) | Contract §7 checks 1–8 all pass in mock → **APP FROZEN for merge** |
 
 ## 6. Phase map — CORE lane (main agent) · needs 8-key secrets sitting before P-CORE-1
 

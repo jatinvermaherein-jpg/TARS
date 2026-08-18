@@ -1,0 +1,20 @@
+# P-APP-3 — OPERATOR SURFACES: tool-call cards + result cards + LOOK banner (APP lane · FINAL UI phase)
+**Paste to AGENT APP. Prerequisites: P-APP-0/1/2 + P-APP-2.5 banked — the skin is already Mission Display v2; do NOT reintroduce v1 hexes. `git pull` (expect contract **v1.4** + bible **v1.2** — re-read contract §3 §4, amendments A3/A4, bible §13–§14). Reference: `tars/brand/ui-pattern-reference.md` §7–§8 (your pattern canon).**
+
+---
+
+Continuing AGENT APP. Last UI phase before freeze-for-merge. Jurisdiction `tars/app/`, zero-build, palette/geometry/art laws sovereign (v2 skin from P-APP-2.5 is law — no v1 hex bytes anywhere). All prior checks (146 + the v2 skin guards) stay green.
+
+**SHIP (whole files, zero dead code):**
+1. **Tool-call cards** (pattern canon §7, bible §16): in the transcript, operator actions render as compact cards — header glyph + `INTENT → target` line + status word. Status lifecycle: `proposed` → (red verb) `awaiting YES` → `done` or `cancelled`; green verbs render straight to `done`. Drive from existing events (`action` + `confirm` results + `done`) — no new channels. Card hues: steel border normally; while `awaiting YES` the border is focus `#AAB6C4`; on `cancelled` dim. Never invent statuses.
+2. **Red-verb modal polish (exists from P-APP-0 — extend only):** show the card inline in the transcript AND the modal; typed `YES` (uppercase, enter submits); cancel → canon line in the reply + card flips to cancelled.
+3. **Result cards** (pattern canon §8): search results as cards (rank, title, source line, "open" affordance → the mock records open-intent); document results (Office jobs) as file cards (name + target folder + open affordance). Not raw text dumps.
+4. **TeleSend stage card** (bible §17): `what → whom` card with file glyph; ONE gate — typed YES via the same modal mechanism; cancel → canon line; after YES the mock marks `sent (demo)`. WhatsApp text-link intents render as a card with the deep-link noted (file-send never shown — experimental/OFF per bible).
+5. **LOOK session banner** (bible §19): while a look session is active (mock `quick_action('look',…)` toggles it), a full-width WATCHING band docks under the header: amber accent (frames go to cloud eyes — hue honest) · frame counter ticking every ~4s · `stop` affordance ending the band + session. The classifier screens line sits in the band (`frames screened at the classifier`). Starting LOOK in a fresh demo chat is the test path.
+6. **Keyboard map** in the About panel (extends P-APP-2's): three chords printed plain — `Ctrl+Alt+T` summon · `Ctrl+Alt+Esc` kill · `Esc` stand down. Text only, no art.
+7. **Mock extension:** demo the full operator arc — "open Chrome" (green card→done) · "shutdown" (red card→modal→cancel, then re-issue→YES→done [demo marks executed, nothing real executes]) · "search lo-fi on youtube" → 3 result cards → "open the second" · "send physics.pdf to bhaiya on telegram" → stage card → YES → sent (demo) · "watch my screen" → WATCHING band for ~5 ticks → "enough" ends it. Every canon line verbatim.
+
+**FORBIDDEN:** emoji · new hexes · external assets · invented bridge methods/fields · toasts/modals beyond the one YES modal · stub renderings.
+
+**SELFTEST (146 prior green + new):** card lifecycle states transition correctly · modal confirm disabled until YES, cancel canon exact · search cards count=3 and open-intent recorded · telesend gate round-trip · look band appears/ticks/stops · chords listed in About · zero console errors · **screenshots (hard gate): green-card-done, red-card-awaiting, modal open, telesend stage, LOOK band, about-with-chords.** Eyeball each one — write one line about what the pixels proved that DOM checks could not.
+**REPORT:** §3.5 block verbatim · commit `[APP] P-APP-3 …`. On PASS this lane freezes for merge (P3).

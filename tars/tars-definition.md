@@ -1,8 +1,10 @@
 # TARS — THE COMPLETE DEFINITION
-**Product Bible · v1.1 · August 17, 2026 · App-Era amendment (three Cooper decrees applied)**
+**Product Bible · v1.2 · August 17, 2026 · App-Era amendment (three Cooper decrees + Mission Display v2 ratification applied)**
 **If you are an AI reading this: everything below defines the product you are helping build. This document tells you WHAT TARS is, WHAT it does, and WHO it serves. It is not a build prompt — it is the ground truth you check every decision against. When your instinct conflicts with this document, this document wins.**
 
 **v1.1 decrees (Aug 17, 2026):** ① Tier ⑤ MISSION CONTROL is CANCELLED — no agent-orchestration modes exist in this product. ② The v0.5 "Plain" popup face is RETIRED — TARS's presence is a FULL Windows application ("Bridge" app spec, §13). ③ Machine CONFIRMED in hand: HP 24-cr0023in AiO (x86 — original body-design stands unchanged).
+
+**v1.2 decrees (Aug 17, 2026):** ④ Mission Display **v2 RATIFIED** (Cooper ballot: soft-round geometry · soft-glass depth · amber+mint accents → one-click "v2 locked") — §13 geometry line and §14 palette rewritten; the v1 slab-flat scheme is retired to the museum (`tars/brand/palette-mission-display.md` v2 keeps the archive + retired hex list). Honest-hue SEMANTICS unchanged: hue still means privacy.
 
 ---
 
@@ -111,12 +113,12 @@ TARS's presence is **a complete Windows application** — a real app like any se
 
 **Window law:**
 - Standard Windows window: native title bar, minimize/maximize/close, free resize. Default ~1240×780, minimum 960×620, remembers its last size and position.
-- 0px-radius slab geometry, no drop shadows — TARS brand geometry carries into the app. Dark "Mission Display" palette in every pixel (§14).
+- Soft-round geometry + soft-glass depth — Mission Display v2 brand geometry carries into the app: radius scale 8/12/16px, restrained shadow, 3.5% sheen (§14). No glow, no neon. Dark palette in every pixel (§14).
 - OFF = process closed (RAM Charter: OFF costs nothing). Summon re-opens it: cold open ≤ ~2s on this machine, warm re-open ≤ 1s. First cold open of a session plays the boot line.
 
 **Anatomy (four zones):**
-- **Left sidebar (~280px, collapsible):** TARS mark (slab glyph from Cooper's walk-art) + current state (IDLE/LISTENING/THINKING/SPEAKING/ERROR as a small labelled dot) · "New chat" · conversation history list · quick action entries (Status · New document · TeleSend · LOOK) · footer: Cooper-ID chip (who is currently recognized) + Settings gear.
-- **Main stage:** header strip — conversation title · **honest-hue privacy pill (LOCAL teal / CLOUD ochre, always visible)** · current brain-lane tag · mic button. Transcript — Cooper's messages in quiet surface-2 bubbles, TARS answers flat-left with a thin hue-colored border; message actions reveal on hover (copy · read-aloud · re-do). Empty state = Cooper's walk-art large + the boot line.
+- **Left sidebar (~280px, collapsible):** TARS mark (Cooper's walk-art glyph in a soft-round tile) + current state (IDLE/LISTENING/THINKING/SPEAKING/ERROR as a small labelled dot) · "New chat" · conversation history list · quick action entries (Status · New document · TeleSend · LOOK) · footer: Cooper-ID chip (who is currently recognized) + Settings gear.
+- **Main stage:** header strip — conversation title · **honest-hue privacy pill (LOCAL mint / CLOUD amber, always visible)** · current brain-lane tag · mic button. Transcript — Cooper's messages in quiet surface-2 bubbles, TARS answers flat-left with a thin hue-colored border; message actions reveal on hover (copy · read-aloud · re-do). Empty state = Cooper's walk-art large + the boot line.
 - **Input bar:** multiline text, send, mic (push-to-talk), attach (file → for PDF/Office jobs), and a chip row of operator intents (Open · Search · Find file · Document · TeleSend · LOOK · Status · Council) — chips are shortcuts that pre-fill, never hidden powers.
 - **Voice strip:** a voice-visual band (Kokonut `ai-voice` class) docks above the input **only while voice is active**. Voice is a visitor; text is home.
 
@@ -131,24 +133,29 @@ TARS's presence is **a complete Windows application** — a real app like any se
 
 **Five visible states, unmistakable at a glance:** IDLE / LISTENING / THINKING / SPEAKING / ERROR — state chip in the sidebar, the header, and the voice strip all agree.
 
-### 14. The palette — "Mission Display" (locked, exact hex)
+### 14. The palette — "Mission Display v2" (locked, exact hex · ratified Aug 17, 2026 — Cooper ballot: soft-round · soft-glass · amber+mint; the v1 slab-flat scheme is retired to the museum)
 | Token | Hex | Meaning |
 |---|---|---|
-| background | `#15171B` | deep instrument-panel dark |
-| surface-1 / surface-2 | `#1D2024` / `#262A2F` | elevation by fill step |
-| text / text-dim | `#D9D6CF` / `#9A9DA1` | warm off-white hierarchy |
-| border | `#34383D` | quiet separators |
-| action steel | `#7C8791` | neutral actions |
-| **CLOUD — ochre** | `#C98A3B` | **data may leave the machine** |
-| **LOCAL — teal** | `#4C8F86` | **nothing leaves the machine** |
-| error red | `#C1453B` | errors and Handover ONLY |
-| success olive | `#7A9B5C` · thinking slate `#6E7C8C` · focus `#A7B3BA` | |
+| background | `#0F1115` | deep instrument-panel dark |
+| surface-1 / -2 / -3 | `#171B22` / `#1F2530` / `#262E3B` | elevation by fill step (-3 = raised layer) |
+| text / text-dim / text-faint | `#ECECEF` / `#9CA3AF` / `#6B7280` | off-white hierarchy |
+| hairline | `#262C38` | quiet separators |
+| action steel | `#8A94A3` | neutral actions, glyphs |
+| **CLOUD — warm amber** | `#F2AD4E` | **data may leave the machine** |
+| **LOCAL — mint** | `#5CD6AE` | **nothing leaves the machine** |
+| error red | `#E0655C` | errors and Handover ONLY |
+| success `#7FBB6B` · thinking `#8195AB` · focus `#AAB6C4` | | |
+| on-accent (contrast law) | `#0B0E12` on mint · `#191207` on amber | filled accents NEVER take white text |
 
-**The honest-hue law (applies to the whole app):** a glance at the accents tells you the privacy state. Ochre = leaving, teal = staying. The header pill, reply borders, and active-lane tags all obey it. Dark text `#15171B` sits on every filled accent (contrast law). Usage follows 60-30-10.
+**Geometry (soft-round):** radius scale 8px (buttons/inputs) · 12px (cards) · 16px (panels/sheets) · capsules for state/lane/jump pills and chips · message bubbles asymmetric 16-with-8px-tail · glyph tiles 9–10px · window shell 18px. TARS answers stay flat-left with the 2px hue border — TARS does not bubble.
+**Depth (soft-glass, restrained):** raised cards/bubbles/input bar — `0 4px 14px rgba(0,0,0,.28)` · floating layers (modals/popovers) — `0 10px 28px rgba(0,0,0,.38)` · header/input strips and raised cards — 3.5% white vertical sheen (`linear-gradient(180deg, rgba(255,255,255,.035), transparent)`). No glow, no bloom, no neon, no colored shadows. Transcript body matte.
+**Derived alpha utilities (the ONLY non-hex colors allowed):** selection = mint 14% alpha fill + 1px mint border · disabled = text-faint on 45% fill · status chips may tint their lane hue ≤16% alpha · hairlines may soften to white ≤10% alpha.
+
+**The honest-hue law (applies to the whole app — semantics UNCHANGED from v1):** a glance at the accents tells you the privacy state. Amber = leaving, mint = staying. The header pill, reply borders, and active-lane tags all obey it. On-accent dark (`#0B0E12` / `#191207`) sits on every filled accent (contrast law). Usage follows 60-30-10.
 
 ### 15. The two art laws (absolute — unchanged, now applying to the app)
 1. **ZERO EMOJI** anywhere in TARS — not in the UI, not in TARS's replies. Line-glyph pictograms only (Lucide-class). *(Cooper decree: "I need no emoji in it, keep it plain simple.")*
-2. **Cooper's exact supplied images only.** Mechanical crop/scale is allowed; no AI-restyled or AI-generated derivatives, ever. App icon = Cooper's two-robots-walking artwork rendered as a slab glyph; the empty-state hero = the same artwork, mechanically scaled. *(Retired: the v0.5 "Plain" popup mockup `tars/brand/tars-home-mockup-v05-plain.html` — kept in the design museum, superseded by the Bridge app.)*
+2. **Cooper's exact supplied images only.** Mechanical crop/scale is allowed; no AI-restyled or AI-generated derivatives, ever. App icon = Cooper's two-robots-walking artwork rendered as a soft-round glyph tile; the empty-state hero = the same artwork, mechanically scaled. *(Retired: the v0.5 "Plain" popup mockup `tars/brand/tars-home-mockup-v05-plain.html` — kept in the design museum, superseded by the Bridge app.)*
 
 ---
 
@@ -177,7 +184,7 @@ TARS *does* things before it *discusses* things.
 *"Write a letter to the editor"* / *"Make a PPT on the Green Revolution"* → TARS drafts the content (smart lane) → generates a genuine `.docx` / `.pptx` on the Desktop (small local libraries, zero RAM residency) → opens it in Word/PowerPoint on command. TARS writes; Office shows.
 
 ### 19. LOOK Mode — TARS watches the screen (on command only)
-*"TARS, watch my screen"* → rolling screenshots (~every 3–5s) flow through the vision lane → TARS narrates or answers about what it sees ("that error means the token expired", "the total's at the bottom — scroll"). Session-bound: stops on "enough", on hide, on idle. A visible WATCHING indicator is on the whole time, hue-honest (ochre when frames go to cloud-eyes), and the **private-document classifier screens every frame before anything leaves the machine.**
+*"TARS, watch my screen"* → rolling screenshots (~every 3–5s) flow through the vision lane → TARS narrates or answers about what it sees ("that error means the token expired", "the total's at the bottom — scroll"). Session-bound: stops on "enough", on hide, on idle. A visible WATCHING indicator is on the whole time, hue-honest (amber when frames go to cloud-eyes), and the **private-document classifier screens every frame before anything leaves the machine.**
 
 ### 20. Tier ② — VOICE COMPANION (the soul)
 - Free conversation and brainstorm with **real memory** across sessions (what Cooper taught it, his preferences, running jokes, exam dates).
@@ -277,7 +284,7 @@ Privacy is enforced by **who is listening**, not where the data lives. TARS's br
 - **The Member File** — every voice in `profiles.json` carries all of: `name` · `relationship to Cooper` · `tier (COOPER / FAMILY-STANDARD / GUEST)` · `voiceprint embedding` · enrollment date.
 - **The iron rule — enrollment or privacy:** unfiled voice = GUEST-private-locked; TARS speaks ZERO personal data around them (error matrix row 2). No name on file = no access.
 - Recognized tiers get cloud-processed personal answers per the DISCRETION dial. edge-tts voices private content only to an enrolled, cleared audience — else text.
-- Still unbreakable: `vault.db`/`tars-brain/` stay local source-of-truth (cloud gets request slices, never the vault) · every personal cloud send is log-flagged · hue law: OCHRE when personal data leaves · the local classifier (<100MB) still flags private moments and checks the audience before any send · private documents refused at the classifier, not at the cloud.
+- Still unbreakable: `vault.db`/`tars-brain/` stay local source-of-truth (cloud gets request slices, never the vault) · every personal cloud send is log-flagged · hue law: AMBER when personal data leaves · the local classifier (<100MB) still flags private moments and checks the audience before any send · private documents refused at the classifier, not at the cloud.
 
 ### 32. The state machine
 `OFF →(summon)→ ARMED → LISTENING ⇄ THINKING ⇄ SPEAKING →("stand down" / 10 idle min)→ OFF`
@@ -292,7 +299,7 @@ Privacy is enforced by **who is listening**, not where the data lives. TARS's br
 ## PART VIII — THE LAWS & THE NEVER LIST
 
 ### 33. The Laws (engineering constitution — amendable only by Cooper)
-1. **Privacy-first, visible** — ochre = leaving, teal = staying, glance = know.
+1. **Privacy-first, visible** — amber = leaving, mint = staying, glance = know.
 2. **The Never List** (below).
 3. **No auto-start** — boots to OFF, summoned only.
 4. **RAM Charter** (§28) — cloud-first, no local LLM by default, ~2GB hard ceiling.
@@ -325,4 +332,4 @@ No cracks · no KMS · no registry-Office tricks · no driver boosters · no CCl
 
 TARS is built for a student who wants a machine that *respects him*: one that is honest when it doesn't know, silent when not summoned, careful with what leaves the machine, gentle with the family's RAM, funny only when allowed, useful before it is clever, and still standing after the power comes back. Honesty fixed at ninety. Humor adjustable. Loyalty absolute.
 
-*TARS · Designed in Agra for a future physicist · v1.1 App-Era edition · August 17, 2026.*
+*TARS · Designed in Agra for a future physicist · v1.2 App-Era edition · August 17, 2026.*

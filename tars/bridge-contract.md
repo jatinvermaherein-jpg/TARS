@@ -1,6 +1,8 @@
-# TARS BRIDGE CONTRACT — v1.3
+# TARS BRIDGE CONTRACT — v1.4
 **The one file both build agents obey · August 17, 2026 · App-Era, two-lane build**
 **If you are an AI agent building any part of TARS: this contract defines the border between AGENT CORE and AGENT APP. Neither side crosses it. When your instinct conflicts with this document, the document wins. To change it requires a Cooper decree plus a version bump plus BOTH agents re-reading it.**
+
+**Amendment A4 (v1.4, Aug 17, Architect-post-ratification, Cooper ballot "v2 locked"):** Mission Display v2 becomes the skin canon. Geometry: soft-round radius 8/12/16px (+ capsule pills, asymmetric 16/8 message bubbles, 9–10px glyph tiles, 18px window shell). Depth: soft-glass — raised surfaces `0 4px 14px rgba(0,0,0,.28)`, floating layers `0 10px 28px rgba(0,0,0,.38)`, 3.5% white vertical sheen on header/input strips and raised cards. Hue tokens: CLOUD = warm amber `#F2AD4E`, LOCAL = mint `#5CD6AE`; on-accent text `#0B0E12` (mint) / `#191207` (amber), never white. **Semantics UNCHANGED — hue still means privacy.** All thirteen v1 hexes are retired; their presence in `tars/app/` is an audit failure. Full token law: bible §14 (v1.2) + `tars/brand/palette-mission-display.md` v2.
 
 **Amendment A3 (v1.3, Aug 17, Architect-post-audit of P-APP-2):** four lanes canonized so no Settings panel is orphaned at merge:
 - `quick_action` name space += `enroll_voice` (payload {}); CORE implements the enrollment wizard in P-CORE-4; interim replies use §22 canon lines.
@@ -22,7 +24,7 @@ Until each CORE phase lands, the APP mock may supply equivalents (host.tarsMockP
 | **CORE** | Arena AI agent (main) | TARS main: Python backend — state machine, brain router (8-key ring), operator engine, ears/mouth, Cooper ID, memory vault, Living Brain, Watcher, TeleSend, Office Studio, LOOK | `tars/core/` only |
 | **APP** | Arena AI agent (Battle Mode) | The Bridge app shell: the full Windows-app UI as a STATIC bundle — HTML/CSS/JS, zero runtime deps | `tars/app/` only |
 
-**Jurisdiction law:** each agent may read the other's folder but writes ONLY inside its own. Shared read-only ground truth: `tars/tars-definition.md` (bible v1.1+), this contract, `tars/brand/` art assets. Both push to the same private repo (`tars-vault`) via the Chain Protocol, logging to `AGENT_LOG.md` with a `[CORE]` / `[APP]` tag on every entry.
+**Jurisdiction law:** each agent may read the other's folder but writes ONLY inside its own. Shared read-only ground truth: `tars/tars-definition.md` (bible v1.2+), this contract, `tars/brand/` art assets. Both push to the same private repo (`tars-vault`) via the Chain Protocol, logging to `AGENT_LOG.md` with a `[CORE]` / `[APP]` tag on every entry.
 
 ## 2. The zero-build law (APP lane)
 The app bundle is **hand-written static files** — `tars/app/index.html`, `tars/app/app.css`, `tars/app/app.js`, `tars/app/assets/`. **No frameworks, no bundler, no npm, no node_modules, no build step — ever.** The AiO never sees Node. If a feature seems to need a library, it doesn't: write the 20 lines by hand. The bundle must run identically in three hosts: ① any plain browser (mock mode, for previews) ② pywebview/WebView2 on the AiO (production) ③ the in-app file preview (sandboxed, no network) — so: no CDN links, no external fonts, no external images, no fetch() to the network. Everything inline or under `tars/app/assets/`.
@@ -74,12 +76,12 @@ BrainNode     = {path, kind:'dir'|'file', sizeKb, modifiedDay}                  
 
 ## 5. The rendering laws (APP lane owes these)
 1. **State machine is core-owned.** `OFF/ARMED/LISTENING/THINKING/SPEAKING/ERROR` — the app NEVER transitions itself; it renders the last `StateNotice`. If the bridge is silent, the visible state is what it was.
-2. **Hue law:** accent colors are decided by CORE (the `hue` field) and rendered by APP. Ochre `#C98A3B` = CLOUD, teal `#4C8F86` = LOCAL. The app never guesses.
+2. **Hue law:** accent colors are decided by CORE (the `hue` field) and rendered by APP. Amber `#F2AD4E` = CLOUD, mint `#5CD6AE` = LOCAL. The app never guesses.
 3. **Zero-emoji law:** core-side guarantee; app must not add any (no system emoji pickers, no emoticon glyphs). Lucide-class inline SVG pictograms only.
 4. **Art law:** only Cooper's supplied assets in `tars/brand/` — mechanical crop/scale only, referenced from `tars/app/assets/` copies made at Merge Day.
-5. **Palette:** exact hex from bible §14. No new colors. Dark text `#15171B` on filled accents.
+5. **Palette:** exact hex from bible §14 (Mission Display v2 — 15 tokens + 2 on-accent + 4 alpha utilities, nothing else). No new colors. On-accent text `#0B0E12` (on mint) / `#191207` (on amber) on filled accents — never white.
 6. **Voice strip** exists only while `state` ∈ {LISTENING, SPEAKING} or ptt active.
-7. Anatomy/geometry per bible §13: sidebar ~280px collapsible · window 1240×780 min 960×620 · 0px radius · no shadows.
+7. Anatomy/geometry per bible §13 + §14 v2 (A4): sidebar ~280px collapsible · window 1240×780 min 960×620 · soft-round radius 8/12/16 (+ capsules, asymmetric bubbles) · soft-glass depth (restrained shadow + 3.5% sheen — no glow/neon).
 
 ## 6. The Mock law (both lanes are independently testable)
 - **APP ships `tars/app/mock.js`**: a complete in-browser fake `tarsBridge` — boots with the canon boot line, answers a script of demo interactions (dial command, search demo, red-verb confirm gate, status gauges, cloud-fail error line, guest-voice line), and auto-activates when `window.tarsBridge` is absent. Anyone opening `index.html` in a browser sees a living demo with zero backend.
@@ -87,8 +89,8 @@ BrainNode     = {path, kind:'dir'|'file', sizeKb, modifiedDay}                  
 - The demo script is shared canon: `tars/bridge-demo-script.md` — both lanes implement it so demos are comparable 1:1.
 
 ## 7. Merge Day smoke test (10 checks, all must pass)
-1. Cold open shows empty state + boot line ≤ ~2s · 2. Typed hello → chunked reply + done · 3. Hue pill flips ochre on a cloud reply, teal on local status · 4. `humor 60` → canon line + state notice · 5. `honesty 50` → "Honesty is fixed at ninety." slider stays locked in Settings · 6. A red-verb (e.g. "shutdown") → action modal → cancel returns "Cancelled. Nothing changed." · 7. `status` → gauges render from real StatusReport · 8. Wake path: LISTENING state + voice strip visible while speaking · 9. Kill: `Ctrl+Alt+Esc` closes app instantly (RAM back to 0) · 10. Idle 10 min → stand down → app closed.
+1. Cold open shows empty state + boot line ≤ ~2s · 2. Typed hello → chunked reply + done · 3. Hue pill flips amber on a cloud reply, mint on local status · 4. `humor 60` → canon line + state notice · 5. `honesty 50` → "Honesty is fixed at ninety." slider stays locked in Settings · 6. A red-verb (e.g. "shutdown") → action modal → cancel returns "Cancelled. Nothing changed." · 7. `status` → gauges render from real StatusReport · 8. Wake path: LISTENING state + voice strip visible while speaking · 9. Kill: `Ctrl+Alt+Esc` closes app instantly (RAM back to 0) · 10. Idle 10 min → stand down → app closed.
 
 ## 8. Order of work
 **APP lane** needs no secrets and no machine — deployable immediately (P-APP-0: shell + mock demo). **CORE lane** needs the 8-key secrets sitting + GITHUB_TOKEN before P0 reap (vault, router). Lanes converge at P3 on the AiO.
-*Both lanes obey bible v1.1 absolutely: four roles only, zero-emoji, art laws, Never List, 7 Laws.*
+*Both lanes obey bible v1.2 absolutely: four roles only, zero-emoji, art laws, Never List, 7 Laws.*

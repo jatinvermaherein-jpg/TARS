@@ -1,48 +1,50 @@
-# 🎨 TARS Palette — LOCKED: Scheme A "Mission Display"
-**Decided Aug 10, 2026 · Route: Claude Reviewer consult → Architect implementation · Scheme B "Traditional Calm" parked below as a drop-in re-skin (same structure, warmer neutrals, gold/sage accents) if A ever reads "too console" on the family machine.**
+# 🎨 TARS Palette — LOCKED: "Mission Display v2"
+**v1 ratified Aug 10, 2026 → v2 RATIFIED Aug 17, 2026** (Cooper decree "override Mission Display — modern and aesthetic," structured ballot = soft-round · soft-glass · amber+mint, then one-click **"v2 locked"**). The v1 slab-flat scheme is RETIRED to the museum (bottom of this file) alongside parked Scheme B "Traditional Calm." Ratified visual reference: `mission-display-v2-preview.html` — the exact render Cooper locked.
 
 ## Design law intent
-Interstellar-console calm: desaturated steel neutrals, flat fills, barely-rounded corners, **no gradients-as-glow, no orbs.** Dark-first (study/movie machine; IPS bleed + eye strain). Red exists ONLY as alarm.
+Interstellar-console calm, modernized: a deeper neutral ramp, soft-round corners, restrained glass depth, warm signal hues. Dark-first (study/movie machine; IPS bleed + eye strain). **No glow, no bloom, no neon, no colored shadows.** Red exists ONLY as alarm. Art laws sovereign: Cooper's supplied images only, zero emoji, system font stack.
 
-## The tokens (the law)
+## The v2 tokens (the law — 15 hexes + 2 on-accent)
 | Token | Hex | Role |
 |---|---|---|
-| Background | `#15171B` | window base |
-| Surface | `#1D2024` | cards, transcript, mode row |
-| Elevated | `#262A2F` | popovers, modals, user bubble |
-| Primary text | `#D9D6CF` | body, transcript |
-| Secondary text | `#9A9DA1` | timestamps, labels, footer |
-| Borders | `#34383D` | hairlines, slab edges |
-| **Primary action** | `#7C8791` | buttons, active icon steel |
-| **🔶 CLOUD = ochre `#C98A3B`** | "data may leave this machine" |
-| **🟩 LOCAL = teal `#4C8F86`** | "vaulted — nothing leaves" |
-| Error/danger | `#C1453B` | errors + Handover screen ONLY |
-| Success | `#7A9B5C` | confirmations (glyph-paired, never bare color) |
-| Thinking | `#6E7C8C` | THINKING pulse |
-| Selection | `#2B3A3E` fill + `#4C8F86` border | — |
-| Focus ring | `#A7B3BA` | keyboard focus |
-| Disabled | `#52565C` on 50% fill | — |
+| Background | `#0F1115` | window base |
+| Surface-1 | `#171B22` | cards, transcript zone |
+| Surface-2 | `#1F2530` | elevated cards, user bubble, inputs |
+| Surface-3 | `#262E3B` | raised layer (status chips, hover fills) |
+| Hairline | `#262C38` | borders everywhere |
+| Text | `#ECECEF` | body |
+| Text-dim | `#9CA3AF` | timestamps, labels |
+| Text-faint | `#6B7280` | placeholders, tertiary |
+| Steel | `#8A94A3` | neutral actions, glyph strokes |
+| **🔶 CLOUD = warm amber `#F2AD4E`** | "data may leave this machine" |
+| **🟩 LOCAL = mint `#5CD6AE`** | "vaulted — nothing leaves" |
+| Error | `#E0655C` | errors + Handover screen ONLY |
+| Success | `#7FBB6B` | confirmations (glyph-paired, never bare color) |
+| Thinking | `#8195AB` | THINKING pulse |
+| Focus ring | `#AAB6C4` | keyboard focus |
+| On-accent (contrast law) | `#0B0E12` on mint · `#191207` on amber | filled accents NEVER take white text |
 
-**60-30-10:** 60 neutrals · 30 elevated/borders/text · 10 accents — accents live as 1–2px slab borders, icons, state pulses; **one exception: the Handover screen is allowed a full `#C1453B`-tinted wash** (it must FEEL different).
-**Contrast law:** filled accent chips/buttons take **`#15171B` dark text, NEVER white** (white fails AA on ochre/teal).
+## Geometry (soft-round)
+`8px` buttons/inputs/small chips · `12px` cards · `16px` panels/modals/sheets · `999px` capsules (state pill, hue pill, lane tag, jump pill, keyboard chips) · message bubbles asymmetric `16px 16px 8px 16px` · glyph tiles 9–10px · window shell 18px. **TARS answers stay flat-left with the 2px hue border — TARS does not bubble.**
 
-## Hue-law in the components (the teaching moments)
-- **Waveform bars (Kokonut ai-voice):** steel at rest → **ochre mid-cloud reply** → **teal mid-local processing.** The single biggest lesson in the UI.
-- **TARS bubble left-slabs:** default `#34383D` · cloud answer → **ochre** · vaulted/private → **teal**. User bubbles: no accent — signal is TARS-only.
-- **Footer hue strip:** teal idle → ochre while any cloud call in flight → red flash on error. The sibling glance-test.
-- **Mic glyph:** ochre while recording→cloud, teal while recording→local.
-- **COMMANDER chip:** filled `#7C8791`, dark text · GUEST: outline-only.
-- **Dial chips + slider fills:** neutral steel — dials are information, not hue-law.
+## Depth (soft-glass, restrained)
+- Raised (cards, bubbles, input bar, jump pill): `0 4px 14px rgba(0,0,0,.28)`
+- Floating (YES modal, popovers, dropdowns): `0 10px 28px rgba(0,0,0,.38)`
+- Sheen: header strip, input strip, raised cards get `linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0))`. Transcript body stays matte.
 
-## AI-generation prompt pack (hexes embedded — copy-paste grade)
-**Style guide for ALL future assets:** *flat, matte, engineering-console; hard corners; no glass/glow/bloom/lens flare; subtle metal-brush only on steel; palette strictly {#15171B, #1D2024, #262A2F, #7C8791, #C98A3B, #4C8F86, #C1453B, #D9D6CF}; rectangular/slab geometry only, no circles; single soft top-down light.*
+## Derived alpha utilities (the ONLY non-hex colors allowed)
+Selection = mint 14% alpha fill + 1px mint border · disabled = text-faint at reduced contrast on 45% fill · status chips may tint their lane hue ≤16% alpha · hairlines may soften to white ≤10% alpha. Nothing else. No other hexes, ever.
 
-1. **App icon:** *Square 512px flat icon: four vertical brushed-steel slabs of varying heights side by side on `#15171B`, thin glowing gaps in teal `#4C8F86`; matte, no bevel gloss; legible as four distinct bars at 32px; no circles, no text.*
-2. **Wizard welcome:** *Original minimalist illustration of a blocky monolithic slab-built robot standing centered on flat `#15171B`, one teal `#4C8F86` seam-line; engineering-diagram calm, wide negative space; purely geometric original design.*
-3. **About/empty state:** *Flat vector empty mission panel: faint rectangular slab outlines `#34383D` on `#15171B`, one small ochre `#C98A3B` dot off-center; extremely sparse.*
-4. **Tray pair:** *32px, same 4-slab mark — asleep: slabs `#262A2F`, gaps unlit; armed: gaps lit teal `#4C8F86` (ochre `#C98A3B` variant reserved to depict active-cloud state).*
+## Hue-law components (semantics UNCHANGED from v1 — only the hexes moved)
+Waveform bars steel→amber/mint · TARS reply left-border hue · footer hue strip · mic glyph hue · header pill · Cooper-ID chip (filled steel, dark text; GUEST outline-only) · dial chips/sliders neutral steel (dials are information, not hue-law) · gauge warn = lane hue at ≤20% remaining (inclusive).
+
+**60-30-10** still governs usage. **One exception stands:** the Handover screen is allowed a full error-tinted wash (it must FEEL different).
+
+## Retired — museum (banned in product; audit greps against these)
+v1 hexes: `#15171B` `#1D2024` `#262A2F` `#D9D6CF` `#9A9DA1` `#34383D` `#7C8791` `#C98A3B` `#4C8F86` `#C1453B` `#7A9B5C` `#6E7C8C` `#A7B3BA` — plus names "ochre"/"teal" as canon words. 0px slab corners and the flat/no-shadow rule retired with them. The old AI-asset prompt pack is RETIRED — the art law (Cooper's supplied art only) supersedes it; nothing AI-generated enters the bundle. Scheme B "Traditional Calm" stays parked, museum-grade.
 
 ## Changelog
-- v1 → LOCKED Aug 10 2026 (replaces vetoed navy/cyan "gaming-IDE" scheme)
+- v1 → LOCKED Aug 10, 2026 (replaced vetoed navy/cyan "gaming-IDE" scheme)
+- **v2 → LOCKED Aug 17, 2026** (ballot: soft-round / soft-glass / amber+mint — "v2 locked" ratification; same-day surgical canon wave: bible v1.2 §13–§14, contract A4 v1.4, this file)
 
 *Steel and two signal hues. A ten-year-old can learn it in one glance; a physicist can live in it for years.* 🛰️

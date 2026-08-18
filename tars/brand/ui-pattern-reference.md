@@ -1,5 +1,5 @@
 # UI PATTERN REFERENCE — what TARS adopts from public AI-agent UI kits
-**v1.0 · Aug 17, 2026 · Ratified under the two art laws. This file is PATTERN guidance only — no third-party asset, style, font, color, or illustration enters the TARS bundle. Everything is redrawn in Mission Display tokens (`palette-mission-display.md`), 0px slab geometry, system font stack, zero-emoji, Lucide-class inline SVGs hand-drawn.**
+**v1.0 · Aug 17, 2026 · Ratified under the two art laws. This file is PATTERN guidance only — no third-party asset, style, font, color, or illustration enters the TARS bundle. Everything is redrawn in Mission Display tokens (`palette-mission-display.md`), Mission Display v2 soft-round geometry, system font stack, zero-emoji, Lucide-class inline SVGs hand-drawn.**
 
 Source archetypes reviewed (Cooper-supplied links):
 1. Figma Community — "AI Agent UI Kit" (free preview of a paid kit; teaser only)
@@ -16,7 +16,7 @@ Source archetypes reviewed (Cooper-supplied links):
 8. **Result cards** — search results and generated documents as tidy cards (title, source, open affordance), not raw text dumps. **Assigned to P-APP-3.**
 
 ## Explicitly rejected
-- Rounded/capsule geometry, soft shadows, gradients, glass — TARS is slabs: 0px radius, fill-step elevation only.
+- Kit colors, kit fonts (Inter), imported art/illustrations, light mode, heavy glassmorphism (backdrop-blur, glow, bloom). NOTE (Aug 17 v2): soft-round corners, soft shadows and the whisper sheen are no longer "kit style" — they became OUR canon via the skin ballot (bible §14 v2). Rejected is their assets and their look, not the geometry family.
 - External fonts (Inter etc.) — system stack only; the bundle must run offline and sandboxed.
 - Any imported art/illustration/icons — hand-drawn glyphs + Cooper's art, always.
 - Light mode — not in scope (Mission Display is dark-only by lock).
