@@ -224,6 +224,10 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - **Commendation (the line of the phase):** check 162 failed and the lane wrote *"the machine is right; my expectation was blind to the keyword list"* — `physics` honestly gates smart. It interrogated its own expectation instead of pinning a lie. That sentence is the whole mission in miniature.
 - KNOWN LIMITS fit the canon exactly: no live mic/audio in sandbox (nt-first staging at M-1; M-2 ceremonies named). **Lane B verdict: PASS — parks for P-CORE-4 (wake + Cooper ID + the 16-row matrix), forging next.**
 
+## 🏭 PIPELINE LAW CHANGE — "no parking" (Cooper decree, Aug 18, 2026)
+- From this decree: **the assembly line never idles.** Phase REPORT received → if audit FAILS → fix prompt committed + courier message delivered same-turn → if audit PASSES → verdict + the NEXT phase prompt committed + courier message delivered same-turn. Lanes never wait on the Architect's forge queue again.
+- Effective immediately with P-CORE-4: forged and shipped in this same motion as the P-CORE-3 verdict.
+
 ## 🗄️ APP-FINAL ARCHIVE RECEIVED + VERIFIED (Aug 18, 2026) — banked `tars/app-lane-final-archive.md`
 - Cross-checked against MY audit: frozen commit `ba36bc2` ✅ · my line counts (219/843/1357/627) match the frozen tree ✅ · **the lane self-corrected its courier numbers (had said 1409/621, mid-edit buffer; corrected before being caught — second self-report honesty mark this phase)** · 215 checks lane-reported (166+49), clean-room re-run · freeze integrity: upstream touched only logs ✅.
 - **RULING on its KNOWN-LIMIT #2 (Ashish line vs lo-fi search-arc collision):** coexistence accepted — demo-script scene 6 is BEHAVIORAL canon ("3 results → second opens"), not query-literal; the banked Ashish line stays as mock flavor; both retire together when the mock itself retires at P3 and the ring returns real results. Nothing to fix.
