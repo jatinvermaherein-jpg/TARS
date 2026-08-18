@@ -47,6 +47,21 @@ class Machine:
     def mic_open(self) -> bool:
         return self._state == LISTENING
 
+    @property
+    def audience(self) -> str:
+        return self._audience
+
+    def set_audience(self, audience: str) -> bool:
+        """Tier the room (bible §22/§31) — the persona gate reads this and only this."""
+        if audience not in ("cooper", "family", "guest"):
+            self._log.entry("error", cause=f"ignored audience '{audience}'")
+            return False
+        if audience != self._audience:
+            self._audience = audience
+            self._log.entry("audience", tier=audience)
+            self.emit_notice()
+        return True
+
     def notice(self) -> dict:
         """Exact contract §3 StateNotice shape — the only way state is announced."""
         return {

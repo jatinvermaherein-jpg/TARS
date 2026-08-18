@@ -8,6 +8,11 @@ otherwise fast. A failed call emits the canon mid-fail line and the walk
 continues on the next healthy key; when every key for the lane is spent or
 failed, the reply is the canon all-spent line. Every successful call is
 ledgered (ts, lane, keyindex, tokens — bible §30) and pushes a gauge event.
+
+Brain calls send [{"role":"system",...}, *history, {"role":"user",...}]: the
+persona system prompt (bible §12 clauses verbatim on EVERY call, all three
+council seats included) and the rolling chat window thread in from dialog.
+Both are optional; omitted they preserve the single-user-message shape.
 """
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -51,17 +56,21 @@ class Router:
             return "smart"
         return "fast"
 
-    def route(self, text: str) -> dict:
+    def route(self, text: str, system_prompt: str = None, history: list = None) -> dict:
         mode = self.gate(text)
         if mode == "council":
-            return self._council(text)
-        return self._single(text, mode)
+            return self._council(text, system_prompt, history)
+        return self._single(text, mode, system_prompt, history)
 
-    def _single(self, text: str, lane: str) -> dict:
+    def _single(self, text: str, lane: str, system_prompt: str = None, history: list = None) -> dict:
         provider = "openrouter" if lane in ("ultra", "council") else "groq"
         adapter = self._adapters[provider]
         notices = []
-        messages = [{"role": "user", "content": text}]
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.extend(history or [])
+        messages.append({"role": "user", "content": text})
         while True:
             with self._lock:
                 key = self._ring.next_key(provider, lane)
@@ -84,9 +93,9 @@ class Router:
                 "hue": "cloud", "tokens": result.tokens, "notices": notices,
                 "warn": remaining <= WARN_REMAINING_PCT}
 
-    def _council(self, text: str) -> dict:
+    def _council(self, text: str, system_prompt: str = None, history: list = None) -> dict:
         with ThreadPoolExecutor(max_workers=len(COUNCIL_PLAN), thread_name_prefix="tars-council") as pool:
-            votes = list(pool.map(lambda spec: self._single(text, spec[0]), COUNCIL_PLAN))
+            votes = list(pool.map(lambda spec: self._single(text, spec[0], system_prompt, history), COUNCIL_PLAN))
         notices = []
         for vote in votes:
             notices.extend(vote["notices"])

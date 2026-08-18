@@ -21,10 +21,11 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
-from tars.core import canon
+from tars.core import canon, persona
 from tars.core.__main__ import Printer, run_demochat
 from tars.core.adapters import GROQ_URL, OPENROUTER_URL, TIMEOUT_S, FixtureAdapter, GroqAdapter
 from tars.core.bus import EVENT_TYPES, Bus
+from tars.core.dialog import Dialog, classify_memory
 from tars.core.gauge import council_note, gauge_rows
 from tars.core.keys import LANE_CAPS, load_ring, parse_env_file
 from tars.core.logx import LogX
@@ -85,6 +86,12 @@ def _canon_checks(out) -> None:
     expect(out, canon.LINE_HANDOVER_BOOT == "Factory state. New commander, identify yourself. Honesty: ninety. Humor: five.",
            "canon post-handover byte-exact")
     expect(out, canon.LINE_HONESTY_FIXED == "Honesty is fixed at ninety.", "canon honesty-fixed byte-exact")
+    expect(out, canon.LINE_NOTED == "Noted. I'll remember that.", "drafted remember-ack byte-exact (pending Cooper veto)")
+    expect(out, canon.LINE_GUEST == "Voice not recognized. Guest rules apply.", "drafted guest-recognition byte-exact (pending Cooper veto)")
+    expect(out, canon.LINE_GUEST_DIAL == "Only Cooper moves the dials.", "drafted guest-dial byte-exact (pending Cooper veto)")
+    expect(out, persona.HONESTY_CLAUSES == "Never flatter. If you do not know, say you do not know. "
+           "Never invent facts, numbers, citations, or sources. When uncertain, say what part you are unsure of.",
+           "bible §12 honesty clauses byte-exact, no paraphrase")
     words = [(0, "zero"), (5, "five"), (19, "nineteen"), (20, "twenty"), (21, "twenty one"),
              (60, "sixty"), (95, "ninety five"), (100, "one hundred")]
     expect(out, all(canon.number_words(n) == w for n, w in words), "number_words covers 0..100 for dial-acks")
@@ -435,6 +442,182 @@ def _ringdemo_checks(base: Path, out) -> None:
            "tour shows the warn flag, drained canon line, gauge events, and ledger tail")
 
 
+def _persona_checks(base: Path, out) -> None:
+    zone = base / "persona"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    dials60 = {"honesty": 90, "humor": 60, "vernacular": 30, "discretion": 95, "trust": 25}
+
+    def universe(name, groq_script, or_script, audience="cooper", seed_memory=None):
+        path = zone / name
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", groq_script)
+        or_fx = FixtureAdapter("openrouter", or_script)
+        router = Router(load_ring(full_source), {"groq": groq_fx, "openrouter": or_fx}, vault, bus)
+        dialog = Dialog(settings, vault, router, machine, bus)
+        for kind, text in (seed_memory or []):
+            vault.remember(kind, text)
+        machine.set_audience(audience)
+        return dialog, vault, machine, groq_fx, or_fx, events, settings
+
+    # happiness begins: one live dialog, watched end to end
+    dialog, vault1, machine1, gfx1, ofx1, ev1, _s1 = universe(
+        "u1", [("ok", "fast hello", 10), ("ok", "smart bit", 20), ("ok", "vote f", 9), ("ok", "vote s", 14)],
+        [("ok", "vote c", 8)])
+    expect(out, dialog.send("hello") == {"chatId": 1}, "send returns contract ReplyResult {chatId}")
+    system1 = gfx1.received[-1][0]
+    expect(out, system1["role"] == "system" and persona.HONESTY_CLAUSES in system1["content"],
+           "§12 clauses byte-exact inside the fast-call system prompt the adapter RECEIVED")
+    dialog.send("explain entropy to me")
+    expect(out, persona.HONESTY_CLAUSES in gfx1.received[-1][0]["content"], "§12 clauses on the smart call too")
+    dialog.send("council on this: skip revision?")
+    seats = gfx1.received[-2:] + ofx1.received[-1:]
+    expect(out, len(seats) == 3 and all(persona.HONESTY_CLAUSES in seat[0]["content"] for seat in seats),
+           "§12 clauses ride all 3 council seats")
+    dones1 = [detail for kind, detail in ev1 if kind == "done"]
+    expect(out, len(dones1) == 3 and all(set(detail) == {"chatId", "messageId", "hue", "lane"} for detail in dones1),
+           "A2: every done carries exactly {chatId, messageId, hue, lane}")
+    summaries = dialog.list_chats()
+    expect(out, set(summaries[0]) == {"id", "title", "ts", "lastHue"} and summaries[0]["title"] == "hello"
+           and summaries[0]["lastHue"] == "cloud",
+           "ChatSummary derived read-side: title from first user message, lastHue from newest hue, zero row edits")
+    messages1 = dialog.open_chat(1)
+    expect(out, set(messages1[0]) == {"id", "who", "text", "ts", "hue", "lane", "actions"}
+           and messages1[0]["who"] == "cooper" and messages1[0]["hue"] is None
+           and messages1[0]["actions"] == ["copy", "read_aloud", "redo"],
+           "ChatMessage contract shape exact, hover actions ordered")
+    expect(out, dialog.new_chat() == {"id": 2} and dialog.list_chats()[0]["title"] == "New chat",
+           "new_chat contract return; an empty chat titles itself plainly")
+
+    # persona bytes: bands, determinism, audience degrade
+    dials5 = {"honesty": 90, "humor": 5, "vernacular": 30, "discretion": 95, "trust": 25}
+    prompt5 = persona.build_system_prompt(dials5, "cooper", [])
+    prompt60 = persona.build_system_prompt(dials60, "cooper", [])
+    expect(out, prompt5 != prompt60 and "HUMOR 5/100" in prompt5 and "HUMOR 60/100" in prompt60,
+           "humor 5 vs 60 produce different dial-directive bytes")
+    expect(out, persona.build_system_prompt(dials60, "cooper", []) == prompt60,
+           "persona deterministic: same inputs, same bytes, live dials pulled at call time")
+    expect(out, "zero jokes" in persona.humor_directive(5) and "dry one-liners" in persona.humor_directive(60)
+           and "dost" in persona.humor_directive(95), "humor bands pinned to the §10 anchors")
+    expect(out, "crisp formal English" in persona.vernacular_directive(0)
+           and "Hinglish" in persona.vernacular_directive(30) and "desi" in persona.vernacular_directive(100),
+           "vernacular bands pinned to the §10 anchors")
+    prompt_unknown = persona.build_system_prompt(dials60, "intruder", [{"kind": "fact", "text": "a secret"}])
+    expect(out, "guest" in prompt_unknown and persona.MEMORY_HEADER not in prompt_unknown,
+           "unknown audience degrades to the guest prompt (§31 iron rule)")
+    expect(out, machine1.set_audience("intruder") is False and machine1.audience == "cooper",
+           "invalid audience tier refused at the machine, logged")
+
+    # dial commands through send()
+    dialog2, vault2, _m2, _g2, _o2, ev2, _s2 = universe("u2", [], [])
+    dialog2.send("humor 60")
+    expect(out, any(kind == "state" and detail["dials"]["humor"] == 60 for kind, detail in ev2),
+           "dial command emits the fresh StateNotice (demo scene 4) and persists")
+    expect(out, vault2.messages_for(1)[-1]["text"] == "Humor adjusted to sixty percent.",
+           "dial ack persisted as a tars message, byte-exact")
+    dialog2.send("honesty 50")
+    expect(out, vault2.messages_for(1)[-1]["text"] == "Honesty is fixed at ninety.",
+           "typed honesty attempt refused byte-exact inside send()")
+    dialog2.send("humor abc")
+    expect(out, vault2.messages_for(1)[-1]["text"] == canon.LINE_CATCH_ALL,
+           "malformed dial value refused with the canon catch-all, never guessed")
+
+    # memory flows
+    dialog3, vault3, _m3, gfx3, _o3, _e3, _s3 = universe("u3", [("ok", "later answer", 10)], [])
+    dialog3.send("remember this: Cooper has a physics test on Friday")
+    expect(out, vault3.messages_for(1)[-1]["text"] == canon.LINE_NOTED, "remember-intent acks the drafted canon line")
+    plans = vault3.recall("plan")
+    expect(out, len(plans) == 1 and "physics test" in plans[0]["text"], "payload stored under the declared kind (plan)")
+    dialog3.send("hello again")
+    expect(out, persona.MEMORY_HEADER in gfx3.received[-1][0]["content"]
+           and "physics test on Friday" in gfx3.received[-1][0]["content"],
+           "next cooper system prompt carries the memory block, kind-labeled")
+    expect(out, classify_memory("Ma likes early tea") == "person"
+           and classify_memory("my exam is tomorrow") == "plan"
+           and classify_memory("he prefers dry wit") == "preference"
+           and classify_memory("the sky is blue") == "fact",
+           "memory kind rules: person -> plan -> preference -> fact")
+
+    # guest register
+    dialog4, vault4, _m4, gfx4, _o4, ev4, _s4 = universe(
+        "u4", [("ok", "polite answer", 10), ("ok", "neutral answer", 10)], [],
+        audience="guest", seed_memory=[("fact", "Cooper has a physics test on Friday")])
+    dialog4.send("what do you remember?")
+    guest_system = gfx4.received[-1][0]["content"]
+    expect(out, persona.MEMORY_HEADER not in guest_system and "no personal data" in guest_system,
+           "guest prompt: memory block OMITTED, guest sentence present")
+    dialog4.send("humor 70")
+    expect(out, vault4.messages_for(1)[-1]["text"] == "Only Cooper moves the dials."
+           and not any(kind == "state" and detail["dials"]["humor"] == 70 for kind, detail in ev4),
+           "guest dial move refused with the drafted line, dials unmoved")
+    dialog4.send("remember this: the Wi-Fi password lives in the drawer")
+    expect(out, not any("Wi-Fi" in row["text"] for row in vault4.recall())
+           and vault4.messages_for(1)[-1]["text"] != canon.LINE_NOTED,
+           "guest remember-intent never reaches the vault (declared fall-through)")
+
+    # family tier
+    dialog5, vault5, _m5, gfx5, _o5, _e5, _s5 = universe(
+        "u5", [("ok", "family answer", 10)], [],
+        audience="family", seed_memory=[("fact", "Cooper has a physics test on Friday")])
+    dialog5.send("how is Cooper doing?")
+    family_system = gfx5.received[-1][0]["content"]
+    expect(out, persona.MEMORY_HEADER not in family_system and "warm-formal" in family_system,
+           "family prompt: warm-formal, no private memories")
+    dialog5.send("trust 80")
+    expect(out, vault5.messages_for(1)[-1]["text"] == "Only Cooper moves the dials.",
+           "family dial move refused identically — the panel is a Cooper place (§10)")
+
+    # A1: read_aloud
+    dialog6, vault6, _m6, gfx6, _o6, _e6, _s6 = universe("u6", [("ok", "the answer text", 10)], [])
+    dialog6.send("hello")
+    tars_mid = vault6.messages_for(1)[-1]["id"]
+    good = dialog6.quick_action("read_aloud", {"chatId": 1, "messageId": tars_mid})
+    expect(out, good["ok"] and good["text"] == "the answer text" and good["chatId"] == 1,
+           "read_aloud good-id returns the message text for the mouth-to-be")
+    expect(out, vault6.kv_get(f"speak_request:{tars_mid}") == "queued",
+           "read_aloud marks the declared kv intake slot (P-CORE-3 drains it)")
+    bad6 = dialog6.quick_action("read_aloud", {"chatId": 1, "messageId": 9999})
+    expect(out, bad6 == {"ok": False, "line": canon.LINE_CATCH_ALL},
+           "read_aloud bad-id: canon catch-all, never a guess")
+
+    # A1: redo
+    dialog7, vault7, _m7, gfx7, _o7, ev7, _s7 = universe(
+        "u7", [("ok", "answer v1", 10), ("ok", "answer v2", 11)], [])
+    dialog7.send("hello")
+    old_mid = vault7.messages_for(1)[-1]["id"]
+    redo = dialog7.quick_action("redo", {"chatId": 1, "messageId": old_mid})
+    expect(out, redo["ok"] and redo["messageId"] != old_mid
+           and vault7.message_get(old_mid)["superseded"] == old_mid,
+           "redo persists a fresh answer; the prior one flags ITSELF superseded (superseded=old id)")
+    expect(out, [m["text"] for m in dialog7.open_chat(1) if m["who"] == "tars"] == ["answer v2"],
+           "open_chat shows the replacement only; the vault keeps both rows append-only")
+    last_done7 = [detail for kind, detail in ev7 if kind == "done"][-1]
+    expect(out, last_done7["messageId"] == redo["messageId"] and last_done7["hue"] == "cloud",
+           "redo streams chunk/done like a normal reply; done carries the NEW id (A2)")
+    expect(out, gfx7.received[-1][-1] == {"role": "user", "content": "hello"},
+           "redo re-routes the ORIGINAL user text, never a paraphrase")
+    expect(out, dialog7.quick_action("redo", {"chatId": 1, "messageId": 12345}) == {"ok": False, "line": canon.LINE_CATCH_ALL},
+           "redo bad-id refused, never guessed")
+    expect(out, dialog7.quick_action("open", {}) == {"ok": False, "line": canon.LINE_CATCH_ALL},
+           "unshipped quick_action names get the canon catch-all (P-CORE-5 territory)")
+
+    # rolling context window
+    dialog8, _v8, _m8, gfx8, _o8, _e8, _s8 = universe("u8", [("ok", f"a{i}", 5) for i in range(1, 13)], [])
+    for i in range(1, 13):
+        dialog8.send(f"m{i}")
+    last_call = gfx8.received[-1]
+    expect(out, len(last_call) == 12 and last_call[0]["role"] == "system"
+           and last_call[1]["content"] == "m7" and last_call[-1]["content"] == "m12",
+           "rolling context: system + last 10 messages + user; the window slides, oldest dropped")
+
+
 def _await_ready(proc) -> bool:
     while True:
         line = proc.stdout.readline()
@@ -461,10 +644,14 @@ def _crash_checks(base: Path, out) -> None:
     memories = vault.memory_count()
     total = vault.ledger_total()
     integrity = vault.integrity()
+    chats = vault.chat_rows()
+    committed_messages = vault.messages_for(chats[0]["id"]) if chats else []
     vault.close()
     expect(out, integrity == "ok", "post-SIGKILL re-open: sqlite integrity_check ok")
     expect(out, stored == [f"v{i}" for i in range(5)], "all 5 pre-kill committed kv rows survived")
     expect(out, memories >= 5 and total >= 50, f"committed prefix intact (memory rows={memories}, ledger tokens={total})")
+    expect(out, len(chats) == 1 and len(committed_messages) >= 5,
+           f"chats + messages tables survive the kill ({len(committed_messages)} messages intact)")
     lx = LogX(zone / "logs.jsonl")
     torn = False
     try:
@@ -481,15 +668,18 @@ def _crash_checks(base: Path, out) -> None:
 def _child_crash_worker(zone: Path) -> None:
     log = LogX(zone / "logs.jsonl")
     vault = Vault(zone / "vault.db")
+    chat_id = vault.chat_insert()
     for i in range(5):
         vault.kv_set(f"k{i}", f"v{i}")
         vault.remember("note", f"committed memory {i}")
         vault.spend("mock", 0, 10)
+        vault.message_add(chat_id, "cooper" if i % 2 == 0 else "tars", f"committed message {i}", None, None)
         log.entry("child", marker=i)
     print("READY", flush=True)
     burst = 0
     while True:
         vault.remember("burst", f"in-flight {burst}")
+        vault.message_add(chat_id, "tars", f"burst message {burst}", "cloud", "fast")
         log.entry("child-burst", marker=burst)
         burst += 1
 
@@ -499,7 +689,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 battery + P-CORE-1 brain-ring battery — proof, not claims", file=out)
+    print("CORE SELFTEST — P-CORE-0 + P-CORE-1 ring + P-CORE-2 persona batteries — proof, not claims", file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
     _canon_checks(out)
@@ -508,6 +698,7 @@ def main() -> int:
     _demochat_checks(base, out)
     _ring_checks(base, out)
     _ringdemo_checks(base, out)
+    _persona_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

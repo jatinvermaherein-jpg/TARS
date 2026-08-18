@@ -81,14 +81,18 @@ class OpenRouterAdapter:
 
 
 class FixtureAdapter:
-    """Scripted twin of the real adapters. Each call pops one scripted step."""
+    """Scripted twin of the real adapters. Each call pops one scripted step and
+    records the exact `messages` list it received (self.received) for assertions.
+    The AdapterResult contract is unchanged."""
 
     def __init__(self, provider: str, script: list):
         self.provider = provider
         self._script = list(script)
+        self.received = []
 
     def call(self, messages: list, *, key_string: str, key_visible_name: str, model: str,
              timeout_s: int = TIMEOUT_S) -> AdapterResult:
+        self.received.append([dict(message) for message in messages])
         step = self._script.pop(0)
         if step[0] == "ok":
             _, text, tokens = step

@@ -29,6 +29,22 @@ CREATE TABLE IF NOT EXISTS ledger (
     keyindex INTEGER NOT NULL,
     tokens   INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS chats (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    title    TEXT NOT NULL,
+    created  TEXT NOT NULL,
+    last_hue TEXT
+);
+CREATE TABLE IF NOT EXISTS messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id    INTEGER NOT NULL,
+    who        TEXT NOT NULL,
+    text       TEXT NOT NULL,
+    ts         TEXT NOT NULL,
+    hue        TEXT,
+    lane       TEXT,
+    superseded INTEGER
+);
 """
 
 
@@ -95,6 +111,80 @@ class Vault:
         ).fetchall()
         return [{"ts": ts, "lane": lane, "keyindex": keyindex, "tokens": tokens}
                 for ts, lane, keyindex, tokens in reversed(rows)]
+
+    def chat_insert(self) -> int:
+        """One row, written once. Title/last_hue are derived at read time — never edited."""
+        cur = self._db.execute("INSERT INTO chats (title, created, last_hue) VALUES (?, ?, ?)", ("", _now(), None))
+        self._db.commit()
+        return int(cur.lastrowid)
+
+    def chat_rows(self) -> list:
+        rows = self._db.execute("SELECT id, created FROM chats ORDER BY id").fetchall()
+        return [{"id": cid, "created": created} for cid, created in rows]
+
+    def chat_first_user_text(self, chat_id: int):
+        row = self._db.execute(
+            "SELECT text FROM messages WHERE chat_id = ? AND who = 'cooper' AND superseded IS NULL ORDER BY id LIMIT 1",
+            (int(chat_id),),
+        ).fetchone()
+        return row[0] if row else None
+
+    def chat_last_hue(self, chat_id: int):
+        row = self._db.execute(
+            "SELECT hue FROM messages WHERE chat_id = ? AND hue IS NOT NULL AND superseded IS NULL "
+            "ORDER BY id DESC LIMIT 1",
+            (int(chat_id),),
+        ).fetchone()
+        return row[0] if row else None
+
+    def message_add(self, chat_id: int, who: str, text: str, hue, lane) -> int:
+        cur = self._db.execute(
+            "INSERT INTO messages (chat_id, who, text, ts, hue, lane, superseded) VALUES (?, ?, ?, ?, ?, ?, NULL)",
+            (int(chat_id), who, text, _now(), hue, lane),
+        )
+        self._db.commit()
+        return int(cur.lastrowid)
+
+    def message_get(self, message_id: int):
+        row = self._db.execute(
+            "SELECT id, chat_id, who, text, ts, hue, lane, superseded FROM messages WHERE id = ?",
+            (int(message_id),),
+        ).fetchone()
+        return self._message_dict(row) if row else None
+
+    def messages_for(self, chat_id: int, include_superseded: bool = False) -> list:
+        sql = "SELECT id, chat_id, who, text, ts, hue, lane, superseded FROM messages WHERE chat_id = ?"
+        if not include_superseded:
+            sql += " AND superseded IS NULL"
+        sql += " ORDER BY id"
+        return [self._message_dict(row) for row in self._db.execute(sql, (int(chat_id),)).fetchall()]
+
+    def message_context(self, chat_id: int, before_id: int, limit: int = 10) -> list:
+        """Rolling window: the newest <=limit visible messages before before_id, chronological."""
+        rows = self._db.execute(
+            "SELECT id, chat_id, who, text, ts, hue, lane, superseded FROM messages "
+            "WHERE chat_id = ? AND superseded IS NULL AND id < ? ORDER BY id DESC LIMIT ?",
+            (int(chat_id), int(before_id), int(limit)),
+        ).fetchall()
+        return [self._message_dict(row) for row in reversed(rows)]
+
+    def message_prev_user(self, chat_id: int, before_id: int):
+        row = self._db.execute(
+            "SELECT id, chat_id, who, text, ts, hue, lane, superseded FROM messages "
+            "WHERE chat_id = ? AND who = 'cooper' AND superseded IS NULL AND id < ? ORDER BY id DESC LIMIT 1",
+            (int(chat_id), int(before_id)),
+        ).fetchone()
+        return self._message_dict(row) if row else None
+
+    def message_mark_superseded(self, message_id: int) -> None:
+        """The ONLY update vault ever runs: the prior answer flags itself replaced (superseded = its own id)."""
+        self._db.execute("UPDATE messages SET superseded = id WHERE id = ?", (int(message_id),))
+        self._db.commit()
+
+    def _message_dict(self, row) -> dict:
+        mid, chat_id, who, text, ts, hue, lane, superseded = row
+        return {"id": mid, "chat_id": chat_id, "who": who, "text": text, "ts": ts,
+                "hue": hue, "lane": lane, "superseded": superseded}
 
     def integrity(self) -> str:
         return str(self._db.execute("PRAGMA integrity_check").fetchone()[0])

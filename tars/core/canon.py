@@ -15,6 +15,11 @@ LINE_CANCEL = "Cancelled. Nothing changed."
 LINE_HANDOVER_BOOT = "Factory state. New commander, identify yourself. Honesty: ninety. Humor: five."
 LINE_HONESTY_FIXED = "Honesty is fixed at ninety."
 
+# ARCHITECT-DRAFTED for P-CORE-2, pending Cooper veto (flagged in build-log; treat as canon unless vetoed)
+LINE_NOTED = "Noted. I'll remember that."
+LINE_GUEST = "Voice not recognized. Guest rules apply."
+LINE_GUEST_DIAL = "Only Cooper moves the dials."
+
 _ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
          "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
 _TENS = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
