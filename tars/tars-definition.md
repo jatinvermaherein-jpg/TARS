@@ -322,7 +322,7 @@ No cracks · no KMS · no registry-Office tricks · no driver boosters · no CCl
 
 - **Build era:** complete new beginning — a fresh build environment, a new agent, the counter at zero. Prior work exists only as reference.
 - **Design corpus:** complete and contradiction-filtered — identity, dials, laws, palette, **app ("Bridge" v1.0 concept — full Windows application, decreed Aug 17, supersedes the retired v0.5 popup face)**, icon (Cooper's walk-art), error matrix, canon lines, this Definition.
-- **Machine:** **IN HAND — HP 24-cr0023in AiO** (Cooper confirmation Aug 17). Windows ground-prep underway (Microsoft account pre-flight, bloat purge done per doctrine).
+- **Machine:** **IN HAND — HP 24-cr0023in AiO** (Cooper confirmation Aug 17). Windows ground-prep **COMPLETE per the doctrine** (S-Mode exited, bloat card executed, privacy toggles, MS-account pre-flight, installs per tier — Cooper confirmation Aug 18). UPS >1 month out; home inverter covers rare outages → M-3 drill deferred to UPS arrival week.
 - **Scope (App-Era decree, Aug 17):** four roles only — Operator → Companion → Watcher → Professor. **Tier ⑤ Mission Control is cancelled.** Key manifest shrunk to 8 (Groq ×6 + OpenRouter ×2); NVIDIA ammo lanes retired.
 - **The order of work:** Operator → Companion → Watcher → Professor. Each role ships complete and tested before the next begins.
 
