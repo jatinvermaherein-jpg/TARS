@@ -51,6 +51,8 @@
   var modalInput = el("modal-input");
   var modalConfirm = el("modal-confirm");
   var dialNotice = el("dial-notice");
+  var lookBand = el("look-band");
+  var lookFrames = el("look-frames");
 
   var DIALS = ["honesty", "humor", "vernacular", "discretion", "trust"];
 
@@ -65,6 +67,10 @@
   var stick = true;           // is the transcript pinned to the bottom
   var rafId = null;
   var scrollPos = {};         // chatId -> scrollTop, remembered across switches
+  var pendingCard = null;     // op-card waiting for its action gate to resolve
+  var cardsById = {};         // actionId -> op-card, so confirm results find their card
+  var lookTimer = null;       // LOOK frame counter (band visibility follows the eyes lane)
+  var lookCount = 0;
 
   function bridge() {
     return (typeof window.tarsBridge === "object" && window.tarsBridge) ? window.tarsBridge : null;
@@ -223,6 +229,14 @@
   function addErrorLine(line) {
     var rec = makeRec(null, null, null);
     rec.box.classList.add("is-error");
+    rec.body.textContent = line;
+  }
+
+  /* A gate result is not a failure: cancelling and confirming are both ordinary
+     outcomes, so they print as plain replies. Error red stays reserved for things
+     that actually broke. */
+  function addReplyLine(line) {
+    var rec = makeRec(null, null, null);
     rec.body.textContent = line;
   }
 
@@ -473,10 +487,130 @@
     setGauge(row, d.remainingPct, "%");
   }
 
+  /* ── operator cards (pattern canon §7-§8 · bible §16-§18) ──
+     A card is the app's own account of an intent IT dispatched: header glyph,
+     INTENT -> target, and one status word. Statuses are exactly the four the
+     pattern reference names: proposed, awaiting YES, done, cancelled. Green verbs
+     skip the gate and land on done; red verbs wait for the modal to answer.
+     Typed intents produce no card — the app did not dispatch those, so it does not
+     narrate them. */
+
+  var CARD_GLYPH = {
+    open: "ic-dir", search: "ic-search", find_file: "ic-doc", document: "ic-doc",
+    telesend: "ic-send", whatsapp: "ic-send", look: "ic-eye", status: "ic-gauge",
+    council: "ic-wave"
+  };
+
+  function makeCard(intent, target, status) {
+    showHero(false);
+    var card = mk("div", "op-card");
+    var head = mk("div", "op-head");
+    head.appendChild(glyphOf(CARD_GLYPH[intent] || "ic-mark", "op-glyph"));
+
+    var line = mk("div", "op-intent");
+    line.appendChild(mk("span", "op-verb", String(intent).toUpperCase().replace("_", " ")));
+    if (target) {
+      line.appendChild(mk("span", "op-target", "  \u2192  " + target));
+    }
+    head.appendChild(line);
+
+    var word = mk("span", "op-status", status);
+    head.appendChild(word);
+    card.appendChild(head);
+    messages.appendChild(card);
+    afterGrowth();
+    return { box: card, status: word, intent: intent };
+  }
+
+  function setCardStatus(card, status) {
+    if (!card) { return; }
+    card.status.textContent = status;
+    card.box.classList.remove("is-awaiting", "is-done", "is-cancelled");
+    if (status === "awaiting YES") { card.box.classList.add("is-awaiting"); }
+    else if (status === "done") { card.box.classList.add("is-done"); }
+    else if (status === "cancelled") { card.box.classList.add("is-cancelled"); }
+  }
+
+  function cardNote(card, text) {
+    var note = mk("div", "op-note", text);
+    card.box.appendChild(note);
+    afterGrowth();
+    return note;
+  }
+
+  /* result cards — search hits render as rows with an open affordance; opening one
+     reports the choice back through quick_action, the same channel that dispatched
+     the search. No raw result dumps in the transcript. */
+  function addResultCards(card, rows) {
+    var wrap = mk("div", "op-results");
+    rows.forEach(function (row) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "res-card";
+      btn.setAttribute("data-rank", String(row.rank));
+
+      btn.appendChild(mk("span", "res-rank", String(row.rank)));
+      var body = mk("div", "res-body");
+      body.appendChild(mk("div", "res-title", row.title));
+      body.appendChild(mk("div", "res-source", row.source));
+      btn.appendChild(body);
+      btn.appendChild(mk("span", "res-open", "open"));
+
+      btn.addEventListener("click", function () {
+        if (btn.classList.contains("is-open")) { return; }
+        wrap.querySelectorAll(".res-card").forEach(function (n) { n.classList.remove("is-open"); });
+        btn.classList.add("is-open");
+        call("quick_action", ["open", { rank: row.rank }]).then(function (res) {
+          if (res && res.chatId) { currentChatId = res.chatId; }
+          refreshChatList();
+        });
+      });
+      wrap.appendChild(btn);
+    });
+    card.box.appendChild(wrap);
+    afterGrowth();
+  }
+
+  /* file card — an Office document result: name plus the folder it landed in */
+  function addFileCard(card, doc) {
+    var wrap = mk("div", "op-results");
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "res-card";
+    row.appendChild(glyphOf("ic-doc", "res-glyph"));
+    var body = mk("div", "res-body");
+    body.appendChild(mk("div", "res-title", doc.name));
+    body.appendChild(mk("div", "res-source", doc.folder + " \u00b7 " + doc.source));
+    row.appendChild(body);
+    row.appendChild(mk("span", "res-open", "open"));
+    row.addEventListener("click", function () { row.classList.add("is-open"); });
+    wrap.appendChild(row);
+    card.box.appendChild(wrap);
+    afterGrowth();
+  }
+
+  /* TeleSend stage card (bible §17) — what goes to whom, shown before the one gate */
+  function addStageCard(card, stage) {
+    var line = mk("div", "stage-line");
+    line.appendChild(glyphOf("ic-doc", "res-glyph"));
+    line.appendChild(mk("span", "stage-what", stage.what));
+    line.appendChild(mk("span", "stage-arrow", "\u2192"));
+    line.appendChild(mk("span", "stage-whom", stage.whom + " on " + stage.channel));
+    card.box.appendChild(line);
+    if (stage.note) { cardNote(card, stage.note); }
+    afterGrowth();
+  }
+
   /* ── red-verb confirm modal ── */
 
   function openAction(req) {
     pendingActionId = req.actionId;
+    /* a red verb the app dispatched already has a card waiting; hand it the gate */
+    if (pendingCard) {
+      cardsById[req.actionId] = pendingCard;
+      setCardStatus(pendingCard, "awaiting YES");
+      pendingCard = null;
+    }
     modalSummary.textContent = req.summary;
     modalTarget.textContent = req.target ? "target: " + req.target : "";
     modalInput.value = "";
@@ -493,9 +627,16 @@
   function answerAction(yes) {
     if (pendingActionId === null) { return; }
     var id = pendingActionId;
+    var card = cardsById[id] || null;
+    delete cardsById[id];
     closeAction();
     call("confirm", [id, yes]).then(function (res) {
-      if (res && res.line) { addErrorLine(res.line); }
+      var ok = !!(res && res.ok);
+      if (card) {
+        setCardStatus(card, ok ? "done" : "cancelled");
+        if (ok && card.intent === "telesend") { cardNote(card, "sent (demo)"); }
+      }
+      if (res && res.line) { addReplyLine(res.line); }
     });
   }
 
@@ -578,6 +719,8 @@
     var clean = String(text).trim();
     if (!clean) { return; }
     redoTarget = null;
+    var low = clean.toLowerCase();
+    if (low === "enough" || low === "stop watching") { stopLook(); }
     addCooper(clean);
     call("send", [clean]).then(function (res) {
       if (res && res.chatId) { currentChatId = res.chatId; }
@@ -585,10 +728,83 @@
     });
   }
 
+  /* ── LOOK session band (bible §19) ──
+     The band mirrors a session THIS app started via quick_action('look'). It counts
+     frames locally at the documented cadence and stops on the stop affordance or on
+     the canon "enough". No bridge channel carries frame counts, so none is invented. */
+
+  var LOOK_MS = (typeof window.TARS_LOOK_MS === "number") ? window.TARS_LOOK_MS : 4000;
+
+  function paintFrames() {
+    lookFrames.textContent = String(lookCount) + (lookCount === 1 ? " frame" : " frames");
+  }
+
+  function startLook() {
+    if (lookTimer !== null) { return; }
+    lookCount = 1;
+    paintFrames();
+    lookBand.hidden = false;
+    lookTimer = window.setInterval(function () {
+      lookCount += 1;
+      paintFrames();
+    }, LOOK_MS);
+  }
+
+  function stopLook() {
+    if (lookTimer === null) { return false; }
+    window.clearInterval(lookTimer);
+    lookTimer = null;
+    lookCount = 0;
+    lookBand.hidden = true;
+    return true;
+  }
+
+  var RED_QUICK = { telesend: true };
+
+  /* Intent targets the app knows because IT chose them. Anything absent stays
+     target-less rather than guessed. */
+  function quickTarget(name) {
+    var pay = payloads();
+    if (name === "open") { return (pay && pay.openTarget) ? pay.openTarget : null; }
+    if (name === "search") { return "youtube"; }
+    if (name === "telesend") { return (pay && pay.telesendStage) ? pay.telesendStage.what : null; }
+    if (name === "whatsapp") { return (pay && pay.whatsappIntent) ? pay.whatsappIntent.contact : null; }
+    if (name === "document") { return (pay && pay.documentResult) ? pay.documentResult.name : null; }
+    return null;
+  }
+
+  /* Attach whatever the intent produced once the dispatch resolves. */
+  function fillCard(name, card) {
+    var pay = payloads();
+    if (!pay) { return; }
+    if (name === "search" && pay.searchResults) { addResultCards(card, pay.searchResults); }
+    if (name === "document" && pay.documentResult) { addFileCard(card, pay.documentResult); }
+    if (name === "whatsapp" && pay.whatsappIntent) {
+      var wa = pay.whatsappIntent;
+      cardNote(card, "Deep link to " + wa.contact + " \u2014 you press send. Text links only.");
+      card.box.appendChild(mk("div", "stage-link", wa.link));
+      afterGrowth();
+    }
+  }
+
+  var QUICK_PAYLOAD = { whatsapp: { channel: "whatsapp" } };
+  var QUICK_METHOD = { whatsapp: "telesend" };
+
   function runQuick(name) {
     redoTarget = null;
-    call("quick_action", [name, null]).then(function (res) {
+    var card = makeCard(name, quickTarget(name), "proposed");
+    if (RED_QUICK[name]) {
+      var pay = payloads();
+      if (pay && pay.telesendStage) { addStageCard(card, pay.telesendStage); }
+      pendingCard = card;   // openAction claims it when the gate arrives
+    }
+    if (name === "look") { startLook(); }
+    call("quick_action", [QUICK_METHOD[name] || name, QUICK_PAYLOAD[name] || null]).then(function (res) {
       if (res && res.chatId) { currentChatId = res.chatId; }
+      if (!RED_QUICK[name]) {
+        setCardStatus(card, "done");
+        fillCard(name, card);
+      }
       if (name === "status") { call("get_status", []).then(renderStatus); }
       refreshChatList();
     });
@@ -919,6 +1135,18 @@
     panel.appendChild(mk("h2", "about-name", "TARS — resident desktop crew member"));
     panel.appendChild(mk("p", "about-line is-version", "Bridge v1.0 (App-Era)"));
     panel.appendChild(mk("p", "about-line", "Designed in Agra. Honesty fixed at ninety."));
+
+    sectionTitle(panel, "keyboard");
+    [
+      ["Ctrl+Alt+T", "summon"],
+      ["Ctrl+Alt+Esc", "kill"],
+      ["Esc", "stand down"]
+    ].forEach(function (pair) {
+      var row = mk("div", "chord-row");
+      row.appendChild(mk("span", "chord-keys", pair[0]));
+      row.appendChild(mk("span", "chord-what", pair[1]));
+      panel.appendChild(row);
+    });
   }
 
   var PANEL_BUILDERS = {
@@ -1008,6 +1236,10 @@
     });
     jumpPill.addEventListener("click", pinBottom);
 
+    el("look-stop").addEventListener("click", function () {
+      if (stopLook()) { submit("enough"); }
+    });
+
     Array.prototype.forEach.call(document.querySelectorAll("[data-quick]"), function (btn) {
       btn.addEventListener("click", function () {
         showSettings(false);
@@ -1071,8 +1303,15 @@
       btn.addEventListener("pointerleave", function () { if (pttActive) { ptt(false); } });
     });
 
+    /* The gate takes YES in uppercase only — a red verb should cost a deliberate
+       keystroke, not a habit. Enter submits once the word is armed. */
     modalInput.addEventListener("input", function () {
-      modalConfirm.disabled = (modalInput.value.trim().toUpperCase() !== "YES");
+      modalConfirm.disabled = (modalInput.value.trim() !== "YES");
+    });
+    modalInput.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") { return; }
+      ev.preventDefault();
+      if (!modalConfirm.disabled) { answerAction(true); }
     });
     modalConfirm.addEventListener("click", function () { answerAction(true); });
     el("modal-cancel").addEventListener("click", function () { answerAction(false); });

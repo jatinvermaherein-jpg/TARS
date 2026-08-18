@@ -595,6 +595,186 @@ input:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 .about-line { font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; }
 .about-line.is-version { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: .1em; color: var(--steel); }
 
+/* ── operator cards (pattern canon §7-§8 · bible §16-§18) ──
+   One card skeleton serves tool-calls, result lists and the TeleSend stage. Steel
+   hairline at rest; focus ring while the gate is open; dim once cancelled. */
+.op-card {
+  align-self: flex-start;
+  width: 78%;
+  padding: 11px 13px;
+  background-color: var(--surface-1);
+  background-image: var(--sheen);
+  border: 1px solid var(--steel);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-raised);
+}
+.op-card.is-awaiting { border-color: var(--focus); }
+.op-card.is-cancelled { border-color: var(--hairline); opacity: .62; }
+.op-card.is-done { border-color: var(--hairline); }
+
+.op-head { display: flex; align-items: center; gap: 9px; }
+.op-glyph { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--steel); stroke-width: 1.6; }
+.op-card.is-awaiting .op-glyph { stroke: var(--focus); }
+.op-card.is-done .op-glyph { stroke: var(--local); }
+.op-card.is-cancelled .op-glyph { stroke: var(--text-faint); }
+
+.op-intent {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  color: var(--text);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.op-target { color: var(--text-dim); }
+
+.op-status {
+  flex: none;
+  padding: 3px 10px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  color: var(--text-dim);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+}
+.op-card.is-awaiting .op-status { color: var(--on-cloud); background: var(--cloud); border-color: var(--cloud); }
+.op-card.is-done .op-status { color: var(--on-local); background: var(--local); border-color: var(--local); }
+.op-card.is-cancelled .op-status { color: var(--text-faint); }
+
+.op-note {
+  margin-top: 7px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+/* result cards — search hits and generated documents, never raw dumps */
+.op-results { margin-top: 9px; display: flex; flex-direction: column; gap: 6px; }
+.res-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  text-align: left;
+  width: 100%;
+}
+.res-card:hover { border-color: var(--steel); }
+.res-card.is-open { border-color: var(--local); }
+.res-rank {
+  flex: none;
+  width: 20px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.res-body { flex: 1; min-width: 0; }
+.res-title { font-size: 12.5px; color: var(--text); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.res-source {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 9.5px;
+  letter-spacing: .1em;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+.res-open {
+  flex: none;
+  padding: 3px 9px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: var(--text-dim);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+}
+.res-card.is-open .res-open { color: var(--on-local); background: var(--local); border-color: var(--local); }
+.res-glyph { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--steel); stroke-width: 1.6; }
+
+/* TeleSend stage card — what to whom, one gate */
+.stage-line { display: flex; align-items: center; gap: 9px; margin-top: 9px; }
+.stage-what, .stage-whom {
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+}
+.stage-arrow { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; color: var(--text-faint); }
+.stage-link {
+  margin-top: 7px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  color: var(--text-faint);
+  word-break: break-all;
+}
+
+/* ── LOOK session band (bible §19 — amber: frames go to cloud eyes) ── */
+.look-band {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+  background-color: var(--surface-1);
+  background-image: var(--sheen);
+  border-bottom: 1px solid var(--cloud);
+}
+.look-band[hidden] { display: none; }
+.lb-glyph { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--cloud); stroke-width: 1.6; }
+.lb-word {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  color: var(--on-cloud);
+  background: var(--cloud);
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+}
+.lb-frames {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  color: var(--cloud);
+}
+.lb-screen { flex: 1; font-size: 11.5px; color: var(--text-dim); }
+.lb-stop {
+  flex: none;
+  padding: 4px 12px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  color: var(--text-dim);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+}
+.lb-stop:hover { color: var(--text); border-color: var(--steel); }
+
+/* ── keyboard chords in About (text only, no art) ── */
+.chord-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 7px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+.chord-keys {
+  flex: none;
+  width: 116px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--text);
+}
+
 /* ── OFF screen ────────────────────────────────────────── */
 .closed-screen {
   position: absolute;
@@ -616,7 +796,7 @@ input:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 17, 21, .82);
+  background: rgba(15,17,21,.82);
 }
 .modal-scrim[hidden] { display: none; }
 
@@ -638,7 +818,7 @@ input:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 .btn-quiet { padding: 8px 16px; font-size: 12.5px; color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--hairline); border-radius: var(--r-sm); }
 .btn-quiet:hover { color: var(--text); }
 .btn-danger { padding: 8px 16px; font-size: 12.5px; font-weight: 600; color: var(--bg); background: var(--error); border: 1px solid var(--error); border-radius: var(--r-sm); }
-.btn-danger:disabled { color: var(--text-faint); background: rgba(31, 37, 48, .45); border-color: var(--hairline); cursor: default; }
+.btn-danger:disabled { color: var(--text-faint); background: rgba(31,37,48,.45); border-color: var(--hairline); cursor: default; }
 
 /* ── the five states (distinct at a glance) ────────────── */
 .shell[data-state="IDLE"] .state-dot { background: var(--steel); }

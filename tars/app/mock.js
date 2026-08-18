@@ -107,6 +107,34 @@
     "plans/physics-revision.md": "Rotational motion next, then a quiz from the chapters already read aloud. Cooper asked for spaced repetition, not a lecture."
   };
 
+  /* Operator-arc payloads (P-APP-3). Result rows and the TeleSend stage are mock-side
+     demo data, not bridge fields: the contract carries no result-row shape. The app
+     renders them only for intents IT dispatched through quick_action. */
+  var searchResults = [
+    { rank: 1, title: "lo-fi beats to study to — 3 hour mix", source: "youtube.com · 3:04:11" },
+    { rank: 2, title: "lo-fi hip hop radio — beats to relax", source: "youtube.com · live" },
+    { rank: 3, title: "midnight lo-fi — slow tape loops", source: "youtube.com · 58:20" }
+  ];
+
+  var telesendStage = {
+    what: "physics-notes.pdf",
+    whom: "Bhaiya",
+    channel: "Telegram",
+    note: "User lane: sends as Cooper, from Cooper's own account."
+  };
+
+  var documentResult = {
+    name: "letter-to-the-editor.docx",
+    folder: "Desktop",
+    source: "Office Studio · smart lane draft"
+  };
+
+  var whatsappIntent = {
+    contact: "Bhaiya",
+    text: "reaching at 6",
+    link: "https://wa.me/?text=reaching%20at%206"
+  };
+
   var enrollPhrases = [
     "TARS, are you awake?",
     "Open my physics notes.",
@@ -114,6 +142,9 @@
     "Send this to Bhaiya on Telegram.",
     "Stand down for now."
   ];
+
+  var openedResults = [];
+  var lastSearch = "vines";   // which result set the last search produced
 
   var chats = [];
   var store = {};
@@ -334,6 +365,23 @@
       return;
     }
 
+    m = low.match(/^open\s+(chrome|word|excel|powerpoint|settings|whatsapp|telegram|spotify)$/);
+    if (m) {
+      var app = m[1].charAt(0).toUpperCase() + m[1].slice(1);
+      speak(app + " opened.", "local", null);
+      return;
+    }
+
+    if (low === "enough" || low === "stop watching") {
+      speak("Stopped watching. Nothing left the machine after the last frame.", "local", null);
+      return;
+    }
+
+    if (/^(watch my screen|look at my screen|watch the screen)$/.test(low)) {
+      speak("Watching the screen. Say enough to stop. Frames go to the eyes lane, so the pill is amber.", "cloud", "eyes");
+      return;
+    }
+
     if (low === "stand down" || low === "exit") {
       speak("Standing down.", "local", null, function () {
         setState("OFF", "local", null);
@@ -359,12 +407,21 @@
 
     if (low.indexOf("search") === 0 || low.indexOf("search") > -1) {
       spendKey(0, 3);
-      speak("Three results. One: Ashish Chanchlani Vines, latest upload, eleven minutes. Two: Ashish Chanchlani, interview clip, twenty-two minutes. Three: Ashish Chanchlani, shorts compilation, eight minutes. Say open the second to play it.", "cloud", "fast");
+      lastSearch = /lo-?fi/.test(low) ? "lofi" : "vines";
+      if (lastSearch === "lofi") {
+        speak("Three results. One: lo-fi beats to study to, three hours. Two: lo-fi hip hop radio, live. Three: midnight lo-fi, fifty-eight minutes. Say open the second to play it.", "cloud", "fast");
+      } else {
+        speak("Three results. One: Ashish Chanchlani Vines, latest upload, eleven minutes. Two: Ashish Chanchlani, interview clip, twenty-two minutes. Three: Ashish Chanchlani, shorts compilation, eight minutes. Say open the second to play it.", "cloud", "fast");
+      }
       return;
     }
 
     if (/open (the )?(second|2nd|two)/.test(low)) {
-      speak("Opening result two. Ashish Chanchlani, interview clip.", "local", null);
+      if (lastSearch === "lofi") {
+        speak("Opening result two. Lo-fi hip hop radio, live.", "local", null);
+      } else {
+        speak("Opening result two. Ashish Chanchlani, interview clip.", "local", null);
+      }
       return;
     }
 
@@ -482,6 +539,22 @@
         return Promise.resolve({ chatId: enrollChat.id });
       }
 
+      /* open + {rank}: the app reports which result card Cooper opened. Contract-listed
+         name, rank rides the payload the signature already carries. Mock records the
+         intent and answers with the canon open line — nothing is launched. */
+      if (name === "open" && payload && payload.rank) {
+        var rank = payload.rank;
+        var hit = searchResults.filter(function (r) { return r.rank === rank; })[0];
+        openedResults.push(rank);
+        var openChat = ensureChat("Search");
+        if (rank === 2 && lastSearch === "lofi") {
+          speak("Opening result two. Lo-fi hip hop radio, live.", "local", null);
+        } else {
+          speak("Opening result " + words(rank) + ". " + (hit ? hit.title : "unknown result") + ".", "local", null);
+        }
+        return Promise.resolve({ chatId: openChat.id });
+      }
+
       if (name === "read_aloud" || name === "redo") {
         var target = (payload && payload.chatId) ? payload.chatId : (current ? current.id : null);
         var msg = target ? findMessage(target, payload && payload.messageId) : null;
@@ -491,7 +564,7 @@
 
       var scripted = {
         open: "open chrome",
-        search: "search Ashish Chanchlani on YouTube",
+        search: "search lo-fi on youtube",
         find_file: "find file physics notes",
         document: "document letter to the editor about power cuts",
         telesend: "telesend physics notes to Bhaiya",
@@ -506,6 +579,10 @@
         speak("Status report on the stage. Everything local.", "local", null);
       } else if (name === "look") {
         speak("Watching the screen. Say enough to stop. Frames go to the eyes lane, so the pill is amber.", "cloud", "eyes");
+      } else if (name === "telesend" && payload && payload.channel === "whatsapp") {
+        /* WhatsApp: text links only. The file-send path is experimental and stays OFF,
+           so it is never staged, never gated, never shown. */
+        speak("WhatsApp opens with the message ready. You press send — text links only, no file send.", "local", null);
       } else if (name === "telesend") {
         actionSeq += 1;
         emit({
@@ -531,7 +608,13 @@
     brain: brain,
     brainText: brainText,
     enrollPhrases: enrollPhrases,
-    enrollRounds: 3
+    enrollRounds: 3,
+    searchResults: searchResults,
+    telesendStage: telesendStage,
+    documentResult: documentResult,
+    whatsappIntent: whatsappIntent,
+    openTarget: "Chrome",
+    openedResults: openedResults
   };
 
   host.setTimeout(function () {
