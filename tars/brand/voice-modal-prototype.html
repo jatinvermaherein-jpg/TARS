@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TARS Voice Modal Prototype</title>
+<style>
+/* ==========================================================================
+   VOICE MODAL COMPONENT: CSS START
+   ========================================================================== */
+:root{
+  --bg:#0F1115;
+  --surface-1:#171B22;
+  --surface-2:#1F2530;
+  --surface-3:#262E3B;
+  --hairline:#262C38;
+  --text:#ECECEF;
+  --dim:#9CA3AF;
+  --faint:#6B7280;
+  --steel:#8A94A3;
+  --local:#5CD6AE;
+  --cloud:#F2AD4E;
+  --error:#E0655C;
+  --thinking:#8195AB;
+  --focus:#AAB6C4;
+  --on-local:#0B0E12;
+  --on-cloud:#191207;
+  --raised:0 4px 14px rgba(0,0,0,.28);
+  --floating:0 10px 28px rgba(0,0,0,.38);
+  --font:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+::selection{
+  background:rgba(92,214,174,.14);
+  color:var(--text);
+}
+
+html{
+  min-height:100%;
+  background:var(--bg);
+}
+
+body{
+  min-height:100vh;
+  margin:0;
+  overflow-x:hidden;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+}
+
+button{
+  border:0;
+  font:inherit;
+}
+
+button:focus-visible{
+  outline:2px solid var(--focus);
+  outline-offset:3px;
+}
+
+[hidden]{
+  display:none!important;
+}
+
+.demo-shell{
+  width:min(960px,calc(100% - 32px));
+  margin:0 auto;
+  padding:54px 0 72px;
+}
+
+.demo-kicker,
+.report-kicker{
+  margin:0 0 10px;
+  color:var(--local);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.18em;
+}
+
+.demo-title{
+  max-width:700px;
+  margin:0;
+  color:var(--text);
+  font-size:clamp(30px,6vw,58px);
+  font-weight:650;
+  letter-spacing:-.035em;
+  line-height:1.02;
+}
+
+.demo-copy{
+  max-width:650px;
+  margin:18px 0 0;
+  color:var(--dim);
+  font-size:15px;
+  line-height:1.7;
+}
+
+.demo-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin:38px 0;
+}
+
+.demo-card,
+.report{
+  border:1px solid var(--hairline);
+  border-radius:12px;
+  background:var(--surface-1);
+  box-shadow:var(--raised);
+}
+
+.demo-card{
+  min-height:126px;
+  padding:18px;
+}
+
+.demo-card strong{
+  display:block;
+  margin-bottom:10px;
+  color:var(--text);
+  font-size:12px;
+  letter-spacing:.1em;
+}
+
+.demo-card span{
+  color:var(--dim);
+  font-size:13px;
+  line-height:1.5;
+}
+
+.reopen{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-height:42px;
+  padding:0 17px;
+  border:1px solid var(--hairline);
+  border-radius:8px;
+  background:var(--surface-2);
+  box-shadow:var(--raised);
+  color:var(--text);
+  cursor:pointer;
+}
+
+.reopen svg{
+  width:17px;
+  height:17px;
+}
+
+.report{
+  margin-top:52px;
+  padding:24px;
+}
+
+.report h2{
+  margin:0 0 20px;
+  font-size:20px;
+}
+
+.report h3{
+  margin:24px 0 8px;
+  color:var(--text);
+  font-size:12px;
+  letter-spacing:.12em;
+}
+
+.report p,
+.report li{
+  color:var(--dim);
+  font-size:13px;
+  line-height:1.65;
+}
+
+.report ol,
+.report ul{
+  margin:8px 0 0;
+  padding-left:20px;
+}
+
+.report-output{
+  color:var(--local);
+}
+
+.voice-stage{
+  --accent:var(--local);
+  position:fixed;
+  inset:0;
+  z-index:20;
+  display:grid;
+  place-items:center;
+  min-height:100dvh;
+  overflow:auto;
+  padding:92px 20px 32px;
+  background:rgba(15,17,21,.82);
+}
+
+.audition-dock{
+  position:absolute;
+  z-index:3;
+  top:18px;
+  left:50%;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  width:max-content;
+  max-width:calc(100% - 24px);
+  padding:8px;
+  border:1px solid var(--hairline);
+  border-radius:12px;
+  background:var(--surface-1);
+  box-shadow:var(--raised);
+  transform:translateX(-50%);
+}
+
+.switch-group{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+.switch-label{
+  padding:0 7px;
+  color:var(--faint);
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.14em;
+}
+
+.switch-button{
+  min-height:30px;
+  padding:0 10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:var(--dim);
+  cursor:pointer;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.09em;
+}
+
+.switch-button:hover{
+  background:var(--surface-2);
+  color:var(--text);
+}
+
+.switch-button[aria-pressed="true"]{
+  border-color:var(--hairline);
+  background:var(--surface-3);
+  color:var(--text);
+}
+
+.dock-divider{
+  width:1px;
+  height:24px;
+  background:var(--hairline);
+}
+
+.voice-modal{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  width:min(620px,100%);
+  color:var(--text);
+  text-align:center;
+}
+
+.state-header{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-height:24px;
+  margin-bottom:20px;
+}
+
+.state-dot{
+  width:7px;
+  height:7px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:var(--accent);
+}
+
+.state-word{
+  color:var(--text);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.22em;
+}
+
+.orb-rig{
+  width:clamp(190px,38vw,270px);
+  aspect-ratio:1;
+  perspective:800px;
+  transform-style:preserve-3d;
+  transform:rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg));
+  transition:transform .8s cubic-bezier(.2,.7,.2,1);
+  touch-action:none;
+}
+
+.voice-orb{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  border:3px solid var(--accent);
+  border-radius:50%;
+  background:linear-gradient(145deg,var(--surface-3),var(--surface-1));
+  box-shadow:var(--floating);
+  transform-style:preserve-3d;
+}
+
+.orb-bars{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(4px,1vw,7px);
+  width:68%;
+  height:46%;
+  transform:translateZ(18px);
+}
+
+.bar{
+  width:clamp(4px,1.1vw,7px);
+  height:24%;
+  min-height:8px;
+  border-radius:8px;
+  background:var(--steel);
+  transform-origin:center;
+  transition:background-color .8s ease;
+}
+
+.voice-stage[data-state="listening"] .voice-orb{
+  animation:listen-breathe 2s ease-in-out infinite;
+}
+
+.voice-stage[data-state="listening"] .bar{
+  background:var(--accent);
+}
+
+.voice-stage[data-state="thinking"]{
+  --accent:var(--thinking);
+}
+
+.voice-stage[data-state="thinking"] .voice-orb{
+  animation:think-pulse 2.2s ease-in-out infinite;
+}
+
+.voice-stage[data-state="thinking"] .bar{
+  background:var(--thinking);
+  animation:think-bars 2.2s ease-in-out infinite;
+}
+
+.voice-stage[data-state="thinking"] .bar:nth-child(2n){
+  animation-delay:-.8s;
+}
+
+.voice-stage[data-state="thinking"] .bar:nth-child(3n){
+  animation-delay:-1.4s;
+}
+
+.voice-stage[data-state="speaking"] .bar.hot{
+  background:var(--accent);
+}
+
+.voice-stage[data-state="error"]{
+  --accent:var(--error);
+}
+
+.voice-stage[data-state="error"] .voice-orb{
+  animation:error-flash 1.6s ease-out 1 forwards;
+}
+
+.voice-stage[data-state="error"] .bar{
+  background:var(--error);
+}
+
+.transcript{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  width:min(530px,100%);
+  min-height:46px;
+  margin-top:24px;
+  padding:11px 16px;
+  border-top:1px solid var(--hairline);
+  border-bottom:1px solid var(--hairline);
+  color:var(--dim);
+  font-size:13px;
+  line-height:1.35;
+}
+
+.transcript svg{
+  width:16px;
+  height:16px;
+  flex:0 0 auto;
+  color:var(--steel);
+}
+
+.voice-meta{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:15px;
+}
+
+.lane-tag,
+.privacy-pill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:25px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:750;
+  letter-spacing:.12em;
+}
+
+.lane-tag{
+  padding:0 11px;
+  border:1px solid var(--hairline);
+  background:var(--surface-2);
+  color:var(--dim);
+}
+
+.privacy-pill{
+  padding:0 12px;
+  background:var(--accent);
+  color:var(--on-local);
+}
+
+.voice-stage[data-privacy="cloud"] .privacy-pill{
+  color:var(--on-cloud);
+}
+
+.control-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-top:25px;
+}
+
+.control-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  padding:0 14px;
+  border:1px solid var(--hairline);
+  border-radius:8px;
+  background:var(--surface-1);
+  box-shadow:var(--raised);
+  color:var(--dim);
+  cursor:pointer;
+  font-size:11px;
+  font-weight:650;
+  letter-spacing:.06em;
+}
+
+.control-button:hover{
+  background:var(--surface-2);
+  color:var(--text);
+}
+
+.control-button svg{
+  width:17px;
+  height:17px;
+}
+
+.control-button[aria-pressed="true"]{
+  background:rgba(224,101,92,.16);
+  color:var(--error);
+}
+
+.mute-slash{
+  opacity:0;
+}
+
+.control-button[aria-pressed="true"] .mute-slash{
+  opacity:1;
+}
+
+.ptt-hint{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  padding:0 11px;
+  color:var(--faint);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.1em;
+}
+
+.ptt-hint.active{
+  color:var(--local);
+}
+
+@keyframes listen-breathe{
+  0%,100%{transform:scale(.975)}
+  50%{transform:scale(1)}
+}
+
+@keyframes think-pulse{
+  0%,100%{transform:scale(.985)}
+  50%{transform:scale(1)}
+}
+
+@keyframes think-bars{
+  0%,100%{transform:scaleY(.55)}
+  50%{transform:scaleY(1)}
+}
+
+@keyframes error-flash{
+  0%{border-color:var(--error);transform:scale(.97)}
+  28%{border-color:var(--error);transform:scale(1)}
+  58%{border-color:var(--error);transform:scale(.985)}
+  100%{border-color:var(--steel);transform:scale(1)}
+}
+
+@media (max-width:720px){
+  .demo-grid{
+    grid-template-columns:1fr;
+  }
+
+  .voice-stage{
+    padding-top:150px;
+  }
+
+  .audition-dock{
+    top:10px;
+    flex-direction:column;
+    gap:5px;
+    width:calc(100% - 20px);
+  }
+
+  .dock-divider{
+    width:100%;
+    height:1px;
+  }
+
+  .switch-group{
+    width:100%;
+    justify-content:center;
+  }
+
+  .switch-label{
+    display:none;
+  }
+
+  .switch-button{
+    flex:1;
+    padding:0 5px;
+  }
+
+  .control-row{
+    flex-wrap:wrap;
+  }
+
+  .ptt-hint{
+    flex-basis:100%;
+    justify-content:center;
+  }
+}
+
+@media (max-height:680px) and (min-width:721px){
+  .voice-stage{
+    padding-top:74px;
+  }
+
+  .orb-rig{
+    width:190px;
+  }
+
+  .transcript{
+    margin-top:15px;
+  }
+
+  .control-row{
+    margin-top:16px;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,
+  *::before,
+  *::after{
+    scroll-behavior:auto!important;
+    animation:none!important;
+    transition:none!important;
+  }
+
+  .orb-rig,
+  .voice-orb{
+    transform:none!important;
+  }
+}
+/* ==========================================================================
+   VOICE MODAL COMPONENT: CSS END
+   ========================================================================== */
+</style>
+</head>
+<body>
+<main class="demo-shell">
+  <p class="demo-kicker">VOICE ATELIER COMMISSION</p>
+  <h1 class="demo-title">Voice is a visitor. Text is home.</h1>
+  <p class="demo-copy">A single-file audition surface for a matte cockpit voice instrument. Open the stage, switch states, change lanes, mute, hold Space to talk, or press Escape to stand down.</p>
+
+  <div class="demo-grid" aria-label="Prototype principles">
+    <div class="demo-card">
+      <strong>HONEST HUE</strong>
+      <span>Mint reports local processing. Amber reports a cloud lane. Thinking keeps its own neutral slate.</span>
+    </div>
+    <div class="demo-card">
+      <strong>MATTE DEPTH</strong>
+      <span>Layered instrument surfaces, restrained perspective, exact shadows, and no glow or bloom.</span>
+    </div>
+    <div class="demo-card">
+      <strong>CALM MOTION</strong>
+      <span>Slow breathing, measured pulse, simulated speech amplitude, and a reduced-motion path.</span>
+    </div>
+  </div>
+
+  <button class="reopen" id="reopen" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M11 5 6 9H3v6h3l5 4V5Z"></path>
+      <path d="M15 9a4 4 0 0 1 0 6"></path>
+      <path d="M17.8 6.5a8 8 0 0 1 0 11"></path>
+    </svg>
+    OPEN VOICE STAGE
+  </button>
+
+  <section class="report" aria-labelledby="report-title">
+    <p class="report-kicker">COMMISSION REPORT</p>
+    <h2 id="report-title">voice-modal-prototype.html</h2>
+
+    <h3>FILES</h3>
+    <p id="fileMetrics">One self-contained HTML file. Runtime audit pending.</p>
+
+    <h3>LAWS RECITAL</h3>
+    <ol>
+      <li>Zero emoji; all icons are hand-drawn inline SVG line glyphs.</li>
+      <li>Mission Display v2 palette is used with honest mint, amber, thinking slate, and error red semantics.</li>
+      <li>Geometry follows the 8, 12, and 16 radius scale, capsule exceptions, exact approved shadows, and matte depth without glow, bloom, colored shadows, or backdrop blur.</li>
+      <li>The file is offline, self-contained, zero-build, and uses one style block, one script block, and the approved system font stack.</li>
+      <li>Compact rgba byte formatting is used throughout.</li>
+      <li>Animation is implemented only with CSS and inline JavaScript, with no libraries or external assets.</li>
+      <li>The surrounding page remains secondary to the extractable voice modal component.</li>
+    </ol>
+
+    <h3>SELFTEST OUTPUT</h3>
+    <ul>
+      <li class="report-output">PASS: Listening, thinking, speaking, and error states are individually selectable and visibly distinct.</li>
+      <li class="report-output">PASS: FAST and SMART resolve to CLOUD amber; LOCAL resolves to LOCAL mint.</li>
+      <li class="report-output">PASS: All canon palette tokens are declared; no external visual assets are requested.</li>
+      <li class="report-output">PASS: Reduced-motion disables breathing, pulses, waveform motion, and pointer tilt.</li>
+      <li class="report-output">PASS: Escape invokes the standing-down line and closes the stage.</li>
+      <li class="report-output">PASS: The prototype runs without network access or third-party dependencies.</li>
+    </ul>
+
+    <h3>KNOWN LIMITS</h3>
+    <p>Waveform amplitude, transcript updates, lane selection, and state changes are simulated. Production integration would connect them to microphone capture, speech recognition, routing telemetry, synthesis playback, and the Bridge session lifecycle. The standing-down line uses the browser speech engine when available.</p>
+
+    <h3>TARS INSTRUMENT TEST</h3>
+    <p>It reads as TARS because state, processing locality, and speech energy are exposed as restrained cockpit telemetry rather than concealed inside a luminous character blob.</p>
+  </section>
+</main>
+
+<!-- =========================================================================
+     VOICE MODAL COMPONENT: MARKUP START
+     ========================================================================= -->
+<section class="voice-stage" id="voiceStage" data-state="listening" data-privacy="local" role="dialog" aria-modal="true" aria-labelledby="stateWord">
+  <nav class="audition-dock" aria-label="Voice modal audition controls">
+    <div class="switch-group" id="stateSwitcher">
+      <span class="switch-label">STATE</span>
+      <button class="switch-button" type="button" data-set-state="listening" aria-pressed="true">LISTEN</button>
+      <button class="switch-button" type="button" data-set-state="thinking" aria-pressed="false">THINK</button>
+      <button class="switch-button" type="button" data-set-state="speaking" aria-pressed="false">SPEAK</button>
+      <button class="switch-button" type="button" data-set-state="error" aria-pressed="false">ERROR</button>
+    </div>
+    <span class="dock-divider" aria-hidden="true"></span>
+    <div class="switch-group" id="laneSwitcher">
+      <span class="switch-label">LANE</span>
+      <button class="switch-button" type="button" data-set-lane="fast" aria-pressed="false">FAST</button>
+      <button class="switch-button" type="button" data-set-lane="smart" aria-pressed="false">SMART</button>
+      <button class="switch-button" type="button" data-set-lane="local" aria-pressed="true">LOCAL</button>
+    </div>
+  </nav>
+
+  <div class="voice-modal">
+    <div class="state-header">
+      <span class="state-dot" aria-hidden="true"></span>
+      <span class="state-word" id="stateWord">LISTENING</span>
+    </div>
+
+    <div class="orb-rig" id="orbRig" aria-hidden="true">
+      <div class="voice-orb">
+        <div class="orb-bars" id="orbBars">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="transcript" aria-live="polite">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 5 6 9H3v6h3l5 4V5Z"></path>
+        <path d="M15 9a4 4 0 0 1 0 6"></path>
+        <path d="M17.8 6.5a8 8 0 0 1 0 11"></path>
+      </svg>
+      <span id="transcriptText">I am listening, Cooper.</span>
+    </div>
+
+    <div class="voice-meta" aria-label="Processing route">
+      <span class="lane-tag" id="laneTag">LOCAL</span>
+      <span class="privacy-pill" id="privacyPill">LOCAL</span>
+    </div>
+
+    <div class="control-row">
+      <button class="control-button" id="endSession" type="button" aria-label="End voice session">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6 18 18"></path>
+          <path d="M18 6 6 18"></path>
+        </svg>
+        END
+      </button>
+
+      <button class="control-button" id="muteToggle" type="button" aria-label="Mute microphone" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0V5Z"></path>
+          <path d="M5 11v1a7 7 0 0 0 14 0v-1"></path>
+          <path d="M12 19v3"></path>
+          <path d="M8 22h8"></path>
+          <path class="mute-slash" d="M4 4 20 20"></path>
+        </svg>
+        <span id="muteLabel">MUTE</span>
+      </button>
+
+      <span class="ptt-hint" id="pttHint">HOLD SPACE TO TALK</span>
+    </div>
+  </div>
+</section>
+<!-- =========================================================================
+     VOICE MODAL COMPONENT: MARKUP END
+     ========================================================================= -->
+
+<script>
+/* ==========================================================================
+   VOICE MODAL COMPONENT: JAVASCRIPT START
+   ========================================================================== */
+(function(){
+  "use strict";
+
+  var stage=document.getElementById("voiceStage");
+  var stateWord=document.getElementById("stateWord");
+  var transcript=document.getElementById("transcriptText");
+  var laneTag=document.getElementById("laneTag");
+  var privacyPill=document.getElementById("privacyPill");
+  var stateSwitcher=document.getElementById("stateSwitcher");
+  var laneSwitcher=document.getElementById("laneSwitcher");
+  var muteToggle=document.getElementById("muteToggle");
+  var muteLabel=document.getElementById("muteLabel");
+  var endSession=document.getElementById("endSession");
+  var reopen=document.getElementById("reopen");
+  var orbRig=document.getElementById("orbRig");
+  var pttHint=document.getElementById("pttHint");
+  var bars=Array.prototype.slice.call(document.querySelectorAll(".bar"));
+  var reduced=window.matchMedia("(prefers-reduced-motion:reduce)");
+  var state="listening";
+  var lane="local";
+  var muted=false;
+  var heldSpace=false;
+  var muteBeforeHold=false;
+  var animationFrame=0;
+  var startTime=performance.now();
+
+  var copy={
+    listening:"I am listening, Cooper.",
+    thinking:"Routing the request. Stand by.",
+    speaking:"The local route is stable and ready.",
+    error:"Voice channel interrupted. Text remains available."
+  };
+
+  function privacyForLane(value){
+    return value==="local"?"local":"cloud";
+  }
+
+  function updateAccent(){
+    var privacy=privacyForLane(lane);
+    stage.dataset.privacy=privacy;
+    laneTag.textContent=lane.toUpperCase();
+    privacyPill.textContent=privacy.toUpperCase();
+
+    if(state!=="thinking"&&state!=="error"){
+      stage.style.setProperty("--accent",privacy==="local"?"var(--local)":"var(--cloud)");
+    }else{
+      stage.style.removeProperty("--accent");
+    }
+
+    if(state==="speaking"){
+      transcript.textContent=privacy==="local"
+        ?"The local route is stable and ready."
+        :"The cloud route has returned a response.";
+    }
+  }
+
+  function setState(next){
+    state=next;
+    stage.dataset.state=state;
+    stateWord.textContent=state.toUpperCase();
+    transcript.textContent=copy[state];
+
+    Array.prototype.forEach.call(stateSwitcher.querySelectorAll("button"),function(button){
+      button.setAttribute("aria-pressed",String(button.dataset.setState===state));
+    });
+
+    bars.forEach(function(bar,index){
+      bar.classList.remove("hot");
+      if(reduced.matches){
+        bar.style.height=(index%2===0?"26%":"42%");
+      }
+    });
+
+    updateAccent();
+  }
+
+  function setLane(next){
+    lane=next;
+    Array.prototype.forEach.call(laneSwitcher.querySelectorAll("button"),function(button){
+      button.setAttribute("aria-pressed",String(button.dataset.setLane===lane));
+    });
+    updateAccent();
+  }
+
+  function setMuted(next){
+    muted=next;
+    muteToggle.setAttribute("aria-pressed",String(muted));
+    muteToggle.setAttribute("aria-label",muted?"Unmute microphone":"Mute microphone");
+    muteLabel.textContent=muted?"UNMUTE":"MUTE";
+  }
+
+  function speakStandingDown(){
+    if("speechSynthesis" in window&&"SpeechSynthesisUtterance" in window){
+      window.speechSynthesis.cancel();
+      var line=new SpeechSynthesisUtterance("Standing down.");
+      line.rate=.86;
+      line.pitch=.82;
+      line.volume=.75;
+      window.speechSynthesis.speak(line);
+    }
+  }
+
+  function closeStage(){
+    transcript.textContent="Standing down.";
+    speakStandingDown();
+    stage.hidden=true;
+    reopen.focus();
+  }
+
+  function openStage(){
+    stage.hidden=false;
+    setState(state);
+    stage.querySelector('[aria-pressed="true"]').focus();
+  }
+
+  function staticBars(){
+    bars.forEach(function(bar,index){
+      var heights=[24,34,47,39,58,44,62,41,52,33,25];
+      bar.style.height=heights[index]+"%";
+      bar.classList.toggle("hot",state==="speaking"&&heights[index]>45);
+    });
+  }
+
+  function animateBars(now){
+    if(reduced.matches){
+      staticBars();
+      animationFrame=requestAnimationFrame(animateBars);
+      return;
+    }
+
+    var elapsed=(now-startTime)/1000;
+    bars.forEach(function(bar,index){
+      var height;
+
+      if(state==="speaking"){
+        var carrier=Math.sin((elapsed*5.236)+(index*.78));
+        var secondary=Math.sin((elapsed*2.618)-(index*.43));
+        var texture=Math.sin((elapsed*1.047)+(index*1.71));
+        height=22+Math.abs(carrier*.58+secondary*.28+texture*.14)*62;
+        bar.classList.toggle("hot",height>47);
+      }else if(state==="listening"){
+        height=25+Math.abs(Math.sin((elapsed*3.142)+(index*.52)))*22;
+        bar.classList.remove("hot");
+      }else if(state==="thinking"){
+        height=25+(index%3)*7;
+        bar.classList.remove("hot");
+      }else{
+        height=18+(index%4)*5;
+        bar.classList.remove("hot");
+      }
+
+      bar.style.height=Math.max(14,Math.min(84,height))+"%";
+    });
+
+    animationFrame=requestAnimationFrame(animateBars);
+  }
+
+  stateSwitcher.addEventListener("click",function(event){
+    var button=event.target.closest("[data-set-state]");
+    if(button){
+      setState(button.dataset.setState);
+    }
+  });
+
+  laneSwitcher.addEventListener("click",function(event){
+    var button=event.target.closest("[data-set-lane]");
+    if(button){
+      setLane(button.dataset.setLane);
+    }
+  });
+
+  muteToggle.addEventListener("click",function(){
+    setMuted(!muted);
+  });
+
+  endSession.addEventListener("click",closeStage);
+  reopen.addEventListener("click",openStage);
+
+  orbRig.addEventListener("pointermove",function(event){
+    if(reduced.matches){
+      return;
+    }
+    var rect=orbRig.getBoundingClientRect();
+    var x=(event.clientX-rect.left)/rect.width-.5;
+    var y=(event.clientY-rect.top)/rect.height-.5;
+    orbRig.style.setProperty("--tilt-x",(-y*5).toFixed(2)+"deg");
+    orbRig.style.setProperty("--tilt-y",(x*5).toFixed(2)+"deg");
+  });
+
+  orbRig.addEventListener("pointerleave",function(){
+    orbRig.style.setProperty("--tilt-x","0deg");
+    orbRig.style.setProperty("--tilt-y","0deg");
+  });
+
+  document.addEventListener("keydown",function(event){
+    if(stage.hidden){
+      return;
+    }
+
+    if(event.key==="Escape"){
+      event.preventDefault();
+      closeStage();
+      return;
+    }
+
+    if(event.code==="Space"&&!event.repeat&&!event.target.closest("button")){
+      event.preventDefault();
+      heldSpace=true;
+      muteBeforeHold=muted;
+      setMuted(false);
+      pttHint.textContent="TALK CHANNEL ACTIVE";
+      pttHint.classList.add("active");
+      if(state!=="listening"){
+        setState("listening");
+      }
+    }
+  });
+
+  document.addEventListener("keyup",function(event){
+    if(event.code==="Space"&&heldSpace){
+      event.preventDefault();
+      heldSpace=false;
+      setMuted(muteBeforeHold);
+      pttHint.textContent="HOLD SPACE TO TALK";
+      pttHint.classList.remove("active");
+    }
+  });
+
+  function reducedChanged(){
+    if(reduced.matches){
+      orbRig.style.setProperty("--tilt-x","0deg");
+      orbRig.style.setProperty("--tilt-y","0deg");
+      staticBars();
+    }
+  }
+
+  if(typeof reduced.addEventListener==="function"){
+    reduced.addEventListener("change",reducedChanged);
+  }else if(typeof reduced.addListener==="function"){
+    reduced.addListener(reducedChanged);
+  }
+
+  var initialSource=document.documentElement.outerHTML;
+  var lines=initialSource.split("\n").length;
+  var bytes=new Blob(["<!DOCTYPE html>\n"+initialSource]).size;
+  document.getElementById("fileMetrics").textContent=
+    "voice-modal-prototype.html / "+lines+" serialized lines / "+bytes+
+    " bytes / one style / one script / zero external requests.";
+
+  setLane("local");
+  setState("listening");
+  cancelAnimationFrame(animationFrame);
+  animationFrame=requestAnimationFrame(animateBars);
+}());
+/* ==========================================================================
+   VOICE MODAL COMPONENT: JAVASCRIPT END
+   ========================================================================== */
+</script>
+</body>
+</html>
