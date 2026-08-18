@@ -279,7 +279,7 @@
     },
     {
       match: /^Watching the screen\./,
-      text: "Eyes on the screen. Say enough to stop. Frames travel to the eyes lane, which is why the pill reads ochre."
+      text: "Eyes on the screen. Say enough to stop. Frames travel to the eyes lane, which is why the pill reads amber."
     },
     {
       match: /^Three hundred twelve megabytes\./,
@@ -505,7 +505,7 @@
       if (name === "status") {
         speak("Status report on the stage. Everything local.", "local", null);
       } else if (name === "look") {
-        speak("Watching the screen. Say enough to stop. Frames go to the eyes lane, so the pill is ochre.", "cloud", "eyes");
+        speak("Watching the screen. Say enough to stop. Frames go to the eyes lane, so the pill is amber.", "cloud", "eyes");
       } else if (name === "telesend") {
         actionSeq += 1;
         emit({

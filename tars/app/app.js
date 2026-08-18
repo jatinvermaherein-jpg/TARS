@@ -796,7 +796,7 @@
     var set = mk("div", "rowset");
     [
       ["LOCAL", "is-local", "Nothing leaves this machine. Local ears, local mouth, local files."],
-      ["CLOUD", "is-cloud", "Data may leave this machine on a brain-ring key. The pill turns ochre before it does."]
+      ["CLOUD", "is-cloud", "Data may leave this machine on a brain-ring key. The pill turns amber before it does."]
     ].forEach(function (pair) {
       var row = mk("div", "legend-row");
       row.appendChild(mk("span", "legend-chip " + pair[1], pair[0]));
