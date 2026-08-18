@@ -173,6 +173,7 @@ TARS *does* things before it *discusses* things.
 - **System answers:** uptime, storage meter, RAM pressure, top CPU hog.
 - **Power:** shutdown/restart/sleep — **always with explicit confirm** ("Confirm: shutdown in 30 seconds").
 - **Safety grammar (the Operator's core law):** destructive or irreversible → confirmation first, always. Ambiguous → TARS asks a short clarifying question instead of guessing. *TARS never guesses targets.* GREEN verbs (open/list/read/status) run immediately; RED verbs (delete/close/power/send) park until a typed YES; anything else → *"Cancelled. Nothing changed."*
+- **Command layer (Cooper decree, Aug 18):** the full command list + parse order lives in `tars/command-grammar.md` — deterministic parse runs BEFORE the brain ring; grammar hits answer in milliseconds, spend zero quota, and stay LOCAL. The ring is for conversation, not for commands.
 
 ### 17. TeleSend — file forwarding, confirm-gated (two lanes, one gate)
 *"Forward that file to Bhaiya on Telegram"* → TARS locates the file → stages it → **shows exactly what-to-whom** → waits for YES → sends. The confirmation gate is law, always, on both lanes:
