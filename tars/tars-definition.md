@@ -149,7 +149,7 @@ TARS's presence is **a complete Windows application** — a real app like any se
 
 **Geometry (soft-round):** radius scale 8px (buttons/inputs) · 12px (cards) · 16px (panels/sheets) · capsules for state/lane/jump pills and chips · message bubbles asymmetric 16-with-8px-tail · glyph tiles 9–10px · window shell 18px. TARS answers stay flat-left with the 2px hue border — TARS does not bubble.
 **Depth (soft-glass, restrained):** raised cards/bubbles/input bar — `0 4px 14px rgba(0,0,0,.28)` · floating layers (modals/popovers) — `0 10px 28px rgba(0,0,0,.38)` · header/input strips and raised cards — 3.5% white vertical sheen (`linear-gradient(180deg, rgba(255,255,255,.035), transparent)`). No glow, no bloom, no neon, no colored shadows. Transcript body matte.
-**Derived alpha utilities (the ONLY non-hex colors allowed):** selection = mint 14% alpha fill + 1px mint border · disabled = text-faint on 45% fill · status chips may tint their lane hue ≤16% alpha · hairlines may soften to white ≤10% alpha.
+**Derived alpha utilities (the ONLY non-hex colors allowed):** selection = mint 14% alpha fill + 1px mint border · disabled control = surface-2 at 45% alpha fill behind text-faint · status chips may tint their lane hue ≤16% alpha · hairlines may soften to white ≤10% alpha · modal scrim = background at ~82% alpha.
 
 **The honest-hue law (applies to the whole app — semantics UNCHANGED from v1):** a glance at the accents tells you the privacy state. Amber = leaving, mint = staying. The header pill, reply borders, and active-lane tags all obey it. On-accent dark (`#0B0E12` / `#191207`) sits on every filled accent (contrast law). Usage follows 60-30-10.
 

@@ -33,7 +33,7 @@ Interstellar-console calm, modernized: a deeper neutral ramp, soft-round corners
 - Sheen: header strip, input strip, raised cards get `linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0))`. Transcript body stays matte.
 
 ## Derived alpha utilities (the ONLY non-hex colors allowed)
-Selection = mint 14% alpha fill + 1px mint border · disabled = text-faint at reduced contrast on 45% fill · status chips may tint their lane hue ≤16% alpha · hairlines may soften to white ≤10% alpha. Nothing else. No other hexes, ever.
+Selection = mint 14% alpha fill + 1px mint border · disabled **control** = surface-2 at 45% alpha fill behind text-faint · status chips may tint their lane hue ≤16% alpha · hairlines may soften to white ≤10% alpha · **modal scrim** = background at ~82% alpha. Nothing else. No other hexes, ever. *(Scrim + disabled-control added Aug 18 — spec gap found and honestly flagged by Lane A's P-APP-2.5 fix report.)*
 
 ## Hue-law components (semantics UNCHANGED from v1 — only the hexes moved)
 Waveform bars steel→amber/mint · TARS reply left-border hue · footer hue strip · mic glyph hue · header pill · Cooper-ID chip (filled steel, dark text; GUEST outline-only) · dial chips/sliders neutral steel (dials are information, not hue-law) · gauge warn = lane hue at ≤20% remaining (inclusive).
@@ -46,5 +46,6 @@ v1 hexes: `#15171B` `#1D2024` `#262A2F` `#D9D6CF` `#9A9DA1` `#34383D` `#7C8791` 
 ## Changelog
 - v1 → LOCKED Aug 10, 2026 (replaced vetoed navy/cyan "gaming-IDE" scheme)
 - **v2 → LOCKED Aug 17, 2026** (ballot: soft-round / soft-glass / amber+mint — "v2 locked" ratification; same-day surgical canon wave: bible v1.2 §13–§14, contract A4 v1.4, this file)
+- v2.0.1 → Aug 18, 2026: scrim (background ~82% alpha) + disabled-control (surface-2 45% alpha) utilities canonized after Lane A's honest flag; compact `rgba(...)` byte formatting is the bundle-wide audit norm
 
 *Steel and two signal hues. A ten-year-old can learn it in one glance; a physicist can live in it for years.* 🛰️
