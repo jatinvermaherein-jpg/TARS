@@ -16,7 +16,7 @@ Design declarations (also pinned in code comments where they live):
   refusal line for it, family/guest payloads fall through to a memory-less
   brain answer (documented in build-log too).
 """
-from tars.core import canon, persona
+from tars.core import canon, enroll, persona
 
 DIAL_NAMES = ("humor", "vernacular", "discretion", "trust", "honesty")
 REMEMBER_PATTERNS = ("remember this", "remember that", "note that", "yaad rakh")
@@ -64,12 +64,13 @@ def remember_payload(text: str):
 class Dialog:
     """One live conversation bound to machine, settings, router, vault and bus."""
 
-    def __init__(self, settings, vault, router, machine, bus):
+    def __init__(self, settings, vault, router, machine, bus, voice_gate=None):
         self._settings = settings
         self._vault = vault
         self._router = router
         self._machine = machine
         self._bus = bus
+        self._voice_gate = voice_gate  # P-CORE-4 Cooper ID: typed passphrase restores Tier-1 mid-flow
         self._chat_id = None
 
     def new_chat(self) -> dict:
@@ -110,8 +111,12 @@ class Dialog:
         return {"chatId": self._chat_id}
 
     def _dispatch(self, text: str) -> None:
-        user_mid = self._vault.message_add(self._chat_id, "cooper", text, None, None)
         self._machine.reply()
+        if self._voice_gate is not None and self._voice_gate.try_passphrase(text, self._machine):
+            self._emit_message(canon.LINE_VERIFIED, "local", None)
+            self._machine.spoken()
+            return  # §22: a correct pass restores Tier-1 — the pass text never persists, never routes
+        user_mid = self._vault.message_add(self._chat_id, "cooper", text, None, None)
         dial = parse_dial_command(text)
         if dial is not None:
             self._emit_message(self._dial_line(*dial), "local", None)
@@ -139,6 +144,10 @@ class Dialog:
             return self._read_aloud(payload)
         if name == "redo":
             return self._redo(payload)
+        if name == "enroll_voice":
+            if payload:  # A3: enroll_voice takes payload {} exactly — anything else never guesses
+                return {"ok": False, "line": canon.LINE_CATCH_ALL}
+            return enroll.open_wizard()
         return {"ok": False, "line": canon.LINE_CATCH_ALL}
 
     def _emit_message(self, text: str, hue, lane) -> int:

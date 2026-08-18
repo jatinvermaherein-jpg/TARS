@@ -24,6 +24,18 @@ LINE_GUEST_DIAL = "Only Cooper moves the dials."
 LINE_HEARD_BADLY = "Heard that badly. I don't guess — repeat, please."
 LINE_NO_MIC = "No mic. Text mode it is."
 
+# Bible §22 matrix rows, verbatim — the remaining lines of the 16-row script (line 209 is scripture).
+LINE_VERIFIED = "Cooper."
+LINE_VOICE_UNCERTAIN = "Voice uncertain. Passphrase, please."
+LINE_NOISE = "Too much noise to hear you. Closer, or repeat."
+LINE_TWO_VOICES = "One at a time, please."
+LINE_VOICEPRINT_UNCLEAR = "Voiceprint unclear. Quiet room, one more round."
+LINE_MIC_DENIED = "Microphone access is off. TARS can't hear you like this."
+# The honest caveat (bible §22), the enrollment wizard's opening line — told plainly, always.
+LINE_ENROLL_CAVEAT = ("First, honesty: this voice check is convenience-grade — like face-unlock on a phone, "
+                      "not a password. A good recording could fool it. That is why dangerous work always asks "
+                      "for live confirmation and your passphrase — layers, not paranoia.")
+
 _ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
          "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
 _TENS = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]

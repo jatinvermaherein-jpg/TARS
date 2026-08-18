@@ -227,10 +227,18 @@ def run_voice_turn(capture, ladder: EarLadder, machine, bus, dialog, mouth=None)
         machine.heard()
         dialog.emit_line(canon.LINE_NO_MIC)  # §22 row 12: device absent, the text path stays home
         return {"ok": False, "line": canon.LINE_NO_MIC}
-    spans = vad_spans(b"".join(frames))
+    return finish_voice_turn(b"".join(frames), ladder, machine, bus, dialog)
+
+
+def finish_voice_turn(pcm_bytes: bytes, ladder: EarLadder, machine, bus, dialog, gate=None) -> dict:
+    """The post-capture tail: VAD -> engine ladder -> transcript event -> route.
+    Called from LISTENING. With a voice gate attached (P-CORE-4), a spoken
+    passphrase restores Tier-1 right after the transcript event — the pass
+    text itself is never persisted and never routed to a brain."""
+    spans = vad_spans(pcm_bytes)
     transcripts = []
     for span in spans:
-        text = ladder.transcribe(slice_pcm(b"".join(frames), span))
+        text = ladder.transcribe(slice_pcm(pcm_bytes, span))
         if text is None:
             machine.heard()
             dialog.emit_line(canon.LINE_ALL_SPENT)
@@ -244,6 +252,9 @@ def run_voice_turn(capture, ladder: EarLadder, machine, bus, dialog, mouth=None)
     heard = " ".join(transcripts)
     machine.heard()
     bus.emit("transcript", {"who": machine.audience, "text": heard})  # shown dimmed BEFORE routing — contract §3
+    if gate is not None and gate.try_passphrase(heard, machine):
+        dialog.emit_line(canon.LINE_VERIFIED)  # §22: spoken pass restores Tier-1; the pass never persists
+        return {"ok": True, "restored": True, "text": heard}
     return {"ok": True, "text": heard, "chatId": dialog.send_voice(heard)["chatId"]}
 
 

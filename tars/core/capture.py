@@ -26,8 +26,12 @@ class SoundDeviceCapture:
         if os.name != "nt":
             return False  # canon: no device probing in a Linux sandbox — M-1/P3 proves the hardware
         import sounddevice  # nt-guarded: present on the AiO after the M-1 staged pip table
-        self._stream = sounddevice.RawInputStream(samplerate=self._rate, channels=1, dtype="int16")
-        self._stream.start()
+        try:
+            self._stream = sounddevice.RawInputStream(samplerate=self._rate, channels=1, dtype="int16")
+            self._stream.start()
+        except sounddevice.PortAudioError as exc:
+            # canon: an OS-level device refusal maps to the §22 mic-denied row; the cause stays chained
+            raise PermissionError("mic open refused by the OS") from exc
         self.closed = False
         return True
 
@@ -49,15 +53,18 @@ class SoundDeviceCapture:
 class FakeCapture:
     """Scripted capture for the sandbox: frames pushed in code, law obeyed for real."""
 
-    def __init__(self, machine, scripted_frames: list, on_frame=None):
+    def __init__(self, machine, scripted_frames: list, on_frame=None, permission_denied: bool = False):
         self._machine = machine
         self._frames = list(scripted_frames)
         self._on_frame = on_frame
+        self._permission_denied = permission_denied
         self.closed = True
 
     def open(self) -> bool:
         if self._machine.state != "listening":
             raise RuntimeError("mic-cold law: capture opens only in LISTENING")
+        if self._permission_denied:
+            raise PermissionError("mic open refused by the OS")  # scripted §22 mic-denied row
         self.closed = False
         return True
 

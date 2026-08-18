@@ -14,6 +14,12 @@ adapters, transcript-before-routing order, bad-audio/no-mic §22 honesty
 lines, kill mid-capture (Law 5), the mouth ladder with its per-tier cascade,
 private-never-edge proof, barge-in honored in-tick, and the speak-queue
 drain lifecycle queued -> done / failed:<tier>.
+P-CORE-4 battery: Cooper ID — the 16-row §22 matrix triggered row by row
+with fixtures, enrollment + threshold calibration (normal accept / cold
+borderline / stranger reject), session lock with spoken AND typed passphrase
+restores mid-lock, hash-only passphrase storage, A3 enroll_voice wizard and
+list_members with embedding keys provably absent, and wake-word law through
+the state machine alone.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -37,6 +43,10 @@ from tars.core.capture import FakeCapture, SoundDeviceCapture
 from tars.core.dialog import Dialog, classify_memory
 from tars.core.ears import (RMS_THRESHOLD, EarLadder, FixtureEarEngine, GroqEarsAdapter, WhisperSmallLocal,
                             build_multipart, frame_rms, run_voice_turn, slice_pcm, vad_spans)
+from tars.core.enroll import ENROLL_PHRASES, ENROLL_ROUNDS, enroll_member, list_members
+from tars.core.voiceid import (MATRIX_ROWS, FixtureScorer, ProfileStore, ResemblyzerScorer, VoiceGate, classify,
+                               detect_noise, detect_two_voices, hash_passphrase, matrix_line, run_recognized_turn)
+from tars.core.wake import FixtureWakeEngine, PorcupineWakeEngine, wake_turn
 from tars.core.gauge import council_note, gauge_rows
 from tars.core.keys import LANE_CAPS, load_ring, parse_env_file
 from tars.core.logx import LogX
@@ -107,6 +117,17 @@ def _canon_checks(out) -> None:
     expect(out, canon.LINE_HEARD_BADLY == "Heard that badly. I don't guess — repeat, please.",
            "§22 heard-badly row byte-exact for the ears")
     expect(out, canon.LINE_NO_MIC == "No mic. Text mode it is.", "§22 no-mic row byte-exact for the ears")
+    expect(out, canon.LINE_VERIFIED == "Cooper.", "§22 verified row byte-exact")
+    expect(out, canon.LINE_VOICE_UNCERTAIN == "Voice uncertain. Passphrase, please.", "§22 borderline row byte-exact")
+    expect(out, canon.LINE_NOISE == "Too much noise to hear you. Closer, or repeat.", "§22 noise row byte-exact")
+    expect(out, canon.LINE_TWO_VOICES == "One at a time, please.", "§22 two-voices row byte-exact")
+    expect(out, canon.LINE_VOICEPRINT_UNCLEAR == "Voiceprint unclear. Quiet room, one more round.",
+           "§22 enrollment-fail row byte-exact")
+    expect(out, canon.LINE_MIC_DENIED == "Microphone access is off. TARS can't hear you like this.",
+           "§22 mic-denied row byte-exact")
+    expect(out, all(marker in canon.LINE_ENROLL_CAVEAT for marker in
+                    ("convenience-grade", "face-unlock", "good recording could fool it", "layers, not paranoia")),
+           "§22 honest caveat carries every required truth-marker")
     words = [(0, "zero"), (5, "five"), (19, "nineteen"), (20, "twenty"), (21, "twenty one"),
              (60, "sixty"), (95, "ninety five"), (100, "one hundred")]
     expect(out, all(canon.number_words(n) == w for n, w in words), "number_words covers 0..100 for dial-acks")
@@ -960,6 +981,366 @@ def _voice_checks(base: Path, out) -> None:
            "speak failure marks failed:<tier> honestly — the queue lies to no one")
 
 
+def _matrix_checks(base: Path, out) -> None:
+    zone = base / "matrix"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    PASS = "iron between us"  # fixture passphrase — asserted ABSENT from every store byte
+
+    def mix(pcm_a, pcm_b):
+        from array import array
+        a, b = array("h"), array("h")
+        a.frombytes(pcm_a)
+        b.frombytes(pcm_b)
+        out_b = bytearray()
+        for i in range(min(len(a), len(b))):
+            out_b += max(-32768, min(32767, a[i] + b[i])).to_bytes(2, "little", signed=True)
+        return bytes(out_b)
+
+    def cooper_samples(freq=180):
+        phrases = [voicefix.pcm([voicefix.silence_ms(60), voicefix.sine_ms(480, freq), voicefix.silence_ms(60)]),
+                   voicefix.sine_ms(600, freq),
+                   voicefix.pcm([voicefix.sine_ms(240, freq), voicefix.silence_ms(90), voicefix.sine_ms(360, freq)]),
+                   voicefix.sine_ms(450, freq),
+                   voicefix.sine_ms(540, freq)]
+        return phrases * ENROLL_ROUNDS  # 5 phrases x 3 quiet rounds, fixture-grade
+
+    def gated_universe(name, groq_script, ear_engines, audience="guest"):
+        path = zone / name
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", groq_script)
+        router = Router(load_ring(full_source),
+                        {"groq": groq_fx, "openrouter": FixtureAdapter("openrouter", [])}, vault, bus)
+        store = ProfileStore(path / "profiles.json", log)
+        scorer = FixtureScorer()
+        gate = VoiceGate(store, scorer, vault, log)
+        dialog = Dialog(settings, vault, router, machine, bus, voice_gate=gate)
+        machine.set_audience(audience)
+        ladder = EarLadder(ear_engines, log)
+        return {"dialog": dialog, "vault": vault, "machine": machine, "gfx": groq_fx, "bus": bus, "events": events,
+                "log": log, "ladder": ladder, "store": store, "scorer": scorer, "gate": gate, "path": path}
+
+    def recognized_frames(freq, lead=120, body=690, tail=120):
+        return [voicefix.silence_ms(lead), voicefix.sine_ms(body, freq), voicefix.silence_ms(tail)]
+
+    # --- the scripture table: 16 rows, byte-exact map, exactly two honest None rows
+    expect(out, len(MATRIX_ROWS) == 16 and [name for name, _L in MATRIX_ROWS] == [
+        "verified", "unknown", "borderline", "three-fails", "silence-x3", "noise", "low-confidence", "two-voices",
+        "recording-attack", "enrollment-fail", "no-mic", "mic-denied", "cloud-fail", "keys-spent", "no-network",
+        "catch-all"], "the matrix is 16 declared rows in bible line-209 order — none missing, none invented")
+    expect(out, all(matrix_line(name) is line for name, line in MATRIX_ROWS)
+           and matrix_line("three-fails") is None and matrix_line("recording-attack") is None
+           and matrix_line("verified") == "Cooper." and matrix_line("catch-all") == canon.LINE_CATCH_ALL,
+           "every row maps to its byte-exact canon line; exactly three-fails and recording-attack speak NO line")
+    raised = False
+    try:
+        matrix_line("invented-row")
+    except KeyError:
+        raised = True
+    expect(out, raised, "the matrix table is closed: an invented row name raises, never silently maps")
+
+    # --- fixture recognizer science: determinism, invariance, the cold gradient, classify law
+    scorer = FixtureScorer()
+    v180a = scorer.embed(voicefix.sine_ms(600, 180))
+    v180b = scorer.embed(voicefix.sine_ms(600, 180))
+    expect(out, v180a == v180b and all(isinstance(x, float) for x in v180a) and len(v180a) == 26,
+           "FixtureScorer deterministic: identical PCM down to the last float, 26 declared bins")
+    phrase_variant = scorer.embed(voicefix.pcm([voicefix.silence_ms(120), voicefix.sine_ms(480, 180),
+                                                voicefix.silence_ms(120)]))
+    expect(out, scorer.score(phrase_variant, v180a) >= 0.999,
+           "the same voice scores the same through phrase composition changes (duration-invariant)")
+    cold_score = scorer.score(scorer.embed(voicefix.sine_ms(600, 168)), v180a)
+    stranger_score = scorer.score(scorer.embed(voicefix.sine_ms(600, 460)), v180a)
+    expect(out, 0.93 < cold_score < 0.97 and stranger_score < 0.02,
+           f"cold gradient lawful: 12Hz drift scores {cold_score:.4f} (borderline-shaped), a far carrier {stranger_score:.4f}")
+    expect(out, classify(0.99, 0.9796, 0.8596) == "accept" and classify(0.95, 0.9796, 0.8596) == "borderline"
+           and classify(0.85, 0.9796, 0.8596) == "reject" and classify(None, 0.98, 0.86) == "reject",
+           "classify law: accept over threshold, band below it, reject below band, unknown space rejects")
+
+    # --- audio gates: two voices, broadband noise, honest negatives
+    two = mix(voicefix.sine_ms(600, 180), voicefix.sine_ms(600, 460))
+    expect(out, detect_two_voices(two) is True and detect_two_voices(voicefix.sine_ms(600, 180)) is False
+           and detect_two_voices(voicefix.noise_ms(600, amp=4000)) is False,
+           "two-voices gate: an overlapping second summit flags; a lone voice and a noisy plateau pass clean")
+    expect(out, detect_noise(voicefix.noise_ms(600, amp=4000)) is True,
+           "noise gate: loud flat rush flags as noise, not speech")
+    expect(out, detect_noise(voicefix.sine_ms(600, 180)) is False and detect_noise(voicefix.silence_ms(600)) is False,
+           "noise gate honest negatives: a clear voice is not noise, silence takes the silence path")
+
+    # --- member files: persist, A3 read-shape with embedding keys ABSENT, corrupt recovery
+    u_store = gated_universe("u-store", [], [FixtureEarEngine(["x"])])
+    fresh = enroll_member(u_store["store"], u_store["scorer"], u_store["vault"], u_store["log"],
+                          "Cooper", "the commander", "cooper", cooper_samples(), passphrase=PASS)
+    expect(out, fresh["ok"] and 0.97 < fresh["threshold"] < 0.99
+           and abs(fresh["bandFloor"] - round(fresh["threshold"] - 0.12, 4)) < 1e-9,
+           f"enrollment calibrates + persists threshold {fresh['threshold']:.4f} with the declared band below it")
+    store_view = list_members(u_store["store"])
+    expect(out, store_view == [{"name": "Cooper", "relationship": "the commander", "tier": "cooper",
+                                "enrolledOn": store_view[0]["enrolledOn"]}]
+           and set(store_view[0]) == {"name", "relationship", "tier", "enrolledOn"},
+           "A3 list_members: exact MemberFile keys — embedding/sampleHashes/passHash keys PROVABLY absent")
+    raw_bytes = (u_store["path"] / "profiles.json").read_bytes()
+    creds = u_store["store"].pass_credentials()
+    expect(out, PASS.encode() not in raw_bytes and b"iron" not in raw_bytes and creds is not None
+           and hash_passphrase(PASS, creds[0]) == creds[1],
+           "passphrase hash-only: the raw words appear nowhere in the store bytes; salt+sha256 verifies")
+    broken_dir = zone / "u-corrupt"
+    broken_dir.mkdir(parents=True)
+    (broken_dir / "profiles.json").write_text("{ not json !!", encoding="utf-8")
+    broken_log = LogX(broken_dir / "logs.jsonl")
+    recovered = ProfileStore(broken_dir / "profiles.json", broken_log)
+    expect(out, recovered.members_full() == [] and any("recovered empty" in r.get("cause", "")
+                                                       for r in broken_log.read_all()),
+           "corrupt profiles.json recovers empty with a logged line — enrollment re-runnable")
+    expect(out, u_store["log"].read_all() and u_store["scorer"].calls == 15,
+           "enrollment embedded exactly the 15 declared rounds, nothing more")
+
+    # --- the wizard's A3 door: caveat first, strict payload
+    wiz = u_store["dialog"].quick_action("enroll_voice", {})
+    expect(out, wiz["ok"] and wiz["opening"] == canon.LINE_ENROLL_CAVEAT and wiz["phrases"] == list(ENROLL_PHRASES)
+           and wiz["rounds"] == 3,
+           "enroll_voice with payload {} opens the wizard — the honest caveat is always the first line")
+    expect(out, u_store["dialog"].quick_action("enroll_voice", {"fast": True}) == {"ok": False, "line": canon.LINE_CATCH_ALL},
+           "enroll_voice with a non-{} payload refused with the canon catch-all — never guessed")
+
+    # --- calibration trio proven through the gate: normal ACCEPT / cold BORDERLINE / stranger REJECT
+    trio = u_store
+    accept = trio["gate"].identify(voicefix.sine_ms(700, 180))
+    expect(out, accept["band"] == "accept" and accept["member"]["name"] == "Cooper"
+           and not accept["suspected_replay"],
+           "calibration trio 1/3: a fresh Cooper-normal phrase ACCEPTs against the enrolled file")
+    cold = trio["gate"].identify(voicefix.sine_ms(700, 168))
+    expect(out, cold["band"] == "borderline" and trio["gate"] is trio["gate"],
+           "calibration trio 2/3: the declared cold drift lands BORDERLINE — never accepted, never rejected")
+    stranger = trio["gate"].identify(voicefix.sine_ms(700, 460))
+    empty_gate = VoiceGate(ProfileStore(zone / "empty.json", u_store["log"]), FixtureScorer(), trio["vault"], trio["log"])
+    expect(out, stranger["band"] == "reject"
+           and empty_gate.identify(voicefix.sine_ms(300, 180))["band"] == "reject",
+           "calibration trio 3/3 + iron rule: a stranger REJECTs; an empty profile space rejects everything")
+
+    # --- apply side-effects ride state.py + audience only
+    guest_turn = gated_universe("u-gt", [("ok", "open reply", 5)], [FixtureEarEngine(["open reply please"])])
+    enroll_member(guest_turn["store"], guest_turn["scorer"], guest_turn["vault"], guest_turn["log"],
+                  "Cooper", "the commander", "cooper", cooper_samples(), passphrase=PASS)
+    guest_turn["machine"].summon()
+    m, ev, v = guest_turn["machine"], guest_turn["events"], guest_turn["vault"]
+    # unknown voice: reject -> LINE_GUEST + guest pinned + routed as guest
+    res = run_recognized_turn(FakeCapture(m, recognized_frames(460)), guest_turn["ladder"], guest_turn["gate"],
+                              m, guest_turn["bus"], guest_turn["dialog"])
+    chunks = [d["text"] for k, d in ev if k == "chunk"]
+    expect(out, res["band"] == "reject" and m.audience == "guest" and chunks[0] == canon.LINE_GUEST
+           and v.kv_get("voiceid:fails") == "1" and res.get("chatId") is not None,
+           "matrix row unknown: guest-rules line first, guest pinned, fail streak 1, the turn routes under guest rules")
+    expect(out, guest_turn["gfx"].received and persona.MEMORY_HEADER not in guest_turn["gfx"].received[-1][0]["content"],
+           "the rejected voice's answer rode the guest persona — memory block omitted (P-CORE-2 law re-proven)")
+    guest_turn["machine"].voice_stop()
+    guest_turn["dialog"].send("humor 70")
+    expect(out, v.messages_for(1)[-1]["text"] == canon.LINE_GUEST_DIAL
+           and guest_turn["machine"].notice()["dials"]["humor"] == 5,
+           "tier law re-proven from the fresh recognition path: guest dial -> LINE_GUEST_DIAL, dials unmoved")
+
+    # verified arrival: guest -> cooper emits 'Cooper.' exactly once
+    ver_u = gated_universe("u-ver", [("ok", "cooper turn answer", 5)], [FixtureEarEngine(["cooper turn"])])
+    enroll_member(ver_u["store"], ver_u["scorer"], ver_u["vault"], ver_u["log"], "Cooper", "the commander",
+                  "cooper", cooper_samples(), passphrase=PASS)
+    ver_u["machine"].summon()
+    res_v = run_recognized_turn(FakeCapture(ver_u["machine"], recognized_frames(180)), ver_u["ladder"],
+                                ver_u["gate"], ver_u["machine"], ver_u["bus"], ver_u["dialog"])
+    texts_v = [d["text"] for k, d in ver_u["events"] if k == "chunk"]
+    transcript_v = [d for k, d in ver_u["events"] if k == "transcript"][0]
+    expect(out, res_v["band"] == "accept" and ver_u["machine"].audience == "cooper"
+           and texts_v[0] == "Cooper." and transcript_v == {"who": "cooper", "text": "cooper turn"}
+           and ver_u["machine"].state == LISTENING,
+           "matrix row verified: Tier-1 arrival speaks 'Cooper.' once, transcript tags cooper, session continues")
+    # a second verified turn in the same session: no arrival spam
+    turn2_u = gated_universe("u-ver2", [("ok", "again", 5)], [FixtureEarEngine(["again please"])])
+    enroll_member(turn2_u["store"], turn2_u["scorer"], turn2_u["vault"], turn2_u["log"], "Cooper", "the commander",
+                  "cooper", cooper_samples(), passphrase=PASS)
+    turn2_u["machine"].summon()
+    turn2_u["machine"].set_audience("cooper")  # already verified this session
+    run_recognized_turn(FakeCapture(turn2_u["machine"], recognized_frames(180)), turn2_u["ladder"],
+                        turn2_u["gate"], turn2_u["machine"], turn2_u["bus"], turn2_u["dialog"])
+    spam = [d["text"] for k, d in turn2_u["events"] if k == "chunk" and d["text"] == "Cooper."]
+    expect(out, spam == [] and turn2_u["machine"].audience == "cooper",
+           "re-verified mid-session: no 'Cooper.' arrival spam — the line is for arrivals only")
+
+    # borderline: the cold day asks for the passphrase, fails tick
+    bor_u = gated_universe("u-bor", [("ok", "cold answer", 5)], [FixtureEarEngine(["cold words"])])
+    enroll_member(bor_u["store"], bor_u["scorer"], bor_u["vault"], bor_u["log"], "Cooper", "the commander",
+                  "cooper", cooper_samples(), passphrase=PASS)
+    bor_u["machine"].summon()
+    res_b = run_recognized_turn(FakeCapture(bor_u["machine"], recognized_frames(168)), bor_u["ladder"],
+                                bor_u["gate"], bor_u["machine"], bor_u["bus"], bor_u["dialog"])
+    texts_b = [d["text"] for k, d in bor_u["events"] if k == "chunk"]
+    expect(out, res_b["band"] == "borderline" and texts_b[0] == canon.LINE_VOICE_UNCERTAIN
+           and bor_u["machine"].audience == "guest" and bor_u["vault"].kv_get("voiceid:fails") == "1",
+           "matrix row borderline: 'Voice uncertain. Passphrase, please.' — provisional guest, streak ticks")
+
+    # the lock saga: 3 rejects lock; locked bypasses the scorer; spoken pass restores mid-lock
+    lock_u = gated_universe("u-lock", [("ok", f"words {i}", 5) for i in range(6)],
+                            [FixtureEarEngine([f"words {i}" for i in range(6)] + ["x"])])
+    enroll_member(lock_u["store"], lock_u["scorer"], lock_u["vault"], lock_u["log"], "Cooper", "the commander",
+                  "cooper", cooper_samples(), passphrase=PASS)
+    lock_u["machine"].summon()
+    for _n in range(3):
+        res_l = run_recognized_turn(FakeCapture(lock_u["machine"], recognized_frames(460)), lock_u["ladder"],
+                                    lock_u["gate"], lock_u["machine"], lock_u["bus"], lock_u["dialog"])
+    expect(out, lock_u["vault"].kv_get("voiceid:lock") == "1" and lock_u["vault"].kv_get("voiceid:fails") == "3"
+           and res_l["locked"] is True,
+           "matrix row three-fails: the third rejection locks the session to guest — logged, no invented line")
+    calls_before = lock_u["scorer"].calls
+    locked_turn = run_recognized_turn(FakeCapture(lock_u["machine"], recognized_frames(180)), lock_u["ladder"],
+                                      lock_u["gate"], lock_u["machine"], lock_u["bus"], lock_u["dialog"])
+    locked_lines = [d["text"] for k, d in lock_u["events"] if k == "chunk"
+                    and d["text"] in (canon.LINE_GUEST, canon.LINE_VERIFIED)]
+    expect(out, lock_u["scorer"].calls == calls_before and lock_u["machine"].audience == "guest"
+           and locked_turn["band"] == "locked" and canon.LINE_VERIFIED not in locked_lines,
+           "mid-lock: the recognizer is never even asked — guest-pinned quiet, no scorer call, no new line")
+    spoken = run_recognized_turn(FakeCapture(lock_u["machine"], recognized_frames(180)),
+                                 EarLadder([FixtureEarEngine([PASS])], lock_u["log"]), lock_u["gate"],
+                                 lock_u["machine"], lock_u["bus"], lock_u["dialog"])
+    persisted = [m2["text"] for m2 in lock_u["vault"].messages_for(1)]
+    expect(out, spoken.get("restored") is True and lock_u["machine"].audience == "cooper"
+           and lock_u["vault"].kv_get("voiceid:lock") == "0" and lock_u["vault"].kv_get("voiceid:fails") == "0"
+           and canon.LINE_VERIFIED in persisted and PASS not in persisted,
+           "spoken pass restores Tier-1 even mid-lock — 'Cooper.' answers, the pass text never persists")
+
+    # typed pass restores too — same verifier, same rank, another mid-lock session
+    type_u = gated_universe("u-typed", [("ok", f"w {i}", 5) for i in range(4)],
+                            [FixtureEarEngine([f"w {i}" for i in range(4)])])
+    enroll_member(type_u["store"], type_u["scorer"], type_u["vault"], type_u["log"], "Cooper", "the commander",
+                  "cooper", cooper_samples(), passphrase=PASS)
+    type_u["machine"].summon()
+    for _n in range(3):
+        run_recognized_turn(FakeCapture(type_u["machine"], recognized_frames(460)), type_u["ladder"],
+                            type_u["gate"], type_u["machine"], type_u["bus"], type_u["dialog"])
+    type_u["machine"].voice_stop()
+    type_u["dialog"].send(PASS)
+    typed_texts = [m2["text"] for m2 in type_u["vault"].messages_for(1)]
+    expect(out, type_u["machine"].audience == "cooper" and type_u["vault"].kv_get("voiceid:lock") == "0"
+           and typed_texts[-1] == canon.LINE_VERIFIED and PASS not in typed_texts,
+           "typed pass restores Tier-1 mid-lock — typed and spoken are the same rank, never persisted")
+
+    # silence saga: two heard-badly, the third stands TARS down
+    sil_u = gated_universe("u-sil3", [("ok", "unused", 5)], [FixtureEarEngine(["unused"])])
+    sil_u["machine"].summon()
+    for _n in range(2):
+        r1 = run_recognized_turn(FakeCapture(sil_u["machine"], [voicefix.silence_ms(900)]), sil_u["ladder"],
+                                 sil_u["gate"], sil_u["machine"], sil_u["bus"], sil_u["dialog"])
+    state_after_two = sil_u["machine"].state  # pin the moment BEFORE the third turn stands him down
+    r3 = run_recognized_turn(FakeCapture(sil_u["machine"], [voicefix.silence_ms(900)]), sil_u["ladder"],
+                             sil_u["gate"], sil_u["machine"], sil_u["bus"], sil_u["dialog"])
+    expect(out, r1["line"] == canon.LINE_HEARD_BADLY and state_after_two == LISTENING,
+           "matrix row silence: single silences answer heard-badly and the session stays home")
+    expect(out, r3["line"] == canon.LINE_EXIT and r3.get("stood_down") is True
+           and sil_u["machine"].state == OFF and sil_u["vault"].kv_get("voiceid:silence") == "0",
+           "matrix row silence-x3: the third silent turn speaks the exit line and stands TARS down to OFF")
+
+    # noise / two-voices / denied / no-mic / low-confidence rows, end to end
+    nse_u = gated_universe("u-nse", [("ok", "unused", 5)], [FixtureEarEngine(["unused"])])
+    nse_u["machine"].summon()
+    r_n = run_recognized_turn(FakeCapture(nse_u["machine"], [voicefix.noise_ms(700, amp=4000)]), nse_u["ladder"],
+                              nse_u["gate"], nse_u["machine"], nse_u["bus"], nse_u["dialog"])
+    expect(out, r_n == {"ok": False, "line": canon.LINE_NOISE} and nse_u["gfx"].received == []
+           and not any(k == "transcript" for k, _d in nse_u["events"]),
+           "matrix row noise: the canon noise line answers — nothing transcribed, nothing routed")
+    tv_u = gated_universe("u-tv", [("ok", "unused", 5)], [FixtureEarEngine(["unused"])])
+    tv_u["machine"].summon()
+    mix_frames = [voicefix.silence_ms(60), mix(voicefix.sine_ms(600, 180), voicefix.sine_ms(600, 460)),
+                  voicefix.silence_ms(60)]
+    r_t = run_recognized_turn(FakeCapture(tv_u["machine"], mix_frames), tv_u["ladder"], tv_u["gate"],
+                              tv_u["machine"], tv_u["bus"], tv_u["dialog"])
+    expect(out, r_t == {"ok": False, "line": canon.LINE_TWO_VOICES} and tv_u["gfx"].received == [],
+           "matrix row two-voices: 'One at a time, please.' — no transcript, no routing")
+    dn_u = gated_universe("u-dn", [("ok", "unused", 5)], [FixtureEarEngine(["unused"])])
+    dn_u["machine"].summon()
+    r_d = run_recognized_turn(FakeCapture(dn_u["machine"], recognized_frames(180), permission_denied=True),
+                              dn_u["ladder"], dn_u["gate"], dn_u["machine"], dn_u["bus"], dn_u["dialog"])
+    r_m = run_recognized_turn(SoundDeviceCapture(dn_u["machine"]), dn_u["ladder"], dn_u["gate"],
+                              dn_u["machine"], dn_u["bus"], dn_u["dialog"])
+    expect(out, r_d == {"ok": False, "line": canon.LINE_MIC_DENIED} and r_m == {"ok": False, "line": canon.LINE_NO_MIC},
+           "matrix rows mic-denied + no-mic: permission refusal and absent device each answer their byte-exact line")
+    lc_u = gated_universe("u-lc", [("ok", "unused", 5)], [FixtureEarEngine([""])])
+    enroll_member(lc_u["store"], lc_u["scorer"], lc_u["vault"], lc_u["log"], "Cooper", "the commander", "cooper",
+                  cooper_samples())
+    lc_u["machine"].summon()
+    lc_u["machine"].set_audience("cooper")
+    r_lc = run_recognized_turn(FakeCapture(lc_u["machine"], recognized_frames(180)), lc_u["ladder"], lc_u["gate"],
+                               lc_u["machine"], lc_u["bus"], lc_u["dialog"])
+    expect(out, r_lc["line"] == canon.LINE_HEARD_BADLY and lc_u["gfx"].received == []
+           and lc_u["vault"].messages_for(1)[-1]["text"] == canon.LINE_HEARD_BADLY,
+           "matrix row low-confidence: heard-badly answers and NOTHING guessed ever executes")
+
+    # recording-attack row: an exact enrolled replay — suspected, NO line, confirm-gate note
+    ra_u = gated_universe("u-ra", [("ok", "the answer", 5)], [FixtureEarEngine(["the real words"])])
+    samples = cooper_samples()
+    enroll_member(ra_u["store"], ra_u["scorer"], ra_u["vault"], ra_u["log"], "Cooper", "the commander", "cooper",
+                  samples)
+    ra_u["machine"].summon()
+    ra_u["machine"].set_audience("cooper")  # Cooper mid-session; the replay arrives as his own enrolled bytes
+    replay_frames = [voicefix.silence_ms(120), samples[1], voicefix.silence_ms(120)]  # sample 1 = pure 600ms 180Hz
+    r_ra = run_recognized_turn(FakeCapture(ra_u["machine"], replay_frames), ra_u["ladder"], ra_u["gate"],
+                               ra_u["machine"], ra_u["bus"], ra_u["dialog"])
+    special = [d["text"] for k, d in ra_u["events"] if k == "chunk" and d["text"] != "the answer"]
+    notes = [r.get("note", "") for r in ra_u["log"].read_all()]
+    expect(out, r_ra["band"] == "accept" and special == []
+           and any("confirm layers" in n for n in notes),
+           "matrix row recording-attack: exact replay ACCEPTs but speaks NO special line; the confirm-gate note is logged")
+
+    # wake law: cold-wake path, Law 3, mid-turn ignorance, engine honesty
+    wake_u = gated_universe("u-wake", [("ok", "morning answer", 5)], [FixtureEarEngine(["good morning"])])
+    enroll_member(wake_u["store"], wake_u["scorer"], wake_u["vault"], wake_u["log"], "Cooper", "the commander",
+                  "cooper", cooper_samples(), passphrase=PASS)
+    w_engine = FixtureWakeEngine([False, False, True, False])
+    woke = wake_turn(w_engine, recognized_frames(180) + [voicefix.silence_ms(30)], wake_u["machine"], wake_u["log"])
+    transitions = [(r.get("from"), r.get("to")) for r in wake_u["log"].read_all() if r.get("kind") == "transition"]
+    expect(out, woke["awoken"] and woke["state"] == LISTENING
+           and ("off", "armed") in transitions and ("armed", "listening") in transitions,
+           "cold-wake law: 'Hey TARS' walks OFF -> summon -> LISTENING through state.py alone")
+    morning = run_recognized_turn(FakeCapture(wake_u["machine"], recognized_frames(180)), wake_u["ladder"],
+                                  wake_u["gate"], wake_u["machine"], wake_u["bus"], wake_u["dialog"])
+    expect(out, morning["ok"] and morning["text"] == "good morning" and wake_u["machine"].audience == "cooper",
+           "the full morning: wake -> recognize Cooper -> transcript -> answer, one lawful chain")
+    sleep_u = gated_universe("u-sleep", [], [FixtureEarEngine(["x"])])
+    asleep = wake_turn(FixtureWakeEngine([False, False, False]), [voicefix.sine_ms(30) for _n in range(3)],
+                       sleep_u["machine"], sleep_u["log"])
+    expect(out, asleep == {"awoken": False, "detected": False} and sleep_u["machine"].state == OFF,
+           "Law 3: no 'Hey TARS', no summon — TARS stays OFF, nothing auto-starts")
+    busy_u = gated_universe("u-busy", [("ok", "unused", 5)], [FixtureEarEngine(["unused"])])
+    busy_u["machine"].summon()
+    busy_u["machine"].text()
+    dodged = wake_turn(FixtureWakeEngine([True]), [voicefix.sine_ms(30)], busy_u["machine"], busy_u["log"])
+    expect(out, dodged["awoken"] is False and dodged["detected"] is True and busy_u["machine"].state == THINKING
+           and any(r.get("kind") == "wake" for r in busy_u["log"].read_all()),
+           "a wake word mid-turn is detected but IGNORED and logged — it never hijacks a live turn")
+    expect(out, PorcupineWakeEngine(zone / "no-kw").load() is False and ResemblyzerScorer().load() is False,
+           "nt-real paths (Porcupine, Resemblyzer) honestly unavailable in a Linux sandbox — M-1 stages them")
+
+    # the §11 tail of the matrix re-proven live: drained ears lane under a verified voice
+    sp_wires = []
+
+    def sp_probe(url, body, content_type, key):
+        sp_wires.append(url)
+        return "should never be heard"
+
+    sp_u = gated_universe("u-spent2", [("ok", "unused", 5)], [GroqEarsAdapter(load_ring({}), transport=sp_probe)])
+    enroll_member(sp_u["store"], sp_u["scorer"], sp_u["vault"], sp_u["log"], "Cooper", "the commander", "cooper",
+                  cooper_samples())
+    sp_u["machine"].summon()
+    sp_u["machine"].set_audience("cooper")
+    r_sp = run_recognized_turn(FakeCapture(sp_u["machine"], recognized_frames(180)), sp_u["ladder"], sp_u["gate"],
+                               sp_u["machine"], sp_u["bus"], sp_u["dialog"])
+    expect(out, r_sp["line"] == canon.LINE_ALL_SPENT and r_sp["band"] == "accept" and sp_wires == [],
+           "matrix row keys-spent under Cooper ID: the verified voice still hears the canon all-spent line, wire cold")
+
+
 def _await_ready(proc) -> bool:
     while True:
         line = proc.stdout.readline()
@@ -1031,7 +1412,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + P-CORE-1 ring + P-CORE-2 persona + P-CORE-3 voice batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID matrix batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -1043,6 +1424,7 @@ def main() -> int:
     _ringdemo_checks(base, out)
     _persona_checks(base, out)
     _voice_checks(base, out)
+    _matrix_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0
