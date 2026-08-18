@@ -1,6 +1,7 @@
 /* TARS Bridge app — renderer.
-   Contract v1.2 §3-§5 (A1: quick_action 'read_aloud' | 'redo' with {chatId, messageId};
-   A2: done carries messageId):
+   Contract v1.4 §3-§5 (A1: quick_action 'read_aloud' | 'redo' with {chatId, messageId};
+   A2: done carries messageId; A3: list_members / list_brain / brain_text and
+   StatusReport.windowsUpdate; A4: Mission Display v2 skin canon):
    CORE owns state, hue and lane; this file only renders what it is told, and calls
    window.tarsBridge methods (never invents one). */
 

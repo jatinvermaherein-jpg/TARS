@@ -1,4 +1,4 @@
-/* TARS Bridge app — the Mock bridge (contract v1.2 §6, incl. Amendments A1 and A2).
+/* TARS Bridge app — the Mock bridge (contract v1.4 §6, incl. Amendments A1-A4).
    Activates ONLY when a real window.tarsBridge is absent, so opening index.html in any
    browser gives a living demo with zero backend. Implements all ten bridge methods and
    plays the canon demo script on natural triggers:
