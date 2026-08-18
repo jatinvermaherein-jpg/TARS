@@ -210,6 +210,11 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Merge-Day notes from the lane (restore hazards: /tmp wipe, ssh perms, origin remote, Chrome libs — libasound2t64 not libasound2 · pull --rebase never force-push · copy canon bytes from the preview file) adopted into P3 operator runbook by reference. Bundle truth verified: **5 files, zero deps, zero build.**
 - **APP lane: closed in good order.** Five phases, five PASS, one HOLD-and-redemption, three commendations. See you on Merge Day.
 
+## 🎙️ VOICE MODAL FORK: KEEP (Cooper, Aug 18, 2026) + ▶️ MAIN-LANE ADVANCE
+- Cooper's audition verdict on `voice-modal-prototype.html`: **KEEP the matte cockpit variant** ("keep the one you said, no gaming one") — the cyan-glow take stays condemned in the museum. Prototype banks as the P-APP-4 integration reference; canonization rides that phase (post-P3 work list). Fork CLOSED.
+- Cooper decreed forward motion on the main lane + asked for the delivery map: **10 CORE deliveries remain (P-CORE-3…12), then M-1 → P3 merge → M-2 (→ M-3 when the UPS lands).** Exact M-1 checklist spliced into his bench manual (`hp-aio-tars-setup-guide.md`).
+- **P-CORE-3 forged + shipped this session** (ears.py VAD/engines · capture.py mic-cold law · mouth.py ladder SAPI→Piper→edge with §31 privacy routing + A1 speak-drain + barge-in · in-code WAV fixtures · zero binaries · zero network).
+
 ## 🗄️ APP-FINAL ARCHIVE RECEIVED + VERIFIED (Aug 18, 2026) — banked `tars/app-lane-final-archive.md`
 - Cross-checked against MY audit: frozen commit `ba36bc2` ✅ · my line counts (219/843/1357/627) match the frozen tree ✅ · **the lane self-corrected its courier numbers (had said 1409/621, mid-edit buffer; corrected before being caught — second self-report honesty mark this phase)** · 215 checks lane-reported (166+49), clean-room re-run · freeze integrity: upstream touched only logs ✅.
 - **RULING on its KNOWN-LIMIT #2 (Ashish line vs lo-fi search-arc collision):** coexistence accepted — demo-script scene 6 is BEHAVIORAL canon ("3 results → second opens"), not query-literal; the banked Ashish line stays as mock flavor; both retire together when the mock itself retires at P3 and the ring returns real results. Nothing to fix.
