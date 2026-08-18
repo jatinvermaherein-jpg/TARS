@@ -56,7 +56,7 @@
 | **P-APP-1** Conversations | Chat history list · streaming chunks · hover actions (copy/read-aloud/redo stubs into bridge) · empty state (walk-art + boot line) · Esc/stand-down behavior | Demo + multi-chat flow selftest |
 | **P-APP-2** Settings app-page | Dials panel (HONESTY locked slider + canon refuse) · Voice ID panel · **Key gauge panel (8 quotas)** · Privacy (hue legend) · Memory explorer (mock `tars-brain/` tree) · System · About | Panels live against mock; no placeholder text |
 | **P-APP-2.5** Mission Display v2 reskin (decreed + ratified Aug 17) | Style-only swap to skin v2: 15 tokens + 2 on-accent + 4 alpha utilities · soft-round geometry · soft-glass depth · v1 hex purge (byte-grep gate) · ZERO behavior change | 146 prior checks green + skin guards (v2 present / v1 absent, byte-level) · full screenshot re-sweep (11 shots) · REPORT block |
-| **P-APP-3** Operator surfaces | Chip-row flows · red-verb confirm modal (typed-YES) · TeleSend stage card (what→whom→YES) · LOOK banner (WATCHING + amber) · file/result cards · keyboard map (Ctrl+Alt+T etc. shown in-page) | Contract §7 checks 1–8 all pass in mock → **APP FROZEN for merge** |
+| **P-APP-3** Operator surfaces | Chip-row flows · red-verb confirm modal (typed-YES) · TeleSend stage card (what→whom→YES) · LOOK banner (WATCHING + amber) · file/result cards · keyboard map (Ctrl+Alt+T etc. shown in-page) | **✅ BANKED Aug 18 + carry-over debt paid → APP FROZEN for merge (P3)** |
 
 ## 6. Phase map — CORE lane (main agent) · needs 8-key secrets sitting before P-CORE-1
 
