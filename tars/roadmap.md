@@ -80,7 +80,7 @@
 
 | Milestone | Content | Gate |
 |---|---|---|
-| **P3 — MERGE DAY (on the AiO)** | Core host loads `tars/app/` via pywebview · `tarsBridge` live wiring · **10-check smoke test (contract §7)** · **FIRST LIVE CLOUD CALL ceremony** (keys from AiO `.env`, never sandbox) | All 10 checks pass verbatim |
+| **P3 — MERGE DAY (on the AiO)** | Core host loads `tars/app/` via pywebview · `tarsBridge` live wiring · **10-check smoke test (contract §7)** · **FIRST LIVE CLOUD CALL ceremony** (keys from AiO `.env`, never sandbox) | All 10 checks pass verbatim · merge-work docket: v1.5 `operator` event question · search-demo line unification (scene 6 wording is authority) · APP merge-notes runbook (`tars/app-lane-archive.md`) |
 | **M-1 Install day** | Python 3.12 · staged pip table · C:\TARS spine · no-auto-start law audit · chords + wake live | Guide checklist sign-off |
 | **M-2 Voice ritual** | Voice audition (shortlist, Cooper's ear decides) · enrollment 5×3 rounds + threshold calibration + passphrase | Cold-day borderline / stranger reject proven |
 | **M-3 UPS drill** *(DEFERRED Aug 18: UPS >1 month out; home inverter covers rare outages — drill runs the week it lands)* | Pull-plug mid-conversation → survival report on next summon | Canon line + intact vault |
