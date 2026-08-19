@@ -196,6 +196,11 @@ class Vault:
         return {"id": mid, "chat_id": chat_id, "who": who, "text": text, "ts": ts,
                 "hue": hue, "lane": lane, "superseded": superseded}
 
+    @property
+    def path(self) -> Path:
+        """Where this vault.db lives (the layer parks logs beside it by default)."""
+        return self._path
+
     def integrity(self) -> str:
         return str(self._db.execute("PRAGMA integrity_check").fetchone()[0])
 

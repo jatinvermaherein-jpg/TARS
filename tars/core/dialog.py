@@ -2,75 +2,50 @@
 binding all call.
 
 send() drives the state machine turn (text -> reply -> spoken), persists both
-sides of the exchange into vault chats/messages, classifies the intent in
-order: dial command -> remember-intent -> brain call. Brain calls ride the
-persona system prompt (built from LIVE dials, never cached) plus a rolling
-<=10-message window of this chat. Every reply chunk/done pair ends with the
-A2 done-shape: {chatId, messageId, hue, lane}. quick_action pays the A1 debt:
-read_aloud intake + redo regeneration with the superseded flag.
+sides of the exchange into vault chats/messages, and since P-CORE-5 hands the
+utterance to command.py FIRST: the grammar fast path (session/dial/memory/
+operator rows) answers locally in milliseconds with zero ring spend; only a
+non-match falls to the brain ring with the persona prompt (LIVE dials, never
+cached) plus a rolling <=10-message window. Every reply chunk/done pair ends
+with the A2 done-shape: {chatId, messageId, hue, lane}. quick_action pays the
+A1 debt (read_aloud/redo), A3 (enroll_voice), and the ranked search pick; the
+RED-verb typed-YES seam is confirm(actionId, yes) per contract §3.
 
 Design declarations (also pinned in code comments where they live):
 - chunk.seq restarts per message until true streaming lands.
 - Brain-call hue is 'cloud' by construction; local replies (acks) are 'local'.
-- Remember-intents are honored for audience == "cooper" only; with no canon
-  refusal line for it, family/guest payloads fall through to a memory-less
-  brain answer (documented in build-log too).
+- Remember-intents are honored for audience == "cooper" only; family/guest
+  payloads fall through to a memory-less brain answer (command.py keeps the
+  same fall-through, behavior byte-for-byte).
+- The P-CORE-2 dial/remember handlers moved to command.py (harness moved,
+  behavior untouched); classify_memory stays importable from here.
 """
 from tars.core import canon, enroll, persona
+from tars.core.command import CommandLayer, classify_memory  # classify_memory: re-export, callers keep importing it from here
+from tars.core.findfile import FileFinder, finder_roots_from_env
+from tars.core.logx import LogX
+from tars.core.operator import NtExecutor
+from tars.core.searchlanes import SearchLanes
 
-DIAL_NAMES = ("humor", "vernacular", "discretion", "trust", "honesty")
-REMEMBER_PATTERNS = ("remember this", "remember that", "note that", "yaad rakh")
-PERSON_WORDS = ("ma", "papa", "bhaiya", "didi", "friend", "teacher", "sir", "uncle", "aunty")
-PLAN_WORDS = ("plan", "tomorrow", "remind", "exam", "test", "deadline", "result")
-PREFERENCE_WORDS = ("prefer", "prefers", "like", "likes", "love", "loves", "favorite", "favourite",
-                    "hate", "hates", "dislike", "dislikes")
 CONTEXT_WINDOW = 10  # rolling history cap per brain call
 TITLE_CAP = 42
-
-
-def classify_memory(payload: str) -> str:
-    """Declared rule order: person -> plan -> preference -> fact (first word-hit wins)."""
-    words = set(payload.lower().replace(".", " ").replace(",", " ").split())
-    if words & set(PERSON_WORDS):
-        return "person"
-    if words & set(PLAN_WORDS):
-        return "plan"
-    if words & set(PREFERENCE_WORDS):
-        return "preference"
-    return "fact"
-
-
-def parse_dial_command(text: str):
-    """'<dial> <int>' -> (name, value); a bad number rides as None into set_dial's refusal."""
-    parts = text.strip().lower().split()
-    if len(parts) == 2 and parts[0] in DIAL_NAMES:
-        try:
-            return parts[0], int(parts[1])
-        except ValueError:
-            return parts[0], None
-    return None
-
-
-def remember_payload(text: str):
-    """Declared pattern list (English + Hinglish basics). Empty payload -> normal chat."""
-    lowered = text.strip().lower()
-    for pattern in REMEMBER_PATTERNS:
-        if lowered.startswith(pattern):
-            payload = text.strip()[len(pattern):].lstrip(" :,-").strip()
-            return payload or None
-    return None
 
 
 class Dialog:
     """One live conversation bound to machine, settings, router, vault and bus."""
 
-    def __init__(self, settings, vault, router, machine, bus, voice_gate=None):
+    def __init__(self, settings, vault, router, machine, bus, voice_gate=None, command_layer=None):
         self._settings = settings
         self._vault = vault
         self._router = router
         self._machine = machine
         self._bus = bus
         self._voice_gate = voice_gate  # P-CORE-4 Cooper ID: typed passphrase restores Tier-1 mid-flow
+        if command_layer is None:
+            command_layer = CommandLayer(settings, vault, NtExecutor(), SearchLanes(),
+                                         FileFinder(finder_roots_from_env()),
+                                         LogX(vault.path.parent / "logs.jsonl"), bus)
+        self._command = command_layer
         self._chat_id = None
 
     def new_chat(self) -> dict:
@@ -117,17 +92,28 @@ class Dialog:
             self._machine.spoken()
             return  # §22: a correct pass restores Tier-1 — the pass text never persists, never routes
         user_mid = self._vault.message_add(self._chat_id, "cooper", text, None, None)
-        dial = parse_dial_command(text)
-        if dial is not None:
-            self._emit_message(self._dial_line(*dial), "local", None)
-        else:
-            payload = remember_payload(text)
-            if payload is not None and self._machine.audience == "cooper":
-                self._vault.remember(classify_memory(payload), payload)
-                self._emit_message(canon.LINE_NOTED, "local", None)
-            else:
-                self._brain_turn(text, user_mid)
+        plan = self._command.execute(str(text), self._machine)
+        if plan["handled"]:
+            if plan["new_chat"]:
+                self.new_chat()  # the boot line opens the FRESH chat; the command itself closed the old one
+            for line, hue, lane in plan["replies"]:
+                self._emit_message(line, hue, lane)
+            self._machine.spoken()
+            if plan["stand_down"]:
+                self._machine.stand_down("spoken")
+                self._bus.emit("close", {"reason": "stand down"})
+            return
+        self._brain_turn(text, user_mid)  # (8) else: the ring is conversation's home
         self._machine.spoken()
+
+    def confirm(self, action_id, yes: bool = False) -> dict:
+        """Contract §3 typed-YES seam: releases a parked RED verb exactly once; the
+        outcome persists like every response. Unknown/expired ids answer LINE_CANCEL."""
+        result = self._command.confirm(str(action_id), bool(yes))
+        if self._chat_id is None:
+            self.new_chat()
+        self._emit_message(result["line"], "local", None)
+        return {"ok": result["ok"], "line": result["line"]}
 
     def emit_line(self, line: str, hue: str = "local") -> int:
         """A §22-family canon line as a persisted tars message (called from THINKING)."""
@@ -148,6 +134,8 @@ class Dialog:
             if payload:  # A3: enroll_voice takes payload {} exactly — anything else never guesses
                 return {"ok": False, "line": canon.LINE_CATCH_ALL}
             return enroll.open_wizard()
+        if name == "open":
+            return self._open_rank(payload)  # the ranked search pick ("open the second") — P-CORE-5
         return {"ok": False, "line": canon.LINE_CATCH_ALL}
 
     def _emit_message(self, text: str, hue, lane) -> int:
@@ -157,14 +145,6 @@ class Dialog:
         self._bus.emit("chunk", {"chatId": self._chat_id, "seq": 0, "text": text})
         self._bus.emit("done", {"chatId": self._chat_id, "messageId": mid, "hue": hue, "lane": lane})
         return mid
-
-    def _dial_line(self, name, value) -> str:
-        if self._machine.audience != "cooper":
-            return canon.LINE_GUEST_DIAL  # §10: only Cooper's verified voice or the panel moves dials
-        result = self._settings.set_dial(name, value)
-        if result["ok"]:
-            self._machine.emit_notice()  # dials move live mid-conversation: fresh StateNotice
-        return result["line"]
 
     def _dial_snapshot(self) -> dict:
         snapshot = {"honesty": 90}
@@ -189,6 +169,20 @@ class Dialog:
             return int(payload["chatId"]), int(payload["messageId"])
         except (KeyError, TypeError, ValueError):
             return None
+
+    def _open_rank(self, payload) -> dict:
+        try:
+            rank = int(payload.get("rank"))
+        except (AttributeError, TypeError, ValueError):
+            return {"ok": False, "line": canon.LINE_CATCH_ALL}  # no rank, never a guess
+        picked = self._command.open_rank(rank)
+        if picked is None:
+            return {"ok": False, "line": canon.LINE_CATCH_ALL}  # no search behind it, never a guess
+        if self._chat_id is None:
+            self.new_chat()
+        self._emit_message(picked["line"], "cloud", None)  # response law: even picks persist + stream
+        return {"ok": True, "rank": picked["rank"], "title": picked["title"], "url": picked["url"],
+                "line": picked["line"]}
 
     def _read_aloud(self, payload) -> dict:
         ids = self._ids(payload)

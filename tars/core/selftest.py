@@ -20,6 +20,14 @@ borderline / stranger reject), session lock with spoken AND typed passphrase
 restores mid-lock, hash-only passphrase storage, A3 enroll_voice wizard and
 list_members with embedding keys provably absent, and wake-word law through
 the state machine alone.
+P-CORE-5 battery: the command-grammar fast path — every v1.0 row exercised
+end-to-end (session/dials/memory/gates/GREEN/RED), parse-order + zero-ring
+laws, §9 acks byte-exact, typed-YES gate round-trips (single-use, 120s
+expiry, cancel-consumes, unknown-never-guessed), near-miss discipline,
+natural find (confident single / honest capped list), fixture search lanes
+with the open-the-second pick, the §34 Never-List door at every row type,
+and NtExecutor proven spawn-free — the whole battery runs with the network
+and subprocess seams patched to RAISE.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -31,6 +39,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 import wave
 from datetime import date, datetime
 from pathlib import Path
@@ -40,6 +49,8 @@ from tars.core.__main__ import Printer, run_demochat
 from tars.core.adapters import GROQ_URL, OPENROUTER_URL, TIMEOUT_S, FixtureAdapter, GroqAdapter
 from tars.core.bus import EVENT_TYPES, Bus
 from tars.core.capture import FakeCapture, SoundDeviceCapture
+from tars.core.command import (COMMANDS_HELP, GATE_TTL_S, CommandLayer, never_list_hit,
+                               parse_dial_command, remember_payload)
 from tars.core.dialog import Dialog, classify_memory
 from tars.core.ears import (RMS_THRESHOLD, EarLadder, FixtureEarEngine, GroqEarsAdapter, WhisperSmallLocal,
                             build_multipart, frame_rms, run_voice_turn, slice_pcm, vad_spans)
@@ -47,11 +58,16 @@ from tars.core.enroll import ENROLL_PHRASES, ENROLL_ROUNDS, enroll_member, list_
 from tars.core.voiceid import (MATRIX_ROWS, FixtureScorer, ProfileStore, ResemblyzerScorer, VoiceGate, classify,
                                detect_noise, detect_two_voices, hash_passphrase, matrix_line, run_recognized_turn)
 from tars.core.wake import FixtureWakeEngine, PorcupineWakeEngine, wake_turn
+from tars.core.findfile import (CONFIDENT_LEAD, FileFinder, MAX_LIST, RECENCY_BONUS, TOKEN_SCORE,
+                                finder_roots_from_env)
 from tars.core.gauge import council_note, gauge_rows
 from tars.core.keys import LANE_CAPS, load_ring, parse_env_file
 from tars.core.logx import LogX
 from tars.core.mouth import EdgeTier, FixtureTier, Mouth, PiperTier, SapiTier
+from tars.core.operator import APP_ALIASES, FixtureExecutor, NtExecutor
 from tars.core.router import LANE_MODELS, LENGTH_THRESHOLD, Router
+from tars.core.searchlanes import (RESULTS_MAX, FixtureSearch, SearchLanes, ddg_url, parse_ddg,
+                                   parse_youtube, youtube_url)
 from tars.core.settings import DIAL_DEFAULTS, Settings
 from tars.core.state import ARMED, ERROR, LISTENING, Machine, OFF, SPEAKING, THINKING
 from tars.core.vault import Vault
@@ -1126,7 +1142,11 @@ def _matrix_checks(base: Path, out) -> None:
            "calibration trio 3/3 + iron rule: a stranger REJECTs; an empty profile space rejects everything")
 
     # --- apply side-effects ride state.py + audience only
-    guest_turn = gated_universe("u-gt", [("ok", "open reply", 5)], [FixtureEarEngine(["open reply please"])])
+    # P-CORE-5 deviation (logged): the old vehicle "open reply please" now parses as an
+    # operator row (grammar v1.0 §5: open <unknown-alias> -> ONE clarifying question), so it
+    # lawfully never reaches the ring. The protected law — a rejected voice's brain answer
+    # rides the guest persona with the memory block omitted — re-aimed onto grammar-free text.
+    guest_turn = gated_universe("u-gt", [("ok", "story reply", 5)], [FixtureEarEngine(["tell me a story please"])])
     enroll_member(guest_turn["store"], guest_turn["scorer"], guest_turn["vault"], guest_turn["log"],
                   "Cooper", "the commander", "cooper", cooper_samples(), passphrase=PASS)
     guest_turn["machine"].summon()
@@ -1350,6 +1370,540 @@ def _await_ready(proc) -> bool:
             return True
 
 
+def _grammar_checks(base: Path, out) -> None:
+    """P-CORE-5 battery: command-grammar v1.0 row-for-row, the fast-path law, GREEN acks
+    byte-exact, RED typed-YES round-trips, Never-List door, honest find + fixture search.
+    The whole battery runs with the network and subprocess seams patched to RAISE —
+    a lifted wire or a spawned process fails the run, not just a mocked absence."""
+    zone = base / "grammar"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+
+    def cmd_universe(name, groq_script=(), or_script=(), audience="cooper", payloads=None,
+                     roots=None, clock=None, cell=None):
+        path = zone / name
+        path.mkdir(parents=True, exist_ok=True)
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", list(groq_script))
+        or_fx = FixtureAdapter("openrouter", list(or_script))
+        router = Router(load_ring(full_source), {"groq": groq_fx, "openrouter": or_fx}, vault, bus)
+        executor = FixtureExecutor()
+        fetch = FixtureSearch(payloads or {})
+        time_cell = cell if cell is not None else [1000.0]
+        layer = CommandLayer(settings, vault, executor, SearchLanes(fetch),
+                             FileFinder(roots or [], now=clock), log, bus,
+                             clock=clock, time_fn=lambda: time_cell[0])
+        dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
+        machine.set_audience(audience)
+        return {"dialog": dialog, "vault": vault, "machine": machine, "events": events,
+                "gfx": groq_fx, "ofx": or_fx, "executor": executor, "fetch": fetch,
+                "settings": settings, "log": log, "cell": time_cell}
+
+    def said(univ, chat=1):
+        return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    def done_hue(univ):
+        return [d for k, d in univ["events"] if k == "done"][-1]["hue"]
+
+    real_urlopen = urllib.request.urlopen
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def _no_net(*args, **kwargs):
+        raise AssertionError("network lifted inside the sandbox battery")
+
+    def _no_spawn(*args, **kwargs):
+        raise AssertionError("subprocess spawned inside the sandbox battery")
+
+    urllib.request.urlopen = _no_net
+    subprocess.run = _no_spawn
+    subprocess.Popen = _no_spawn
+    try:
+        # --- canon units: the number bridge and the §9/§11 line families
+        expect(out, all(canon.words_number(canon.number_words(n)) == n for n in range(101)),
+               "words_number inverts number_words across the whole declared 0..100 band")
+        expect(out, canon.words_number("0") == 0 and canon.words_number("100") == 100
+               and canon.words_number("twenty one") == 21
+               and canon.words_number("250") is None and canon.words_number("loud") is None,
+               "digits-or-words edges: 0/100 inside, 250 and noise refused")
+        expect(out, canon.volume_ack("set", 40) == "Volume set to forty."
+               and canon.open_ack("Chrome") == "Chrome opened."
+               and canon.volume_ack("up") == "Volume raised." and canon.volume_ack("down") == "Volume lowered."
+               and canon.volume_ack("mute") == "Volume muted."
+               and canon.brightness_ack("set", 60) == "Brightness set to sixty."
+               and canon.brightness_ack("up") == "Brightness raised."
+               and canon.brightness_ack("down") == "Brightness lowered."
+               and canon.snap_ack("left") == "Snapped left." and canon.snap_ack("right") == "Snapped right."
+               and canon.snap_ack("maximize") == "Maximized.",
+               "§9 GREEN acks byte-exact — short past-tense, numbers in words")
+        expect(out, canon.close_ack("Word") == "Word closed."
+               and canon.delete_ack("old notes.txt") == "old notes.txt deleted."
+               and canon.move_ack("a.txt", "docs") == "a.txt moved to docs."
+               and canon.power_ack("shutdown", 30) == "Shutting down in thirty seconds."
+               and canon.power_ack("restart", 30) == "Restarting in thirty seconds."
+               and canon.power_ack("sleep", 30) == "Sleeping in thirty seconds."
+               and canon.open_fail_ack("Chrome") == "Chrome wouldn't open from here.",
+               "§9 RED/fail acks byte-exact")
+        expect(out, canon.confirm_line("physics.pdf") == "That deletes physics.pdf. Type YES to confirm."
+               and canon.confirm_line("Word", "closes") == "That closes Word. Type YES to confirm."
+               and canon.confirm_line("a.txt to docs", "moves") == "That moves a.txt to docs. Type YES to confirm."
+               and canon.confirm_line("the PC in thirty seconds", "shuts down")
+               == "That shuts down the PC in thirty seconds. Type YES to confirm.",
+               "§11 confirm_line family byte-exact incl. the bible §16 power example shape")
+        expect(out, canon.pending_line("The Watcher report", "P-CORE-9")
+               == "The Watcher report isn't wired yet — that answer ships with P-CORE-9. Nothing invented until then."
+               and canon.clarify_app_line("spotify premium")
+               == "'spotify premium' isn't on my app list — which app did you mean?"
+               and (canon.LINE_FIND_NONE, canon.LINE_NOTHING_REMEMBERED,
+                    canon.LINE_NO_RESULTS, canon.LINE_NEAR_MISS)
+               == ("Nothing in your folders matched that.", "Nothing on that yet.",
+                   "Nothing came back for that search.", "Almost a command — I won't guess it. Say it once more, plainly?"),
+               "pending/clarify/none-line bytes exact — honesty beats a fake number")
+        expect(out, canon.boot_line(5, 30) == canon.LINE_BOOT
+               and canon.boot_line(60, 0) == "TARS online. Honesty: ninety. Humor: sixty. Vernacular: zero."
+               and canon.preset_idle_line("docking mode", 0, 0)
+               == "docking mode — humor and vernacular already stand at zero and zero."
+               and canon.dials_line({"humor": 5, "vernacular": 30, "discretion": 95, "trust": 25})
+               == "Humor five. Vernacular thirty. Discretion ninety five. Trust twenty five. Honesty is fixed at ninety.",
+               "boot/dials/preset-idle bytes — the readout re-reads CURRENT dials")
+        expect(out, canon.search_row_line(1, "Lo-Fi Mix One", "Chillhop") == "1. Lo-Fi Mix One — Chillhop"
+               and canon.search_picks_line() == "Say 'open one', 'open two', or 'open three' — I'll take you there."
+               and canon.open_rank_line(2, "Lo-Fi Mix Two") == "Opening result two — Lo-Fi Mix Two."
+               and canon.find_one_line("/x/physics.pdf") == "Found it — /x/physics.pdf."
+               and canon.find_list_line(["a.pdf", "b.pdf"]) == "I found a few — which one?\n1. a.pdf\n2. b.pdf",
+               "search/find line shapes byte-exact — results first, then the picks line")
+        expect(out, GATE_TTL_S == 120 and RESULTS_MAX == 3 and MAX_LIST == 5
+               and TOKEN_SCORE == 10 and RECENCY_BONUS == 15 and CONFIDENT_LEAD == 15,
+               "declared numerics pinned: gate TTL, lane cap, finder scoring table")
+
+        # --- parser helpers
+        expect(out, parse_dial_command("humor 60") == ("humor", 60)
+               and parse_dial_command("vernacular thirty") == ("vernacular", 30)
+               and parse_dial_command("humor abc") == ("humor", None)
+               and parse_dial_command("volume 60") is None,
+               "dial parse: digits or words, a bad number rides as None, non-dials unparsed")
+        expect(out, remember_payload("remember this: Cooper has a physics test on Friday")
+               == "Cooper has a physics test on Friday"
+               and remember_payload("yaad rakh Ma likes early tea") == "Ma likes early tea"
+               and remember_payload("remember this:") is None
+               and remember_payload("please remember to smile") is None,
+               "remember payloads keep original case; empty payloads stay conversation")
+        never_samples = ["download kmspico now", "a crack for office", "kms activator",
+                         "windows activation tool", "driver booster download", "ccleaner installer",
+                         "debloat the pc", "voice clone of the actor", "the pirate bay torrent",
+                         "solve this captcha", "bot-evasion trick", "keygen for word"]
+        expect(out, all(never_list_hit(s) for s in never_samples)
+               and not never_list_hit("physics notes") and not never_list_hit("chrome")
+               and not never_list_hit("marksmanship") and not never_list_hit("activation energy homework"),
+               "Never-List table: every §34 family pinned; word-boundary false-friends untouched")
+
+        # --- session / system rows
+        clock1 = lambda: datetime(2026, 8, 18, 14, 32)  # noqa: E731 — the pinned fixture clock
+        g1 = cmd_universe("g1", clock=clock1)
+        for text in ("what time is it", "what is the time", "what's the date", "what is the date"):
+            g1["dialog"].send(text)
+        expect(out, said(g1) == ["The time is 14:32.", "The time is 14:32.",
+                                 "The date is 2026-08-18.", "The date is 2026-08-18."]
+               and not g1["gfx"].received and not g1["ofx"].received,
+               "clock rows answer from the injected clock, both alias shapes, zero ring")
+        g1["dialog"].send("status")
+        g1["dialog"].send("system status")
+        expect(out, said(g1)[-2:] == [canon.pending_line("The Watcher report", "P-CORE-9")] * 2,
+               "status rows answer the declared watcher-pending line (P-CORE-9 owns the report)")
+        g1["dialog"].send("commands")
+        g1["dialog"].send("help")
+        expect(out, said(g1)[-2:] == [COMMANDS_HELP, COMMANDS_HELP]
+               and all(token in COMMANDS_HELP for token in ("stand down", "open <app>", "shutdown", "yaad rakh")),
+               "commands/help render the grouped grammar list, byte-stable")
+        g1["settings"].set_dial("humor", 60)
+        expect(out, g1["dialog"].send("new chat") == {"chatId": 2}
+               and said(g1, 2) == [canon.boot_line(60, 30)],
+               "new chat opens a fresh chat wearing the boot shape at CURRENT dials")
+        g1["dialog"].send("cancel")
+        expect(out, said(g1, 2)[-1] == canon.LINE_CANCEL and not g1["gfx"].received,
+               "cancel with nothing pending answers the canon line, ring untouched")
+        g1["dialog"].send("stand down")
+        expect(out, said(g1, 2)[-1] == canon.LINE_EXIT and g1["machine"].state == OFF
+               and ("close", {"reason": "stand down"}) in g1["events"] and not g1["gfx"].received,
+               "stand down: LINE_EXIT + OFF through state.py + close event, zero ring")
+
+        # --- dials: presets, words, tier law (P-CORE-2 handlers consolidated, bytes re-proven)
+        g2 = cmd_universe("g2")
+        g2["dialog"].send("endurance mode")
+        expect(out, said(g2)[-2:] == ["Humor adjusted to sixty percent.", "Vernacular adjusted to sixty percent."]
+               and len([d for k, d in g2["events"]
+                        if k == "state" and d["dials"]["humor"] == 60]) == 2  # ONE dial notice + spoken()'s transition
+               and not g2["executor"].calls and not g2["gfx"].received,
+               "endurance preset: H/V move in declared order, ONE emit_notice (not one per dial), no ring")
+        g2["dialog"].send("docking mode")
+        g2["dialog"].send("docking mode")
+        expect(out, said(g2)[-3:-1] == ["Humor adjusted to zero percent.", "Vernacular adjusted to zero percent."]
+               and said(g2)[-1] == canon.preset_idle_line("docking mode", 0, 0),
+               "docking lands H0/V0 (exam mode); a re-issue tells the idle truth")
+        g2["dialog"].send("recruit mode")
+        expect(out, said(g2)[-2:] == ["Humor adjusted to five percent.", "Vernacular adjusted to thirty percent."],
+               "recruit lands H5/V30 per bible §10")
+        g2["dialog"].send("vernacular thirty")
+        g2["dialog"].send("humor sixty five")
+        expect(out, said(g2)[-2:] == ["Vernacular adjusted to thirty percent.",
+                                      "Humor adjusted to sixty five percent."],
+               "word-form numbers parse per grammar §0 — one and two token shapes")
+        g2["dialog"].send("humor abc")
+        g2["dialog"].send("humor 60 please")
+        g2["dialog"].send("honesty 50")
+        g2["dialog"].send("what are your dials")
+        expect(out, said(g2)[-4:] == [canon.LINE_CATCH_ALL, canon.LINE_NEAR_MISS,
+                                      canon.LINE_HONESTY_FIXED, canon.dials_line(g2["settings"].dials)]
+               and g2["settings"].dials["humor"] == 65,
+               "2-token bad number keeps the pinned catch-all; dial-first non-rows earn ONE question")
+        g2g = cmd_universe("g2g", groq_script=[("ok", "guest chat", 8)], audience="guest")
+        g2g["dialog"].send("docking mode")
+        expect(out, said(g2g)[-1] == canon.LINE_GUEST_DIAL and g2g["settings"].dials["humor"] == 5,
+               "guest preset refused by tier law — dials unmoved")
+        g2g["dialog"].send("what do you remember about physics")
+        expect(out, len(g2g["gfx"].received) == 1,
+               "guest recall falls through to the memory-less ring (P-CORE-2 tier law intact)")
+
+        # --- memory rows
+        g3 = cmd_universe("g3", groq_script=[("ok", "chat answer", 9)])
+        g3["dialog"].send("yaad rakh Ma likes early tea")
+        expect(out, said(g3)[-1] == canon.LINE_NOTED
+               and g3["vault"].recall()[-1]["text"] == "Ma likes early tea"
+               and g3["vault"].recall()[-1]["kind"] == "person",
+               "Hinglish yaad rakh stores original-case bytes under the declared kind")
+        g3["dialog"].send("remember this: Cooper has a physics test on Friday")
+        g3["dialog"].send("what do you remember about physics")
+        expect(out, said(g3)[-1] == "What I remember about that:\n1. Cooper has a physics test on Friday",
+               "recall answers the numbered memory list, original case intact")
+        g3["dialog"].send("what do you remember about biology")
+        expect(out, said(g3)[-1] == "Nothing on that yet.",
+               "grammar §3 empty-recall template byte-exact")
+        g3["dialog"].send("remember this:")
+        expect(out, len(g3["gfx"].received) == 1,
+               "an empty remember payload is conversation, never a stored nothing")
+
+        # --- parse-order law: named brain gates own (4), GREEN owns (5), RED owns (6)
+        g4 = cmd_universe("g4", groq_script=[("ok", "vote one", 9), ("ok", "vote two", 14)],
+                          or_script=[("ok", "vote three", 8), ("ok", "deep answer", 39)])
+        g4["dialog"].send("council on this: should we shutdown the pc?")
+        expect(out, g4["vault"].messages_for(1)[-1]["lane"] == "council"
+               and not g4["vault"].kv_get("gate:pending") and not g4["executor"].calls,
+               "(4) beats (6): 'shutdown' inside a council prompt routes, never parks")
+        g4["dialog"].send("ultra derive the fourier transform from scratch")
+        expect(out, g4["vault"].messages_for(1)[-1]["lane"] == "ultra" and not g4["executor"].calls,
+               "ultra prefix routes to the deep lane — the parser never fishes router words")
+
+        # --- fast-path law: a spread of grammar hits, then ONE unmatched utterance
+        gz = cmd_universe("gz", groq_script=[("ok", "plain answer", 7)])
+        for text in ("what time is it", "status", "humor 42", "open chrome", "volume up",
+                     "find physics", "close word", "remember this: pinned", "cancel"):
+            gz["dialog"].send(text)
+        expect(out, not gz["gfx"].received and not gz["ofx"].received,
+               "fast-path law: every grammar hit answers with ZERO ring/adapter calls")
+        gz["dialog"].send("just chatting now")
+        expect(out, len(gz["gfx"].received) == 1,
+               "the ring falls only for the unmatched — conversation keeps its home")
+        g9b = cmd_universe("g9b", groq_script=[("ok", "notes chat", 6), ("ok", "dawn chat", 6)])
+        g9b["dialog"].send("i need to find my notes before class")
+        g9b["dialog"].send("we watched the crack of dawn together")
+        expect(out, len(g9b["gfx"].received) == 2 and not g9b["executor"].calls,
+               "keyword-anywhere is NOT a command — no substring fishing, the ring keeps chat")
+
+        # --- operator GREEN
+        g6 = cmd_universe("g6")
+        g6["dialog"].send("open chrome")
+        expect(out, said(g6)[-1] == "Chrome opened."
+               and g6["executor"].calls == [("open_app", "chrome.exe")]
+               and done_hue(g6) == "local" and not g6["gfx"].received,
+               "GREEN open: byte-exact §9 ack, intent recorded, LOCAL hue, zero ring")
+        g6["dialog"].send("open google chrome")
+        g6["dialog"].send("kholo chrome")
+        g6["dialog"].send("chrome kholo")
+        expect(out, said(g6)[-3:] == ["Chrome opened."] * 3
+               and g6["executor"].calls == [("open_app", "chrome.exe")] * 4,
+               "closed alias list incl. both Hinglish kholo shapes — same display, same launch id")
+        g6["dialog"].send("open spotify premium")
+        expect(out, said(g6)[-1] == canon.clarify_app_line("spotify premium")
+               and len(g6["executor"].calls) == 4 and not g6["gfx"].received,
+               "unknown app earns ONE clarifying question — never a guessed launch")
+        for text in ("volume up", "volume down", "volume mute", "awaaz badha", "awaaz ghata"):
+            g6["dialog"].send(text)
+        expect(out, said(g6)[-5:] == ["Volume raised.", "Volume lowered.", "Volume muted.",
+                                      "Volume raised.", "Volume lowered."]
+               and g6["executor"].calls[-5:] == [("volume_up",), ("volume_down",), ("volume_mute",),
+                                                 ("volume_up",), ("volume_down",)],
+               "volume rows byte-exact incl. the Hinglish awaaz pair")
+        g6["dialog"].send("volume set 40")
+        g6["dialog"].send("volume set forty")
+        expect(out, said(g6)[-2:] == ["Volume set to forty."] * 2
+               and g6["executor"].calls[-2:] == [("volume_set", 40), ("volume_set", 40)],
+               "digits-or-words numbers: 'volume set 40' and 'volume set forty' are the same row")
+        g6["dialog"].send("brightness up")
+        g6["dialog"].send("brightness down")
+        g6["dialog"].send("brightness set 60")
+        expect(out, said(g6)[-3:] == ["Brightness raised.", "Brightness lowered.", "Brightness set to sixty."]
+               and g6["executor"].calls[-3:] == [("brightness_up",), ("brightness_down",), ("brightness_set", 60)],
+               "brightness rows byte-exact")
+        g6["dialog"].send("snap left")
+        g6["dialog"].send("snap right")
+        g6["dialog"].send("snap maximize")
+        expect(out, said(g6)[-3:] == ["Snapped left.", "Snapped right.", "Maximized."]
+               and g6["executor"].calls[-3:] == [("snap_left",), ("snap_right",), ("snap_maximize",)],
+               "snap rows byte-exact")
+        g6["dialog"].send("screenshot")
+        g6["dialog"].send("screenshot region")
+        expect(out, said(g6)[-2:] == [canon.pending_line("Screenshot capture", "P-CORE-6")] * 2
+               and g6["executor"].calls[-2:] == [("screenshot", "full"), ("screenshot", "region")],
+               "screenshot rows record the intent and answer the honest P-CORE-6 pending line")
+        meters = (("uptime", "The uptime meter"), ("storage", "The storage meter"), ("ram", "The RAM meter"),
+                  ("cpu", "The CPU meter"), ("what's eating the cpu", "The CPU meter"))
+        for text, _meter in meters:
+            g6["dialog"].send(text)
+        expect(out, said(g6)[-5:] == [canon.pending_line(meter, "P-CORE-9") for _t, meter in meters]
+               and not g6["gfx"].received,
+               "system-answer rows: watcher-pending lines — P-CORE-9 owns the meters, no fake numbers")
+
+        # --- near-miss law
+        g9 = cmd_universe("g9")
+        for text in ("volume loud", "volume set 250", "open", "search", "find"):
+            g9["dialog"].send(text)
+        expect(out, said(g9) == [canon.LINE_NEAR_MISS] * 5
+               and not g9["executor"].calls and not g9["gfx"].received and not g9["fetch"].calls,
+               "near-miss law: ONE clarifying question — zero execution, zero ring, zero wire")
+
+        # --- search lanes (fixtures replay pinned payloads; the wire stays patched-shut)
+        yt_payload = ('noise {"videoRenderer":{"videoId":"v1","title":{"runs":[{"text":"Lo-Fi Mix One"}]},'
+                      '"ownerText":{"runs":[{"text":"Chillhop"}]},"junk":{"a":1}}} tail '
+                      '{"videoRenderer":{"videoId":"v2","title":{"runs":[{"text":"Lo-Fi Mix Two"}]},'
+                      '"ownerText":{"runs":[{"text":"Lofi Girl"}]}}} more '
+                      '{"videoRenderer":{"title":{"runs":[{"text":"Broken Row"}]}}} skip '
+                      '{"videoRenderer":{"videoId":"v3","title":{"runs":[{"text":"Lo-Fi Mix Three"}]},'
+                      '"ownerText":{"runs":[{"text":"College Music"}]}}} end')
+        ddg_payload = ('<a class="result__a" href="//duckduckgo.com/l/?uddg='
+                       'https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FA._P._J._Abdul_Kalam&amp;rut=aa">'
+                       'A. P. J. Abdul Kalam - Wikipedia</a>'
+                       '<a class="result__url" href="#">en.wikipedia.org</a>'
+                       '<a class="result__a" href="//duckduckgo.com/l/?uddg='
+                       'https%3A%2F%2Fwww.britannica.com%2Fbiography%2FA-P-J-Abdul-Kalam&amp;rut=bb">'
+                       'A. P. J. Abdul Kalam | Britannica</a>'
+                       '<a class="result__url" href="#">https://www.britannica.com</a>'
+                       '<a class="result__a" href="//duckduckgo.com/l/?uddg='
+                       'https%3A%2F%2Fwww.pmindia.gov.in%2Fen%2Fformer-pm%2F&amp;rut=cc">'
+                       'Biography of the Missile Man</a>'
+                       '<a class="result__url" href="#">www.pmindia.gov.in</a>')
+        g5 = cmd_universe("g5", payloads={youtube_url("lo-fi beats"): yt_payload,
+                                          ddg_url("apj abdul kalam biography"): ddg_payload,
+                                          ddg_url("nothing indexable"): "no result links here"})
+        expect(out, [r["title"] for r in parse_youtube(yt_payload)]
+               == ["Lo-Fi Mix One", "Lo-Fi Mix Two", "Lo-Fi Mix Three"]
+               and [r["source"] for r in parse_ddg(ddg_payload)]
+               == ["en.wikipedia.org", "www.britannica.com", "www.pmindia.gov.in"],
+               "parsers pin the declared shapes; the malformed renderer is skipped honestly")
+        g5["dialog"].send("search lo-fi beats on youtube")
+        expect(out, said(g5)[-1] == ("1. Lo-Fi Mix One — Chillhop\n2. Lo-Fi Mix Two — Lofi Girl\n"
+                                     "3. Lo-Fi Mix Three — College Music\n"
+                                     "Say 'open one', 'open two', or 'open three' — I'll take you there.")
+               and g5["fetch"].calls == [youtube_url("lo-fi beats")]
+               and done_hue(g5) == "cloud" and not g5["gfx"].received,
+               "youtube lane: 3 pinned rows then the picks line, cloud hue, zero ring spend")
+        g5["dialog"].send("open the second")
+        expect(out, said(g5)[-1] == "Opening result two — Lo-Fi Mix Two."
+               and g5["executor"].calls[-1] == ("open_url", "https://www.youtube.com/watch?v=v2"),
+               "open-the-second: the pinned row's open line, the executor records the OS-open intent")
+        g5["dialog"].send("search APJ Abdul Kalam biography")
+        expect(out, said(g5)[-1].splitlines()[0] == "1. A. P. J. Abdul Kalam - Wikipedia — en.wikipedia.org"
+               and g5["fetch"].calls[-1] == ddg_url("apj abdul kalam biography"),
+               "ddg web lane parses result__a/result__url pairs into the same triple shape")
+        picked = g5["dialog"].quick_action("open", {"rank": 1})
+        expect(out, picked["ok"] and picked["rank"] == 1
+               and picked["url"] == "https://en.wikipedia.org/wiki/A._P._J._Abdul_Kalam"
+               and said(g5)[-1] == "Opening result one — A. P. J. Abdul Kalam - Wikipedia.",
+               "the ranked pick rides the existing quick_action channel — APP's result cards feed it")
+        expect(out, g5["dialog"].quick_action("open", {"rank": 9})
+               == {"ok": False, "line": canon.LINE_CATCH_ALL}
+               and g5["dialog"].quick_action("open", {"rank": "two"})
+               == {"ok": False, "line": canon.LINE_CATCH_ALL},
+               "a rank outside the pinned rows refuses the catch-all — never a guessed result")
+        g5["dialog"].send("search nothing indexable")
+        expect(out, said(g5)[-1] == canon.LINE_NO_RESULTS
+               and json.loads(g5["vault"].kv_get("search:last"))["lane"] == "web",
+               "empty page answers the honest no-results line; search:last keeps the last REAL rows")
+        g5b = cmd_universe("g5b")
+        g5b["dialog"].send("open the second")
+        expect(out, said(g5b)[-1] == canon.LINE_NEAR_MISS and not g5b["executor"].calls,
+               "no search behind a rank pick -> the clarifying line, never a guess")
+
+        # --- find: confident single, honest list, Hinglish row, cap, none-line
+        root = zone / "files"
+        (root / "reports").mkdir(parents=True)
+        clock_find = lambda: datetime(2026, 8, 18, 14, 32)  # noqa: E731 — pinned fixture clock
+        def plant(name, when):
+            target = root / name
+            target.write_text(f"fixture bytes for {name}")
+            stamp = when.timestamp()
+            os.utime(target, (stamp, stamp))
+        plant("physics.pdf", datetime(2026, 8, 17, 10, 0))
+        plant("physics notes.txt", datetime(2026, 8, 18, 9, 0))
+        plant("grocery list.txt", datetime(2026, 8, 18, 8, 0))
+        for index in range(6):
+            plant(f"reports/report {index + 1}.txt", datetime(2026, 8, 10, 9, 0))
+        gf = cmd_universe("gf", roots=[str(root)], clock=clock_find)
+        gf["dialog"].send("find the physics pdf from yesterday")
+        expect(out, said(gf)[-1] == f"Found it — {root}/physics.pdf.",
+               "confident find answers with the path — name tokens AND the recency hint scored")
+        gf["dialog"].send("find physics")
+        expect(out, said(gf)[-1] == f"I found a few — which one?\n1. {root}/physics notes.txt\n2. {root}/physics.pdf",
+               "ambiguous find: the honest numbered list, newest first — never a guessed file")
+        gf["dialog"].send("dhundo physics")
+        expect(out, said(gf)[-1] == said(gf)[-2],
+               "Hinglish dhundo walks the same honest list")
+        gf["dialog"].send("find report")
+        report_lines = said(gf)[-1].split("\n")
+        expect(out, report_lines[0] == "I found a few — which one?" and len(report_lines) == 6
+               and all(line.startswith(f"{i}. ") for i, line in enumerate(report_lines[1:], 1)),
+               "long ambiguity caps at MAX_LIST 5, numbered — the question stays with Cooper")
+        gf["dialog"].send("find zebra unicorn quasar")
+        expect(out, said(gf)[-1] == canon.LINE_FIND_NONE and not gf["gfx"].received,
+               "no match answers the declared none-line — zero ring")
+        expect(out, FileFinder([str(root / "ghost")], now=clock_find).find("physics")[0] == "none",
+               "a missing root is skipped honestly — never an invented hit")
+        roots_env = os.environ.get("TARS_FIND_ROOTS")
+        os.environ["TARS_FIND_ROOTS"] = str(root)
+        try:
+            expect(out, finder_roots_from_env() == [str(root)],
+                   "TARS_FIND_ROOTS extends the declared find space on the host")
+        finally:
+            if roots_env is None:
+                del os.environ["TARS_FIND_ROOTS"]
+            else:
+                os.environ["TARS_FIND_ROOTS"] = roots_env
+
+        # --- RED round-trips: park, typed-YES once, cancel, expiry, unknown, bridge confirm
+        g7 = cmd_universe("g7")
+        g7["dialog"].send("close word")
+        expect(out, said(g7)[-1] == "That closes Word. Type YES to confirm."
+               and [d for k, d in g7["events"] if k == "action"]
+               == [{"actionId": "act-1", "kind": "red-verb",
+                    "summary": "That closes Word. Type YES to confirm.", "target": "Word"}]
+               and not g7["executor"].calls and not g7["gfx"].received
+               and g7["vault"].kv_get("gate:pending") == "act-1",
+               "RED close: contract-§3 action event exact shape, parked, zero execution, zero ring")
+        g7["dialog"].send("yes")
+        expect(out, said(g7)[-1] == "Word closed." and g7["executor"].calls == [("close_app", "Word")]
+               and not g7["vault"].kv_get("gate:pending"),
+               "typed YES releases the gate exactly once — fixture executes, ack persists")
+        expect(out, g7["dialog"].confirm("act-1", True) == {"ok": False, "line": canon.LINE_CANCEL}
+               and g7["executor"].calls == [("close_app", "Word")],
+               "a consumed actionId answers LINE_CANCEL — single-use, never re-fires")
+        g7["dialog"].send("delete old notes.txt")
+        expect(out, said(g7)[-1] == "That deletes old notes.txt. Type YES to confirm."
+               and g7["vault"].kv_get("gate:pending") == "act-2",
+               "delete parks with the §11 deletes-verb confirm line")
+        g7["dialog"].send("cancel")
+        expect(out, said(g7)[-1] == canon.LINE_CANCEL and not g7["vault"].kv_get("gate:pending")
+               and g7["dialog"].confirm("act-2", True) == {"ok": False, "line": canon.LINE_CANCEL}
+               and g7["executor"].calls == [("close_app", "Word")],
+               "cancel aborts AND consumes the gate — nothing resurrects it, nothing executed")
+        g7["dialog"].send("delete b.txt")
+        g7["cell"][0] += GATE_TTL_S + 1
+        expect(out, g7["dialog"].confirm("act-3", True) == {"ok": False, "line": canon.LINE_CANCEL}
+               and g7["vault"].kv_get("gate:act-3") == "expired"
+               and not g7["vault"].kv_get("gate:pending")
+               and g7["executor"].calls == [("close_app", "Word")],
+               "an expired id answers LINE_CANCEL and never executes (declared 120s TTL)")
+        g7["cell"][0] -= GATE_TTL_S + 1  # restore the fixture clock for the remaining pins
+        expect(out, g7["dialog"].confirm("act-99", True) == {"ok": False, "line": canon.LINE_CANCEL},
+               "an unknown id answers LINE_CANCEL — a YES never guesses its gate")
+        g7["dialog"].send("move a.txt to docs")
+        g7["dialog"].send("yes")
+        expect(out, said(g7)[-2:] == ["That moves a.txt to docs. Type YES to confirm.", "a.txt moved to docs."]
+               and g7["executor"].calls[-1] == ("move_path", "a.txt", "docs"),
+               "move round-trips with the moves-verb pair and the joined target")
+        g7["dialog"].send("shutdown")
+        expect(out, said(g7)[-1] == "That shuts down the PC in thirty seconds. Type YES to confirm."
+               and [d for k, d in g7["events"] if k == "action"][-1]["target"] == "this PC",
+               "shutdown parks the §16 power confirm — ALWAYS gated, default 30s countdown")
+        g7["dialog"].send("yes")
+        expect(out, said(g7)[-1] == "Shutting down in thirty seconds."
+               and g7["executor"].calls[-1] == ("power", "shutdown", 30),
+               "released power verb fires the fixture once with the countdown ack")
+        g7["dialog"].send("restart")
+        g7["dialog"].send("yes")
+        g7["dialog"].send("sleep")
+        expect(out, said(g7)[-3:] == ["That restarts the PC in thirty seconds. Type YES to confirm.",
+                                      "Restarting in thirty seconds.",
+                                      "That sleeps the PC in thirty seconds. Type YES to confirm."],
+               "restart and sleep park the same §16 shape, each its own gate")
+        sleep_id = g7["vault"].kv_get("gate:pending")
+        slept = g7["dialog"].confirm(sleep_id, True)
+        expect(out, slept == {"ok": True, "line": "Sleeping in thirty seconds."}
+               and said(g7)[-1] == "Sleeping in thirty seconds."
+               and g7["executor"].calls[-1] == ("power", "sleep", 30),
+               "contract §3 confirm(actionId, yes) releases through the bridge — ConfirmResult exact")
+        g7["dialog"].send("band karo excel")
+        g7["dialog"].send("yes")
+        g7["dialog"].send("word band karo")
+        expect(out, said(g7)[-2:] == ["Excel closed.", "That closes Word. Type YES to confirm."]
+               and g7["executor"].calls[-1] == ("close_app", "Excel"),
+               "Hinglish band karo gates the same close row, both alias shapes")
+        g7["dialog"].confirm(g7["vault"].kv_get("gate:pending"), False)
+        g7["dialog"].send("delete old report.txt")
+        g7["dialog"].send("yes")
+        expect(out, said(g7)[-2:] == ["That deletes old report.txt. Type YES to confirm.",
+                                      "old report.txt deleted."]
+               and g7["executor"].calls[-1] == ("delete_path", "old report.txt"),
+               "delete YES round-trip executes once with the canon deleted ack")
+
+        # --- the Never-List door at every row type
+        g8 = cmd_universe("g8")
+        for utterance in ("open kmspico", "close driver booster", "delete ccleaner setup.exe",
+                          "move crack.exe to desktop", "search debloat script on youtube",
+                          "find my pirated copy", "search voice clone tool"):
+            g8["dialog"].send(utterance)
+        expect(out, said(g8)[-7:] == [canon.LINE_NEVER_LIST] * 7
+               and not g8["executor"].calls and not g8["fetch"].calls and not g8["gfx"].received
+               and not g8["vault"].kv_get("gate:pending")
+               and not [d for k, d in g8["events"] if k == "action"]
+               and len([r for r in g8["log"].read_all() if r.get("kind") == "never-list"]) == 7,
+               "Never-List battery: every §34 family refuses at every row — no gate, no execution, logged")
+
+        # --- declared boundaries ride the ring until their phases land
+        gb = cmd_universe("gb", groq_script=[("ok", f"boundary {i}", 3) for i in range(5)])
+        for text in ("explain torque with one example", "quiz me on thermodynamics",
+                     "whatsapp bhaiya reaching at 6", "make a ppt on the green revolution",
+                     "send physics.pdf to bhaiya on telegram"):
+            gb["dialog"].send(text)
+        expect(out, len(gb["gfx"].received) == 5 and not gb["executor"].calls,
+               "study/TeleSend/Office boundaries declared: the ring answers until P-CORE-12/7/6")
+
+        # --- zero real OS effects: every Nt verb refuses off-nt while the seams are patched
+        swept = NtExecutor()
+        verbs = [lambda: swept.open_app("chrome.exe"), lambda: swept.close_app("Word"),
+                 swept.volume_up, swept.volume_down, swept.volume_mute, lambda: swept.volume_set(40),
+                 swept.brightness_up, swept.brightness_down, lambda: swept.brightness_set(60),
+                 swept.snap_left, swept.snap_right, swept.snap_maximize, lambda: swept.screenshot("full"),
+                 lambda: swept.open_url("https://example.invalid"), lambda: swept.delete_path("x"),
+                 lambda: swept.move_path("a", "b"), lambda: swept.power("shutdown", 30)]
+        expect(out, os.name != "nt" and all(verb() is False for verb in verbs)
+               and not hasattr(os, "startfile"),
+               "NtExecutor off-nt: every verb refuses False — run/Popen patched to RAISE prove nothing spawned")
+        expect(out, sorted(APP_ALIASES) == sorted(
+            ("chrome", "google chrome", "word", "microsoft word", "excel", "powerpoint", "settings",
+             "whatsapp", "telegram", "spotify", "calculator", "notepad", "explorer", "file explorer")),
+               "the app alias map is exactly the declared closed set — nothing fuzzy, nothing added")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        subprocess.run = real_run
+        subprocess.Popen = real_popen
+
+
 def _crash_checks(base: Path, out) -> None:
     zone = base / "crash"
     proc = subprocess.Popen([sys.executable, "-m", "tars.core.selftest", "--child", str(zone)],
@@ -1412,7 +1966,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID matrix batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -1425,6 +1979,7 @@ def main() -> int:
     _persona_checks(base, out)
     _voice_checks(base, out)
     _matrix_checks(base, out)
+    _grammar_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

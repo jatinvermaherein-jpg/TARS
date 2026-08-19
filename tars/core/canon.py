@@ -57,6 +57,128 @@ def dial_line(name: str, value: int) -> str:
     return f"{name.capitalize()} adjusted to {number_words(value)} percent."
 
 
-def confirm_line(target: str) -> str:
-    """Bible §11 operator confirm with the target filled in."""
-    return f"That deletes {target}. Type YES to confirm."
+def confirm_line(target: str, verb: str = "deletes") -> str:
+    """Bible §11 operator confirm with the target filled in (verb variant for the RED row family)."""
+    return f"That {verb} {target}. Type YES to confirm."
+
+
+# Command-grammar §9 acknowledgment templates (v1.0) — GREEN acks are short
+# past-tense, numbers in words. Declared once; every operator row speaks one shape.
+def open_ack(display: str) -> str:
+    return f"{display} opened."
+
+
+def open_fail_ack(display: str) -> str:
+    return f"{display} wouldn't open from here."
+
+
+def close_ack(display: str) -> str:
+    return f"{display} closed."
+
+
+def delete_ack(target: str) -> str:
+    return f"{target} deleted."
+
+
+def move_ack(source: str, dest: str) -> str:
+    return f"{source} moved to {dest}."
+
+
+def power_ack(verb: str, seconds: int) -> str:
+    verbs = {"shutdown": "Shutting down", "restart": "Restarting", "sleep": "Sleeping"}
+    return f"{verbs[verb]} in {number_words(seconds)} seconds."
+
+
+def volume_ack(action: str, value: int = None) -> str:
+    if action == "set":
+        return f"Volume set to {number_words(value)}."
+    return {"up": "Volume raised.", "down": "Volume lowered.", "mute": "Volume muted."}[action]
+
+
+def brightness_ack(action: str, value: int = None) -> str:
+    if action == "set":
+        return f"Brightness set to {number_words(value)}."
+    return {"up": "Brightness raised.", "down": "Brightness lowered."}[action]
+
+
+def snap_ack(action: str) -> str:
+    return {"left": "Snapped left.", "right": "Snapped right.", "maximize": "Maximized."}[action]
+
+
+def preset_idle_line(name: str, humor: int, vernacular: int) -> str:
+    """A preset that would move nothing says so instead of pretending."""
+    return f"{name} — humor and vernacular already stand at {number_words(humor)} and {number_words(vernacular)}."
+
+
+def pending_line(feature: str, phase: str) -> str:
+    """Honest pending line for meters another phase owns — never a fake number."""
+    return f"{feature} isn't wired yet — that answer ships with {phase}. Nothing invented until then."
+
+
+def boot_line(humor: int, vernacular: int) -> str:
+    """New chat: the boot shape re-read with CURRENT dials (LINE_BOOT stays the factory boot)."""
+    return f"TARS online. Honesty: ninety. Humor: {number_words(humor)}. Vernacular: {number_words(vernacular)}."
+
+
+def dials_line(dials: dict) -> str:
+    return (f"Humor {number_words(dials['humor'])}. Vernacular {number_words(dials['vernacular'])}. "
+            f"Discretion {number_words(dials['discretion'])}. Trust {number_words(dials['trust'])}. "
+            f"{LINE_HONESTY_FIXED}")
+
+
+def time_line(now) -> str:
+    return f"The time is {now:%H:%M}."
+
+
+def date_line(now) -> str:
+    return f"The date is {now:%Y-%m-%d}."
+
+
+def clarify_app_line(token: str) -> str:
+    """§16 ambiguity law: one short clarifying question — never a guessed app."""
+    return f"'{token}' isn't on my app list — which app did you mean?"
+
+
+def find_one_line(path: str) -> str:
+    return f"Found it — {path}."
+
+
+def find_list_line(paths: list) -> str:
+    rows = "\n".join(f"{i + 1}. {p}" for i, p in enumerate(paths))
+    return f"I found a few — which one?\n{rows}"
+
+
+LINE_FIND_NONE = "Nothing in your folders matched that."
+LINE_NOTHING_REMEMBERED = "Nothing on that yet."
+LINE_NO_RESULTS = "Nothing came back for that search."
+LINE_NEAR_MISS = "Almost a command — I won't guess it. Say it once more, plainly?"
+
+
+def search_row_line(rank: int, title: str, source: str) -> str:
+    return f"{rank}. {title} — {source}"
+
+
+def search_picks_line() -> str:
+    return "Say 'open one', 'open two', or 'open three' — I'll take you there."
+
+
+def open_rank_line(rank: int, title: str) -> str:
+    return f"Opening result {number_words(rank)} — {title}."
+
+
+def words_number(text: str):
+    """Inverse of number_words: digits or words 0..100 -> int, anything else -> None."""
+    cleaned = str(text).strip().lower()
+    if cleaned.isdigit():
+        value = int(cleaned)
+        return value if 0 <= value <= 100 else None
+    if cleaned == "one hundred":
+        return 100
+    parts = cleaned.split()
+    if len(parts) == 1 and parts[0] in _ONES:
+        return _ONES.index(parts[0])
+    if len(parts) == 1 and parts[0] in _TENS:
+        return (_TENS.index(parts[0]) + 2) * 10
+    if len(parts) == 2 and parts[0] in _TENS and parts[1] in _ONES[1:10]:
+        return (_TENS.index(parts[0]) + 2) * 10 + _ONES.index(parts[1])
+    return None
