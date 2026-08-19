@@ -228,6 +228,14 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - From this decree: **the assembly line never idles.** Phase REPORT received → if audit FAILS → fix prompt committed + courier message delivered same-turn → if audit PASSES → verdict + the NEXT phase prompt committed + courier message delivered same-turn. Lanes never wait on the Architect's forge queue again.
 - Effective immediately with P-CORE-4: forged and shipped in this same motion as the P-CORE-3 verdict.
 
+## ⚖️ AUDIT P-CORE-4 — ✅ PASS (banked) · Aug 18, 2026 (no-parking law, first ride)
+- **Selftest re-executed: 243/243 green, rc=0, TWICE** — 194 prior byte-stable + 7 §22 matrix rows + 43-battery. Crash-kill green (3650 rows intact, integrity ok).
+- Jurisdiction clean (core/* + sanctioned log; contract/bible/app/ untouched). Byte sweeps: zero emoji · zero dead markers · zero binaries · zero network surface in new files (recognition is fixture-grade by declaration).
+- **§22 rows byte-exact vs bible line 209** (all 6 quoted lines + caveat). Judgment note accepted: the enroll caveat is faithful RENDERING of the bible's prose doctrine (it pins the meaning, not bytes) — logged, non-blocking.
+- Security posture verified in code: passphrase = `salt:sha256` only ("never stored, never logged, never persisted") · `list_members` projection strips embedding with key-absence asserted · transcript `who` carries `machine.audience` (cooper/family/guest — within contract §3's `who:'cooper'|…` intent; lane flagged it openly — compliant).
+- Craft roll (the checks that earned smiles): #219 "Cooper." is for arrivals ONLY, no mid-session spam · #222 mid-lock the recognizer is never even asked (guest-pinned quiet) · #231 replay ACCEPTs but no special line, confirm-gate note logged · #234 no wake word = stays OFF (Law 3) · #235 wake-mid-turn detected, ignored, logged — never hijacks a live turn · spectral fixture honest numbers (cold drift 12Hz → 0.9509 borderline, stranger → 0.001).
+- **Lane B verdict: PASS. P-CORE-5 (operator core — command fast-path) shipped same breath per the no-parking law.**
+
 ## 🗄️ APP-FINAL ARCHIVE RECEIVED + VERIFIED (Aug 18, 2026) — banked `tars/app-lane-final-archive.md`
 - Cross-checked against MY audit: frozen commit `ba36bc2` ✅ · my line counts (219/843/1357/627) match the frozen tree ✅ · **the lane self-corrected its courier numbers (had said 1409/621, mid-edit buffer; corrected before being caught — second self-report honesty mark this phase)** · 215 checks lane-reported (166+49), clean-room re-run · freeze integrity: upstream touched only logs ✅.
 - **RULING on its KNOWN-LIMIT #2 (Ashish line vs lo-fi search-arc collision):** coexistence accepted — demo-script scene 6 is BEHAVIORAL canon ("3 results → second opens"), not query-literal; the banked Ashish line stays as mock flavor; both retire together when the mock itself retires at P3 and the ring returns real results. Nothing to fix.
