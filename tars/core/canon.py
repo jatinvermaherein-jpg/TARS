@@ -42,14 +42,25 @@ _TENS = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ni
 
 
 def number_words(value: int) -> str:
-    """Render 0..100 as plain lower-case words for canon dial-acks (60 -> 'sixty')."""
-    if value == 100:
-        return "one hundred"
-    if value < 20:
-        return _ONES[value]
-    tens, rest = divmod(value, 10)
-    word = _TENS[tens - 2]
-    return f"{word} {_ONES[rest]}" if rest else word
+    """Render plain lower-case words. The 0..100 band (dial acks, command numbers) is
+    byte-stable canon; P-CORE-6 extends the composer to 9999 for meter reads (storage
+    gigabytes, uptime hours). >= 10000 falls back to plain digits — declared, honest."""
+    value = int(value)
+    if value > 9999:
+        return str(value)
+    if value < 100:
+        if value < 20:
+            return _ONES[value]
+        tens, rest = divmod(value, 10)
+        word = _TENS[tens - 2]
+        return f"{word} {_ONES[rest]}" if rest else word
+    if value < 1000:
+        hundreds, rest = divmod(value, 100)
+        head = f"{_ONES[hundreds]} hundred"
+        return f"{head} {number_words(rest)}" if rest else head
+    thousands, rest = divmod(value, 1000)
+    head = f"{number_words(thousands)} thousand"
+    return f"{head} {number_words(rest)}" if rest else head
 
 
 def dial_line(name: str, value: int) -> str:
@@ -182,3 +193,81 @@ def words_number(text: str):
     if len(parts) == 2 and parts[0] in _TENS and parts[1] in _ONES[1:10]:
         return (_TENS.index(parts[0]) + 2) * 10 + _ONES.index(parts[1])
     return None
+
+
+# --- P-CORE-6 daily-ops + Office Studio ack family (grammar v1.1; generative, literal-pinned) ---
+LINE_CLIPBOARD_EMPTY = "The clipboard is empty."
+LINE_COPIED = "Copied to the clipboard."
+LINE_NOTHING_TO_COPY = "Nothing to copy yet."
+LINE_SHOT_SAVED = "Screenshot saved to Desktop."
+
+
+def meter_unavailable_line(meter: str) -> str:
+    """A meter that can't be read here says so — never a guessed number (§16)."""
+    return f"{meter} isn't available here. I won't guess."
+
+
+LINE_NO_CPU_METER = meter_unavailable_line("CPU meter")
+
+
+def saved_ack(name: str) -> str:
+    """§18: finished work lands on the Desktop; the deed line is LOCAL mint."""
+    return f"Saved to Desktop: {name}."
+
+
+def reminder_ack(text: str, when: str) -> str:
+    return f"Reminder set for {when}: {text}."
+
+
+def alarm_ack(when: str) -> str:
+    return f"Alarm set for {when}."
+
+
+def timer_set_ack(label: str, span_words: str) -> str:
+    return f"Timer set for {span_words}{': ' + label if label else ''}."
+
+
+def reminder_fire_line(text: str) -> str:
+    return f"Reminder: {text}."
+
+
+def alarm_fire_line(text: str) -> str:
+    return f"Alarm: {text}." if text else "Alarm."
+
+
+def timer_fire_line(label: str) -> str:
+    return f"Timer done{': ' + label if label else ''}."
+
+
+def away_line(inner: str) -> str:
+    """Missed-while-OFF wrap: fires once on next summon, never spam-batches."""
+    return f"While you were away: {inner.rstrip('.')}."
+
+
+def cancel_ack(target: str) -> str:
+    return f"Cancelled: {target}."
+
+
+def uptime_ack(hours: int) -> str:
+    return f"Uptime: {number_words(hours)} hours."
+
+
+def ram_ack(percent: int) -> str:
+    return f"RAM in use: {number_words(percent)} percent."
+
+
+def storage_ack(gb: int) -> str:
+    return f"Storage free: {number_words(gb)} gigabytes."
+
+
+def hog_ack(name: str, percent: int) -> str:
+    return f"Top of the CPU pile: {name} at {number_words(percent)} percent."
+
+
+def clipboard_line(content: str) -> str:
+    return f"On your clipboard: {content}"
+
+
+def office_draft_line(count: int, unit: str, title: str) -> str:
+    """Hue honesty: the CONTENT travelled (cloud/amber); the save line stays local."""
+    return f"Drafted {number_words(count)} {unit} for '{title}' on the cloud."

@@ -28,6 +28,15 @@ natural find (confident single / honest capped list), fixture search lanes
 with the open-the-second pick, the §34 Never-List door at every row type,
 and NtExecutor proven spawn-free — the whole battery runs with the network
 and subprocess seams patched to RAISE.
+P-CORE-6 battery: the durable clock (natural-time parse law incl. the
+Hinglish kal subah/shaam set; on-time vs missed-while-OFF fire lines;
+once-only and daily re-arm proofs; the 50-row monotonic shuffle; summon
+doctrine), the daily-ops hands (NtOps refusal law off-nt, scripted meter
+readings byte-exact, clipboard copy/read with the never-travels call proof,
+pure-stdlib PNG), and the Office Studio under golden-file law (byte-pinned
+parts, container sha256, collision naming, round-trip zips, two-truths
+hue pairs, Never-List before the ring) — net and spawn seams patched to
+RAISE throughout, and the crash child now SIGKILLs the clock workload too.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -35,12 +44,15 @@ import io
 import json
 import os
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
 import time
 import urllib.request
 import wave
+import zipfile
+import zlib
 from datetime import date, datetime
 from pathlib import Path
 
@@ -49,8 +61,10 @@ from tars.core.__main__ import Printer, run_demochat
 from tars.core.adapters import GROQ_URL, OPENROUTER_URL, TIMEOUT_S, FixtureAdapter, GroqAdapter
 from tars.core.bus import EVENT_TYPES, Bus
 from tars.core.capture import FakeCapture, SoundDeviceCapture
+from tars.core.clockd import Clockd, GRACE_S, parse_alarm, parse_reminder, parse_timer
 from tars.core.command import (COMMANDS_HELP, GATE_TTL_S, CommandLayer, never_list_hit,
                                parse_dial_command, remember_payload)
+from tars.core.dailyops import FixtureOps, NtOps, png_bytes
 from tars.core.dialog import Dialog, classify_memory
 from tars.core.ears import (RMS_THRESHOLD, EarLadder, FixtureEarEngine, GroqEarsAdapter, WhisperSmallLocal,
                             build_multipart, frame_rms, run_voice_turn, slice_pcm, vad_spans)
@@ -64,6 +78,8 @@ from tars.core.gauge import council_note, gauge_rows
 from tars.core.keys import LANE_CAPS, load_ring, parse_env_file
 from tars.core.logx import LogX
 from tars.core.mouth import EdgeTier, FixtureTier, Mouth, PiperTier, SapiTier
+from tars.core.office import (GOLDEN_EPOCH, build_docx, build_pptx, office_prompt,
+                              parse_outline, safe_slug)
 from tars.core.operator import APP_ALIASES, FixtureExecutor, NtExecutor
 from tars.core.router import LANE_MODELS, LENGTH_THRESHOLD, Router
 from tars.core.searchlanes import (RESULTS_MAX, FixtureSearch, SearchLanes, ddg_url, parse_ddg,
@@ -85,6 +101,9 @@ _SAMPLE_DETAIL = {
     "gauge": {"keyIndex": 0, "lane": "fast", "remainingPct": 97},
     "error": {"code": "catch-all", "line": canon.LINE_CATCH_ALL},
     "close": {"reason": "stand down"},
+    # P-CORE-6 re-aim: the phase prompt decrees the `reminder` clock-fire event (payload flat
+    # scalars, <= existing shapes). The original 8 types stand; the set is honestly 9 now.
+    "reminder": {"kind": "reminder", "text": "probe", "line": "Reminder: probe.", "due": 1.0},
 }
 
 
@@ -268,8 +287,8 @@ def _machine_checks(base: Path, out) -> None:
     for kind in sorted(EVENT_TYPES):
         probe_bus.emit(kind, _SAMPLE_DETAIL[kind])
     rendered = probe_out.getvalue().strip().splitlines()
-    expect(out, len(rendered) == len(EVENT_TYPES) == 8,
-           "all 8 contract event types render; a crashing subscriber never takes core down")
+    expect(out, len(rendered) == len(EVENT_TYPES) == 9,
+           "all 9 event types render (8 contract + the P-CORE-6 reminder); a crashing subscriber never takes core down")
     raised = False
     try:
         probe_bus.emit("bogus", {})
@@ -1381,7 +1400,7 @@ def _grammar_checks(base: Path, out) -> None:
     full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
 
     def cmd_universe(name, groq_script=(), or_script=(), audience="cooper", payloads=None,
-                     roots=None, clock=None, cell=None):
+                     roots=None, clock=None, cell=None, ops_scripted=None):
         path = zone / name
         path.mkdir(parents=True, exist_ok=True)
         log = LogX(path / "logs.jsonl")
@@ -1397,14 +1416,20 @@ def _grammar_checks(base: Path, out) -> None:
         executor = FixtureExecutor()
         fetch = FixtureSearch(payloads or {})
         time_cell = cell if cell is not None else [1000.0]
+        # P-CORE-6 seams: the durable clock + scripted daily ops ride the same injection harness
+        clockd_unit = Clockd(vault, bus, clock=clock)
+        ops = FixtureOps(ops_scripted)
+        desktop = str(zone / f"{name}-desktop")
         layer = CommandLayer(settings, vault, executor, SearchLanes(fetch),
                              FileFinder(roots or [], now=clock), log, bus,
-                             clock=clock, time_fn=lambda: time_cell[0])
+                             clock=clock, time_fn=lambda: time_cell[0], router=router,
+                             clockd=clockd_unit, ops=ops, desktop=desktop)
         dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
         machine.set_audience(audience)
         return {"dialog": dialog, "vault": vault, "machine": machine, "events": events,
                 "gfx": groq_fx, "ofx": or_fx, "executor": executor, "fetch": fetch,
-                "settings": settings, "log": log, "cell": time_cell}
+                "settings": settings, "log": log, "cell": time_cell, "clockd": clockd_unit,
+                "ops": ops, "desktop": desktop, "router": router}
 
     def said(univ, chat=1):
         return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
@@ -1659,16 +1684,21 @@ def _grammar_checks(base: Path, out) -> None:
                "snap rows byte-exact")
         g6["dialog"].send("screenshot")
         g6["dialog"].send("screenshot region")
-        expect(out, said(g6)[-2:] == [canon.pending_line("Screenshot capture", "P-CORE-6")] * 2
-               and g6["executor"].calls[-2:] == [("screenshot", "full"), ("screenshot", "region")],
-               "screenshot rows record the intent and answer the honest P-CORE-6 pending line")
-        meters = (("uptime", "The uptime meter"), ("storage", "The storage meter"), ("ram", "The RAM meter"),
-                  ("cpu", "The CPU meter"), ("what's eating the cpu", "The CPU meter"))
-        for text, _meter in meters:
-            g6["dialog"].send(text)
-        expect(out, said(g6)[-5:] == [canon.pending_line(meter, "P-CORE-9") for _t, meter in meters]
-               and not g6["gfx"].received,
-               "system-answer rows: watcher-pending lines — P-CORE-9 owns the meters, no fake numbers")
+        # P-CORE-6 re-aim (jurisdiction: capture verbs moved from the operator executor to dailyops):
+        # the pending line is retired; the row now records the real capture in dailyops + lands a PNG.
+        expect(out, said(g6)[-2:] == [canon.LINE_SHOT_SAVED] * 2
+               and g6["ops"].calls[-2:] == [("screenshot", "full", g6["desktop"]),
+                                            ("screenshot", "region", g6["desktop"])]
+               and (Path(g6["desktop"]) / "screenshot.png").exists(),
+               "screenshot rows: the fixture PNG lands on Desktop, the saved ack speaks, zero ring")
+        g6b = cmd_universe("g6b")  # unscripted ops: every meter darkens honestly, never a fake number
+        for text in ("uptime", "ram", "cpu", "what's eating the cpu"):
+            g6b["dialog"].send(text)
+        expect(out, said(g6b)[-4:] == [canon.meter_unavailable_line("The uptime meter"),
+                                       canon.meter_unavailable_line("The RAM meter"),
+                                       canon.LINE_NO_CPU_METER, canon.LINE_NO_CPU_METER]
+               and not g6b["gfx"].received,
+               "P-CORE-6 re-aim: meter rows answer from readings or the canon unavailable line")
 
         # --- near-miss law
         g9 = cmd_universe("g9")
@@ -1875,20 +1905,21 @@ def _grammar_checks(base: Path, out) -> None:
                "Never-List battery: every §34 family refuses at every row — no gate, no execution, logged")
 
         # --- declared boundaries ride the ring until their phases land
-        gb = cmd_universe("gb", groq_script=[("ok", f"boundary {i}", 3) for i in range(5)])
+        # P-CORE-6 re-aim: Office is no longer a boundary (the studio battery below owns those
+        # utterances); study (P-CORE-12) + TeleSend (P-CORE-7) stay pinned exactly as before.
+        gb = cmd_universe("gb", groq_script=[("ok", f"boundary {i}", 3) for i in range(4)])
         for text in ("explain torque with one example", "quiz me on thermodynamics",
-                     "whatsapp bhaiya reaching at 6", "make a ppt on the green revolution",
-                     "send physics.pdf to bhaiya on telegram"):
+                     "whatsapp bhaiya reaching at 6", "send physics.pdf to bhaiya on telegram"):
             gb["dialog"].send(text)
-        expect(out, len(gb["gfx"].received) == 5 and not gb["executor"].calls,
-               "study/TeleSend/Office boundaries declared: the ring answers until P-CORE-12/7/6")
+        expect(out, len(gb["gfx"].received) == 4 and not gb["executor"].calls,
+               "study/TeleSend boundaries declared: the ring answers until P-CORE-12/7")
 
         # --- zero real OS effects: every Nt verb refuses off-nt while the seams are patched
         swept = NtExecutor()
         verbs = [lambda: swept.open_app("chrome.exe"), lambda: swept.close_app("Word"),
                  swept.volume_up, swept.volume_down, swept.volume_mute, lambda: swept.volume_set(40),
                  swept.brightness_up, swept.brightness_down, lambda: swept.brightness_set(60),
-                 swept.snap_left, swept.snap_right, swept.snap_maximize, lambda: swept.screenshot("full"),
+                 swept.snap_left, swept.snap_right, swept.snap_maximize,
                  lambda: swept.open_url("https://example.invalid"), lambda: swept.delete_path("x"),
                  lambda: swept.move_path("a", "b"), lambda: swept.power("shutdown", 30)]
         expect(out, os.name != "nt" and all(verb() is False for verb in verbs)
@@ -1898,6 +1929,427 @@ def _grammar_checks(base: Path, out) -> None:
             ("chrome", "google chrome", "word", "microsoft word", "excel", "powerpoint", "settings",
              "whatsapp", "telegram", "spotify", "calculator", "notepad", "explorer", "file explorer")),
                "the app alias map is exactly the declared closed set — nothing fuzzy, nothing added")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        subprocess.run = real_run
+        subprocess.Popen = real_popen
+
+
+def _dailyops_checks(base: Path, out) -> None:
+    """P-CORE-6 battery: the durable clock (reminders/alarms/timers), the daily-ops hands
+    (screenshot / clipboard / meters), and the pure-stdlib Office Studio under GOLDEN-FILE
+    law. Same patched-to-RAISE net/spawn guards as the grammar battery — extended by decree."""
+    zone = base / "dailyops"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    clock6 = lambda: datetime(2026, 8, 18, 14, 32)  # noqa: E731 — the pinned fixture clock
+    now6 = clock6().timestamp()
+
+    def ops_universe(name, groq_script=(), or_script=(), ops_scripted=None):
+        path = zone / name
+        path.mkdir(parents=True, exist_ok=True)
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", list(groq_script))
+        or_fx = FixtureAdapter("openrouter", list(or_script))
+        router = Router(load_ring(full_source), {"groq": groq_fx, "openrouter": or_fx}, vault, bus)
+        executor = FixtureExecutor()
+        clockd_unit = Clockd(vault, bus, clock=clock6)
+        ops = FixtureOps(ops_scripted)
+        desktop = str(zone / f"{name}-desktop")
+        layer = CommandLayer(settings, vault, executor, SearchLanes(FixtureSearch({})),
+                             FileFinder([], now=clock6), log, bus, clock=clock6,
+                             time_fn=lambda: 1000.0, router=router, clockd=clockd_unit,
+                             ops=ops, desktop=desktop)
+        dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
+        machine.set_audience("cooper")
+        return {"dialog": dialog, "vault": vault, "machine": machine, "events": events,
+                "gfx": groq_fx, "ofx": or_fx, "settings": settings, "log": log,
+                "clockd": clockd_unit, "ops": ops, "desktop": desktop}
+
+    def said(univ, chat=1):
+        return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    def done_rows(univ):
+        return [d for k, d in univ["events"] if k == "done"]
+
+    real_urlopen = urllib.request.urlopen
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def _no_net(*args, **kwargs):
+        raise AssertionError("network lifted inside the sandbox battery")
+
+    def _no_spawn(*args, **kwargs):
+        raise AssertionError("subprocess spawned inside the sandbox battery")
+
+    urllib.request.urlopen = _no_net
+    subprocess.run = _no_spawn
+    subprocess.Popen = _no_spawn
+    try:
+        # --- canon v1.1 literals + generative pins
+        expect(out, canon.LINE_CLIPBOARD_EMPTY == "The clipboard is empty."
+               and canon.LINE_COPIED == "Copied to the clipboard."
+               and canon.LINE_NOTHING_TO_COPY == "Nothing to copy yet."
+               and canon.LINE_SHOT_SAVED == "Screenshot saved to Desktop."
+               and canon.LINE_NO_CPU_METER == "CPU meter isn't available here. I won't guess.",
+               "v1.1 line literals byte-exact")
+        expect(out, canon.saved_ack("Green Revolution.pptx") == "Saved to Desktop: Green Revolution.pptx."
+               and canon.reminder_ack("call bhaiya", "six") == "Reminder set for six: call bhaiya."
+               and canon.reminder_ack("submit the form", "six thirty pm")
+               == "Reminder set for six thirty pm: submit the form."
+               and canon.reminder_ack("dawa lena", "seven am tomorrow")
+               == "Reminder set for seven am tomorrow: dawa lena."
+               and canon.alarm_ack("six thirty pm") == "Alarm set for six thirty pm.",
+               "saved/reminder/alarm acks: the literal pins of grammar v1.1")
+        expect(out, canon.timer_set_ack("", "five minutes") == "Timer set for five minutes."
+               and canon.timer_set_ack("tea", "three minutes") == "Timer set for three minutes: tea."
+               and canon.timer_fire_line("tea") == "Timer done: tea."
+               and canon.timer_fire_line("") == "Timer done."
+               and canon.reminder_fire_line("call bhaiya") == "Reminder: call bhaiya."
+               and canon.alarm_fire_line("") == "Alarm."
+               and canon.away_line("Reminder: call bhaiya.") == "While you were away: Reminder: call bhaiya."
+               and canon.cancel_ack("the tea timer") == "Cancelled: the tea timer.",
+               "timer/fire/away/cancel acks byte-exact — both label shapes pinned")
+        expect(out, canon.uptime_ack(14) == "Uptime: fourteen hours."
+               and canon.ram_ack(62) == "RAM in use: sixty two percent."
+               and canon.storage_ack(212) == "Storage free: two hundred twelve gigabytes."
+               and canon.hog_ack("chrome.exe", 41) == "Top of the CPU pile: chrome.exe at forty one percent."
+               and canon.meter_unavailable_line("The RAM meter")
+               == "The RAM meter isn't available here. I won't guess.",
+               "meter acks in words — 'two hundred twelve gigabytes' pinned per decree")
+        expect(out, canon.number_words(5) == "five" and canon.number_words(60) == "sixty"
+               and canon.number_words(100) == "one hundred"
+               and all(canon.words_number(canon.number_words(n)) == n for n in range(101)),
+               "number_words 0..100 band byte-stable after the v1.1 extension")
+        expect(out, canon.number_words(105) == "one hundred five"
+               and canon.number_words(212) == "two hundred twelve"
+               and canon.number_words(999) == "nine hundred ninety nine"
+               and canon.number_words(2500) == "two thousand five hundred"
+               and canon.number_words(10000) == "10000",
+               "number_words meters band: 0..9999 in words, honest digit fallback at 10000")
+
+        # --- clock parse law
+        expect(out, parse_reminder("call bhaiya in 20 minutes", clock6())
+               == ("call bhaiya", now6 + 1200, "twenty minutes")
+               and parse_reminder("call bhaiya in twenty minutes", clock6())
+               == ("call bhaiya", now6 + 1200, "twenty minutes"),
+               "in-form: digits and words land the same epoch and echo")
+        expect(out, parse_reminder("submit at 6:30 pm", clock6())[2] == "six thirty pm"
+               and parse_reminder("report at 7:45 am", clock6())[2] == "seven forty five am"
+               and parse_reminder("medicine at 8", clock6())[2] == "eight"
+               and parse_reminder("dinner at 18", clock6())[2] == "eighteen",
+               "at-form echoes keep the user's clock-face — 'six thirty pm', never 'eighteen thirty pm'")
+        expect(out, datetime.fromtimestamp(parse_reminder("wake at 6", clock6())[1]).day == 19
+               and datetime.fromtimestamp(parse_reminder("dinner at 18", clock6())[1]).day == 18,
+               "a clock time missed today lands tomorrow; a future one stays today")
+        expect(out, parse_reminder("uthna kal subah 7 baje", clock6())[2] == "seven am tomorrow"
+               and parse_reminder("so jao kal shaam 9 baje", clock6())[2] == "nine pm tomorrow"
+               and datetime.fromtimestamp(parse_reminder("uthna kal subah 7 baje", clock6())[1]).day == 19,
+               "Hinglish kal subah/shaam anchored tomorrow, echo declared")
+        expect(out, parse_reminder("nothing meaningful", clock6()) is None
+               and parse_reminder("eat at 25", clock6()) is None
+               and parse_reminder("meet at noon", clock6()) is None
+               and parse_alarm("25", clock6()) is None,
+               "unparsable whens return None — the near-miss law answers, never a guessed clock")
+        expect(out, parse_timer("tea timer for 3 minutes", clock6()) == ("tea", now6 + 180, "three minutes")
+               and parse_timer("timer for 5 minutes", clock6()) == ("", now6 + 300, "five minutes")
+               and parse_timer("10 minutes", clock6()) == ("", now6 + 600, "ten minutes"),
+               "timer parse: labeled, unlabeled, and the bare timer-lagao shape")
+        expect(out, parse_alarm("6:30", clock6())[1] == "six thirty"
+               and parse_alarm("kal subah 7 baje", clock6())[1] == "seven am tomorrow"
+               and parse_timer("tea timer for tea minutes", clock6()) is None,
+               "alarm parse: both shapes, echo without am/pm drift, bad number refused")
+
+        # --- clock rows end-to-end
+        c1 = ops_universe("c1")
+        c1["dialog"].send("remind me to call bhaiya in 20 minutes")
+        expect(out, said(c1)[-1] == "Reminder set for twenty minutes: call bhaiya."
+               and not c1["gfx"].received,
+               "reminder row acks byte-exact with zero ring spend")
+        due_rows = c1["vault"].due_reminders(now6 + 2000)
+        expect(out, len(due_rows) == 1 and due_rows[0]["text"] == "call bhaiya"
+               and due_rows[0]["due_epoch"] == now6 + 1200 and due_rows[0]["kind"] == "reminder",
+               "the vault carries the durable row with the parsed due epoch")
+        c1["dialog"].send("remind me to submit the form at 6:30 pm")
+        c1["dialog"].send("yaad dilana dawa lena kal subah 7 baje")
+        expect(out, said(c1)[-2:] == ["Reminder set for six thirty pm: submit the form.",
+                                      "Reminder set for seven am tomorrow: dawa lena."]
+               and c1["vault"].clock_counts()["reminders_pending"] == 3,
+               "at-form and Hinglish yaad dilana rows — echoes pinned, three rows pending")
+        c1["dialog"].send("remind me to dance with the stars")
+        expect(out, said(c1)[-1] == canon.LINE_NEAR_MISS
+               and c1["vault"].clock_counts()["reminders_pending"] == 3,
+               "a reminder with no parseable when earns ONE question and stores nothing")
+        c1["dialog"].send("set an alarm for 6:30 pm")
+        c1["dialog"].send("alarm lagao kal subah 7 baje")
+        expect(out, said(c1)[-2:] == ["Alarm set for six thirty pm.", "Alarm set for seven am tomorrow."]
+               and len([r for r in c1["vault"].due_reminders(now6 + 90000) if r["kind"] == "alarm"]) == 2,
+               "alarm rows: both alias shapes, kind='alarm' durable")
+        c1["dialog"].send("set a timer for 5 minutes")
+        c1["dialog"].send("set a tea timer for 3 minutes")
+        c1["dialog"].send("timer lagao 10 minutes")
+        expect(out, said(c1)[-3:] == ["Timer set for five minutes.", "Timer set for three minutes: tea.",
+                                      "Timer set for ten minutes."]
+               and c1["vault"].clock_counts()["timers_pending"] == 3,
+               "timer rows: all three shapes including the Hinglish timer lagao")
+        c1["dialog"].send("cancel the timer")
+        expect(out, said(c1)[-1] == "Cancelled: the tea timer."
+               and c1["vault"].clock_counts()["timers_pending"] == 2,
+               "cancel takes the NEXT-to-fire (the tea timer ends first) — never a guessed target")
+        c1["dialog"].send("cancel the timer")
+        c1["dialog"].send("cancel the timer")
+        c1["dialog"].send("cancel the timer")
+        expect(out, said(c1)[-3:] == ["Cancelled: the timer.", "Cancelled: the timer.", canon.LINE_CANCEL],
+               "cancel drains in due order; nothing pending answers the canon LINE_CANCEL")
+        c1["dialog"].send("cancel the alarm")
+        c1["dialog"].send("cancel the alarm")
+        c1["dialog"].send("cancel the reminder")
+        expect(out, said(c1)[-3:] == ["Cancelled: the alarm.", "Cancelled: the alarm.",
+                                      "Cancelled: the reminder."],
+               "alarm + reminder cancel rows walk the same next-to-fire law")
+        expect(out, not c1["gfx"].received and not c1["ofx"].received,
+               "every clock row answered with zero adapter calls — the fast-path law holds at v1.1")
+
+        # --- the fire path: on-time, missed-while-OFF, daily re-arm, monotonic law
+        c2 = ops_universe("c2")
+        c2["dialog"].send("remind me to call bhaiya in 20 minutes")
+        c2["dialog"].send("set a tea timer for 3 minutes")
+        lines = c2["dialog"].tick_clock(now6 + 180 + 30)  # tea timer due, inside the grace window
+        expect(out, lines == ["Timer done: tea."]
+               and said(c2)[-1] == "Timer done: tea." and lines == said(c2)[-1:] and lines[0] in said(c2),
+               "on-time fire inside the grace window speaks plainly")
+        fired_events = [d for k, d in c2["events"] if k == "reminder"]
+        expect(out, fired_events == [{"kind": "timer", "text": "tea", "line": "Timer done: tea.",
+                                      "due": now6 + 180}],
+               "the reminder bus event carries flat scalars only — the decreed fire path")
+        spoke_kv = c2["vault"].kv_get("speak_request:" + str(c2["vault"].messages_for(1)[-1]["id"]))
+        expect(out, spoke_kv == "queued",
+               "a fired line queues for the mouth through the existing A1 speak intake")
+        lines = c2["dialog"].tick_clock(now6 + 1200 + 10)
+        expect(out, lines == ["Reminder: call bhaiya."] and c2["dialog"].tick_clock(now6 + 1300) == [],
+               "each due row fires exactly once — the second tick is silent")
+        c2b = ops_universe("c2b")
+        c2b["vault"].reminder_insert("grace probe", now6 - GRACE_S + 1, "", "reminder")
+        borderline = c2b["dialog"].tick_clock(now6)
+        c2b["vault"].reminder_insert("late probe", now6 - GRACE_S - 1, "", "reminder")
+        late = c2b["dialog"].tick_clock(now6)
+        expect(out, borderline == ["Reminder: grace probe."]
+               and late == ["While you were away: Reminder: late probe."],
+               "the grace law is inclusive: on-time through GRACE_S, away-wrapped one second past")
+        line_before = len(said(c2))
+        c2["vault"].reminder_insert("missed one", now6 - 5000, "", "reminder")
+        c2["vault"].reminder_insert("missed two", now6 - 4000, "", "reminder")
+        c2["vault"].reminder_insert("future one", now6 + 99999, "", "reminder")
+        lines = c2["dialog"].tick_clock(now6)
+        expect(out, lines == ["While you were away: Reminder: missed one.",
+                              "While you were away: Reminder: missed two."]
+               and len(said(c2)) == line_before + 2
+               and c2["dialog"].tick_clock(now6) == [],
+               "missed-while-OFF fires once in due order with the away wrap — never spam-batches, never again")
+        c2["vault"].reminder_insert("daily standup", now6 - 300, "daily", "reminder")
+        lines = c2["dialog"].tick_clock(now6)
+        pend = c2["vault"].next_pending_reminder("reminder")
+        expect(out, lines == ["While you were away: Reminder: daily standup."]
+               and pend is not None and pend["text"] == "daily standup" and pend["due_epoch"] > now6,
+               "repeat='daily' fires once and re-arms to the NEXT future slot — no catch-up batch")
+        shuffle = ops_universe("c3")
+        for index, due in enumerate(sorted((now6 + 60 * i for i in range(50)), reverse=True)):
+            shuffle["vault"].reminder_insert(f"shuffle {index}", due, "", "reminder")
+        fired = shuffle["clockd"].tick(now6 + 4000)
+        dues = [row["due"] for row in fired]
+        expect(out, len(fired) == 50 and dues == sorted(dues),
+               "the 50-reminder shuffle fires monotonic in due_epoch — the drift law")
+
+        # --- summon doctrine: OFF + missed rows -> the FIRST send fires them ahead of the turn
+        c4 = ops_universe("c4", groq_script=[("ok", "evening answer", 6)])
+        c4["vault"].reminder_insert("water the plants", now6 - 999, "", "reminder")
+        c4["dialog"].send("good evening")
+        expect(out, said(c4)[0] == "While you were away: Reminder: water the plants."
+               and said(c4)[-1] == "evening answer" and len(c4["gfx"].received) == 1,
+               "summon doctrine: the missed reminder fires BEFORE the first turn, ring spent only on chat")
+        expect(out, c4["dialog"].tick_clock() is not None and hasattr(c4["dialog"], "tick_clock"),
+               "the dialog exposes tick_clock as the clock heartbeat seam")
+
+        # --- daily-ops hands
+        nt_ops = NtOps()
+        expect(out, nt_ops.uptime_seconds() is False and nt_ops.ram_percent() is False
+               and nt_ops.cpu_hog() is False and nt_ops.clipboard_get() is False
+               and nt_ops.clipboard_set("x") is False
+               and nt_ops.screenshot("full", str(zone)) is False,
+               "NtOps off-nt: every OS verb refuses False (spawn seams patched to RAISE)")
+        free_bytes = nt_ops.storage_free_bytes("/")
+        expect(out, isinstance(free_bytes, int) and free_bytes > 0,
+               "storage rides the honest dual path — shutil.disk_usage is REAL on every OS")
+        d1 = ops_universe("d1", ops_scripted={"uptime_seconds": 50414, "ram_percent": 62,
+                                              "storage_free_bytes": 212 * 1024 ** 3,
+                                              "cpu_hog": ("chrome.exe", 41)})
+        for text in ("uptime", "ram", "storage", "cpu"):
+            d1["dialog"].send(text)
+        expect(out, said(d1)[-4:] == ["Uptime: fourteen hours.", "RAM in use: sixty two percent.",
+                                      "Storage free: two hundred twelve gigabytes.",
+                                      "Top of the CPU pile: chrome.exe at forty one percent."]
+               and not d1["gfx"].received,
+               "fixture readings flow into byte-exact meter answers with zero ring")
+        expect(out, d1["ops"].calls == [("uptime_seconds",), ("ram_percent",),
+                                        ("storage_free_bytes", "/"), ("cpu_hog",)],
+               "each meter row records exactly one call on the ops seam")
+        d2 = ops_universe("d2", groq_script=[("ok", "receipt CLIP-CANARY-17 inside", 9)])
+        d2["dialog"].send("what's on my clipboard")
+        expect(out, said(d2)[-1] == canon.LINE_CLIPBOARD_EMPTY and not d2["gfx"].received,
+               "empty clipboard answers honestly, zero ring")
+        d2["dialog"].send("receipt please")
+        d2["dialog"].send("copy that")
+        expect(out, said(d2)[-1] == canon.LINE_COPIED
+               and d2["ops"].calls[-1] == ("clipboard_set", "receipt CLIP-CANARY-17 inside"),
+               "copy that lifts the LAST ASSISTANT text — recorded exactly on the ops seam")
+        d2["dialog"].send("what's on my clipboard")
+        expect(out, said(d2)[-1] == "On your clipboard: receipt CLIP-CANARY-17 inside",
+               "clipboard read answers with the local content")
+        expect(out, all("CLIP-CANARY-17" not in json.dumps(msg) for call in d2["gfx"].received
+                        for msg in call),
+               "privacy LAW: clipboard bytes never appear in any ring payload — call proof")
+        d3 = ops_universe("d3")
+        d3["dialog"].send("copy that")
+        expect(out, said(d3)[-1] == canon.LINE_NOTHING_TO_COPY,
+               "copy that with no prior assistant text answers the honest nothing-line")
+        probe_png = png_bytes(2, 2, bytes([26, 26, 26] * 4))
+        expect(out, probe_png.startswith(b"\x89PNG\r\n\x1a\n") and probe_png.endswith(b"IEND\xaeB`\x82")
+               and probe_png[16:20] == struct.pack(">I", 2) and probe_png[20:24] == struct.pack(">I", 2)
+               and zlib.decompressobj().decompress(probe_png[41:-12]) is not None,
+               "the pure-stdlib PNG writer emits a real container (signature, IHDR, IEND) — NO PIL")
+        d4 = ops_universe("d4")
+        d4["dialog"].send("screenshot")
+        expect(out, said(d4)[-1] == canon.LINE_SHOT_SAVED
+               and (Path(d4["desktop"]) / "screenshot.png").exists()
+               and d4["ops"].calls == [("screenshot", "full", d4["desktop"])],
+               "the capture row lands a real PNG on the fixture Desktop")
+
+        # --- Office Studio: golden files first, then the ring-drafted flows
+        g_zone = zone / "gold"
+        slides = [{"heading": "What it was", "bullets": ["M.S. Swaminathan led it",
+                                                         "High-yield wheat varieties"]},
+                  {"heading": "Impact", "bullets": ["Food self-sufficiency", "Punjab and Haryana led"]}]
+        gold_name = build_pptx("Green Revolution", slides, str(g_zone))
+        expect(out, gold_name == "Green Revolution.pptx",
+               "studio filenames keep the readable title per §18")
+        with zipfile.ZipFile(g_zone / gold_name) as zf:
+            names = zf.namelist()
+            pres = zf.read("ppt/presentation.xml").decode()
+            slide1 = zf.read("ppt/slides/slide1.xml").decode()
+        expect(out, names == ["[Content_Types].xml", "_rels/.rels", "ppt/presentation.xml",
+                              "ppt/_rels/presentation.xml.rels", "ppt/slides/slide1.xml",
+                              "ppt/slides/slide2.xml"],
+               "pptx part-name set + declared ordering byte-exact")
+        build_pptx("Green Revolution", slides, str(g_zone))
+        names2 = sorted(p.name for p in g_zone.iterdir())
+        expect(out, names2 == ["Green Revolution (2).pptx", "Green Revolution.pptx"],
+               "collision naming rides 'Name (2).ext' newest-first — never an overwrite")
+        import hashlib
+        digest = hashlib.sha256((g_zone / gold_name).read_bytes()).hexdigest()
+        second = ops_universe("gold2")
+        build_pptx("Green Revolution", slides, second["desktop"])
+        digest2 = hashlib.sha256(Path(second["desktop"], gold_name).read_bytes()).hexdigest()
+        expect(out, digest == digest2 == "8a13898adc554e55f4ee30439f85d12d18a2998894d902141ef386632d9cd234"
+               and GOLDEN_EPOCH == (2026, 1, 1, 0, 0, 0),
+               "container sha256 pinned across two builds — the golden epoch holds")
+        expect(out, pres == ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+                             '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+                             'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                             '<p:sldIdLst><p:sldId id="256" r:id="rId1"/><p:sldId id="257" r:id="rId2"/></p:sldIdLst>'
+                             '<p:sldSz cx="12192000" cy="6858000" type="screen16x9"/>'
+                             '<p:notesSz cx="6858000" cy="9144000"/></p:presentation>'),
+               "presentation.xml golden byte-exact")
+        expect(out, 'name="Heading"' in slide1 and "<a:t>What it was</a:t>" in slide1
+               and "<a:t>M.S. Swaminathan led it</a:t>" in slide1,
+               "slide parts carry the heading + bullets content-complete")
+        docx_name = build_docx("Load Shedding", ["Load shedding is planned power rationing.",
+                                                 "It protects the grid when demand outruns supply."], str(g_zone))
+        with zipfile.ZipFile(g_zone / docx_name) as zf:
+            doc_names = zf.namelist()
+            document = zf.read("word/document.xml").decode()
+        expect(out, docx_name == "Load Shedding.docx"
+               and doc_names == ["[Content_Types].xml", "_rels/.rels", "word/document.xml"]
+               and hashlib.sha256((g_zone / docx_name).read_bytes()).hexdigest()
+               == "c614409a9d0adc38c4819bf3dc6442e14fc681f42ccc97ed40e89e7ae103f22f"
+               and "<w:t>Load Shedding</w:t>" in document
+               and hashlib.sha256((g_zone / docx_name).read_bytes()).hexdigest()
+               == hashlib.sha256((g_zone / docx_name).read_bytes()).hexdigest(),
+               "docx golden: 3 parts, container hash, title carried")
+        expect(out, parse_outline("pptx", "Green Revolution\nslide: What it was\n- Led by M.S. Swaminathan\n"
+                                          "- High-yield varieties\nslide: Impact\n- Self-sufficiency")
+               == ("Green Revolution", [{"heading": "What it was",
+                                         "bullets": ["Led by M.S. Swaminathan", "High-yield varieties"]},
+                                        {"heading": "Impact", "bullets": ["Self-sufficiency"]}])
+               and parse_outline("docx", "Title line\nPara one\nPara two") == ("Title line", ["Para one", "Para two"]),
+               "outline parser: the declared plain-text contract parses exactly")
+        expect(out, parse_outline("pptx", "") is None and parse_outline("pptx", "Just a title") is None
+               and parse_outline("docx", "Just a title") is None,
+               "a useless outline parses to None — the catch-all speaks, never a junk file")
+        expect(out, safe_slug("the green revolution!") == "the green revolution"
+               and safe_slug("???") == "Untitled"
+               and len(office_prompt("pptx", "x")) > 120 and "slide:" in office_prompt("pptx", "x"),
+               "slug hygiene + the ring prompt's declared shape (long -> smart lane)")
+        gold_zone2 = zone / "gold-escape"
+        build_pptx("O'Neil & Sons <Ltd>", [{"heading": "A&B <Co>", "bullets": ["x > y"]}], str(gold_zone2))
+        with zipfile.ZipFile(gold_zone2 / "ONeil Sons Ltd.pptx") as zf:
+            escaped = zf.read("ppt/slides/slide1.xml").decode()
+        expect(out, "A&amp;B &lt;Co&gt;" in escaped and "x &gt; y" in escaped
+               and (gold_zone2 / "ONeil Sons Ltd.pptx").exists()
+               and safe_slug("O'Neil & Sons <Ltd>") == "ONeil Sons Ltd",
+               "XML content is escaped at build: ampersands/angles can never tear a package")
+
+        ppt_outline = ("Green Revolution\nslide: What it was\n- M.S. Swaminathan led it\n"
+                       "- High-yield wheat varieties\nslide: Impact\n- Food self-sufficiency\n"
+                       "- Punjab and Haryana led")
+        o1 = ops_universe("o1", groq_script=[("ok", ppt_outline, 60)])
+        o1["dialog"].send("make a ppt on the green revolution")
+        expect(out, said(o1)[-2:] == ["Drafted two slides for 'Green Revolution' on the cloud.",
+                                      "Saved to Desktop: Green Revolution.pptx."],
+               "the two-truths pair: draft line in the lane's truth, save line in local mint")
+        hues = [d["hue"] for d in done_rows(o1)[-2:]]
+        lanes = [d["lane"] for d in done_rows(o1)[-2:]]
+        expect(out, hues == ["cloud", "local"] and lanes == ["smart", None],
+               "hue honesty pinned: cloud for the travelled draft, local for the deed")
+        built = zipfile.ZipFile(Path(o1["desktop"], "Green Revolution.pptx"))
+        slide_parts = [n for n in built.namelist() if n.startswith("ppt/slides/")]
+        expect(out, len(slide_parts) == 2 and parse_outline("pptx", ppt_outline)[0] == "Green Revolution"
+               and len(o1["gfx"].received) == 1,
+               "the deck round-trips: 2 slide parts — and the Office row spent the ring EXACTLY once")
+        o2 = ops_universe("o2", groq_script=[("ok", "Load Shedding\nPlanned power rationing.\n"
+                                                  "It protects the grid when demand outruns supply.", 40)])
+        o2["dialog"].send("write a doc on load shedding")
+        expect(out, said(o2)[-2:] == ["Drafted two paragraphs for 'Load Shedding' on the cloud.",
+                                      "Saved to Desktop: Load Shedding.docx."]
+               and (Path(o2["desktop"], "Load Shedding.docx")).exists()
+               and done_rows(o2)[-2]["lane"] == "smart",
+               "the document flow drafts and saves with the same two-truths honesty")
+        o3 = ops_universe("o3", groq_script=[("ok", "Lonely Title", 8)])
+        o3["dialog"].send("write a doc on silence")
+        expect(out, said(o3)[-1] == canon.LINE_CATCH_ALL
+               and not list(Path(o3["desktop"]).glob("*.docx")),
+               "a title-only outline answers the catch-all — no junk file ships to the Desktop")
+        o4 = ops_universe("o4")
+        o4["dialog"].send("make a ppt on how to crack office activation")
+        expect(out, said(o4)[-1] == canon.LINE_NEVER_LIST
+               and not o4["gfx"].received and not list(Path(o4["desktop"]).glob("*.pptx")),
+               "Never-List before the ring: an outlaw topic refuses with zero spend, zero file")
+        o4["dialog"].send("make a ppt")
+        expect(out, said(o4)[-1] == canon.LINE_NEAR_MISS and not o4["gfx"].received,
+               "a topic-less office utterance earns ONE question — never an empty draft")
+
+        # --- the grammar doc itself: v1.1 appended, v1.0 untouched
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
+               and "## v1.1 — DAILY OPS + OFFICE STUDIO" in grammar
+               and "yaad dilana" in grammar and "alarm lagao" in grammar and "timer lagao" in grammar,
+               "command-grammar v1.1 is append-only: the v1.0 header stands, the alias set is declared")
     finally:
         urllib.request.urlopen = real_urlopen
         subprocess.run = real_run
@@ -1923,12 +2375,28 @@ def _crash_checks(base: Path, out) -> None:
     integrity = vault.integrity()
     chats = vault.chat_rows()
     committed_messages = vault.messages_for(chats[0]["id"]) if chats else []
+    crash_bus = Bus()
+    crash_events = []
+    crash_bus.subscribe(lambda kind, detail: crash_events.append((kind, detail)))
+    crash_clock = Clockd(vault, crash_bus)
+    fired_first = crash_clock.tick(2000.0)  # everything due: 500, 700, 1000 — all long past
+    fired_again = crash_clock.tick(2000.0)
+    clock_pending = vault.clock_counts()
     vault.close()
     expect(out, integrity == "ok", "post-SIGKILL re-open: sqlite integrity_check ok")
     expect(out, stored == [f"v{i}" for i in range(5)], "all 5 pre-kill committed kv rows survived")
     expect(out, memories >= 5 and total >= 50, f"committed prefix intact (memory rows={memories}, ledger tokens={total})")
     expect(out, len(chats) == 1 and len(committed_messages) >= 5,
            f"chats + messages tables survive the kill ({len(committed_messages)} messages intact)")
+    expect(out, [row["line"] for row in fired_first]
+           == ["While you were away: Reminder: crash reminder two.",
+               "While you were away: Timer done: crash tea.",
+               "While you were away: Reminder: crash reminder one."]
+           and [row["due"] for row in fired_first] == [500.0, 700.0, 1000.0],
+           "the clock workload survives SIGKILL and fires in monotonic due order on re-open")
+    expect(out, fired_again == [] and clock_pending == {"reminders_pending": 0, "timers_pending": 0}
+           and len([k for k, d in crash_events if k == "reminder"]) == 3,
+           "crash-fired rows fire exactly once — no duplicates, no losses, 3 reminder events")
     lx = LogX(zone / "logs.jsonl")
     torn = False
     try:
@@ -1952,6 +2420,10 @@ def _child_crash_worker(zone: Path) -> None:
         vault.spend("mock", 0, 10)
         vault.message_add(chat_id, "cooper" if i % 2 == 0 else "tars", f"committed message {i}", None, None)
         log.entry("child", marker=i)
+    # P-CORE-6: the clock workload must survive the same kill
+    vault.reminder_insert("crash reminder one", 1000.0, "", "reminder")
+    vault.reminder_insert("crash reminder two", 500.0, "", "reminder")
+    vault.timer_insert("crash tea", 700.0)
     print("READY", flush=True)
     burst = 0
     while True:
@@ -1966,7 +2438,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -1980,6 +2452,7 @@ def main() -> int:
     _voice_checks(base, out)
     _matrix_checks(base, out)
     _grammar_checks(base, out)
+    _dailyops_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

@@ -20,7 +20,7 @@ import re
 import time
 from datetime import datetime
 
-from tars.core import canon
+from tars.core import canon, clockd, office
 from tars.core.operator import APP_ALIASES
 
 # --- moved here from dialog.py (P-CORE-2 handlers consolidated; behavior byte-identical)
@@ -52,6 +52,7 @@ NEVER_PATTERNS = (
 NEAR_MISS_MARKERS = {
     "open", "close", "delete", "move", "volume", "brightness", "snap", "screenshot",
     "shutdown", "restart", "sleep", "search", "find", "dhundo", "kholo", "awaaz", "band",
+    "remind", "alarm", "timer", "copy", "clipboard", "make", "write",  # grammar v1.1 families
 }
 
 RANK_WORDS = {"one": 1, "1": 1, "first": 1, "two": 2, "2": 2, "second": 2,
@@ -122,7 +123,8 @@ class CommandLayer:
     """The parser + dispatcher. execute() returns a reply PLAN; the dialog persists and
     streams it. The layer owns no rendering — only intents, gates, and canon replies."""
 
-    def __init__(self, settings, vault, executor, search_lanes, finder, log, bus, clock=None, time_fn=None):
+    def __init__(self, settings, vault, executor, search_lanes, finder, log, bus, clock=None,
+                 time_fn=None, router=None, clockd=None, ops=None, desktop=None):
         self._settings = settings
         self._vault = vault
         self._executor = executor
@@ -132,6 +134,15 @@ class CommandLayer:
         self._bus = bus
         self._clock = clock or datetime.now
         self._time = time_fn or time.time
+        self._router = router  # Office rows are the ONE ring-spending family (grammar v1.1, declared)
+        self._clockd = clockd
+        self._ops = ops
+        self._desktop = desktop or office.desktop_dir()
+
+    @property
+    def clockd_unit(self):
+        """The clock the dialog heartbeats (owned here so both share one vault+bus binding)."""
+        return self._clockd
 
     # ---------- gates (RED verbs) ----------
 
@@ -208,7 +219,7 @@ class CommandLayer:
 
     # ---------- the parser ----------
 
-    def execute(self, text: str, machine) -> dict:
+    def execute(self, text: str, machine, chat_id=None) -> dict:
         """-> {"handled": True, "replies": [(line, hue, lane)], ...flags} or {"handled": False}.
         Only replies are returned; emitting is the dialog's uniform-response law."""
         raw = str(text)  # remember payload bytes persist original-case (P-CORE-2 law): match on t, slice raw
@@ -272,6 +283,11 @@ class CommandLayer:
         green = self._green(t)
         if green is not None:
             return green
+
+        # (5b) daily ops (grammar v1.1: clock rows, clipboard, Office Studio)
+        daily = self._daily(t, chat_id)
+        if daily is not None:
+            return daily
 
         # (6) operator RED — the typed-YES gate
         red = self._red(t)
@@ -407,14 +423,136 @@ class CommandLayer:
             call()
             return self._plan([(canon.snap_ack(action), "local", None)])
         if t in ("screenshot", "screenshot full", "screenshot region"):
-            self._executor.screenshot("full" if t != "screenshot region" else "region")
-            return self._plan([(canon.pending_line("Screenshot capture", "P-CORE-6"), "local", None)])
+            # P-CORE-6 owns this row now: real capture on the AiO (BitBlt), the honest
+            # unavailable line anywhere else — never a faked shot.
+            kind = "region" if t == "screenshot region" else "full"
+            if self._ops.screenshot(kind, self._desktop):
+                return self._plan([(canon.LINE_SHOT_SAVED, "local", None)])
+            return self._plan([(canon.meter_unavailable_line("Screenshot capture"), "local", None)])
 
-        # system answers — meters the Watcher phases own; honesty beats a fake number
-        meters = {"uptime": "The uptime meter", "storage": "The storage meter", "ram": "The RAM meter",
-                  "cpu": "The CPU meter", "what's eating the cpu": "The CPU meter"}
-        if t in meters:
-            return self._plan([(canon.pending_line(meters[t], "P-CORE-9"), "local", None)])
+        # system answers (grammar v1.1): readings or the canon unavailable line — never a guess
+        if t == "uptime":
+            seconds = self._ops.uptime_seconds()
+            if seconds is False:
+                return self._plan([(canon.meter_unavailable_line("The uptime meter"), "local", None)])
+            return self._plan([(canon.uptime_ack(int(seconds // 3600)), "local", None)])
+        if t == "ram":
+            percent = self._ops.ram_percent()
+            if percent is False:
+                return self._plan([(canon.meter_unavailable_line("The RAM meter"), "local", None)])
+            return self._plan([(canon.ram_ack(percent), "local", None)])
+        if t == "storage":
+            try:
+                free_gb = self._ops.storage_free_bytes("/") // (1024 ** 3)
+            except (OSError, TypeError):
+                return self._plan([(canon.meter_unavailable_line("The storage meter"), "local", None)])
+            return self._plan([(canon.storage_ack(int(free_gb)), "local", None)])
+        if t in ("cpu", "what's eating the cpu"):
+            hog = self._ops.cpu_hog()
+            if not hog:
+                return self._plan([(canon.LINE_NO_CPU_METER, "local", None)])
+            return self._plan([(canon.hog_ack(hog[0], hog[1]), "local", None)])
+        return None
+
+    # ---------- daily-ops rows (grammar v1.1) ----------
+
+    def _daily(self, t: str, chat_id):
+        now = self._clock()
+
+        # reminders: "remind me to <text> <when>" · Hinglish "yaad dilana <text> <when>"
+        remind_body = self._strip_any(t, ("remind me to ", "yaad dilana "), ())
+        if remind_body:
+            parsed = clockd.parse_reminder(remind_body, now)
+            if parsed is None:
+                return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+            text, epoch, echo = parsed
+            rid = self._vault.reminder_insert(text, epoch, "", "reminder")
+            self._log.entry("clock", row="reminder", id=rid, text=text)
+            return self._plan([(canon.reminder_ack(text, echo), "local", None)])
+
+        # alarms: "set an alarm for <when>" · "alarm lagao <when>"
+        alarm_body = self._strip_any(t, ("set an alarm for ", "alarm lagao "), ())
+        if alarm_body:
+            parsed = clockd.parse_alarm(alarm_body, now)
+            if parsed is None:
+                return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+            epoch, echo = parsed
+            rid = self._vault.reminder_insert("", epoch, "", "alarm")
+            self._log.entry("clock", row="alarm", id=rid)
+            return self._plan([(canon.alarm_ack(echo), "local", None)])
+
+        # timers: "set a timer for N <units>" · "set a <label> timer for N <units>" · "timer lagao N <units>"
+        timer_body = None
+        if t.startswith("set a ") and " timer for " in t:
+            timer_body = t[len("set a "):]
+        elif t.startswith("timer lagao "):
+            timer_body = t[len("timer lagao "):]
+        if timer_body is not None and timer_body:
+            parsed = clockd.parse_timer(timer_body, now)
+            if parsed is None:
+                return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+            label, epoch, echo = parsed
+            tid = self._vault.timer_insert(label, epoch)
+            self._log.entry("clock", row="timer", id=tid, label=label)
+            return self._plan([(canon.timer_set_ack(label, echo), "local", None)])
+
+        # "cancel the timer" / "cancel the alarm" — the NEXT-to-fire of that kind, never a guess
+        if t == "cancel the timer":
+            pending = self._vault.next_pending_timer()
+            if pending is None:
+                return self._plan([(canon.LINE_CANCEL, "local", None)])
+            self._vault.timer_done(pending["id"])
+            self._log.entry("clock", row="timer-cancel", id=pending["id"])
+            target = f"the {pending['label']} timer" if pending["label"] else "the timer"
+            return self._plan([(canon.cancel_ack(target), "local", None)])
+        if t in ("cancel the alarm", "cancel the reminder"):
+            pending = self._vault.next_pending_reminder("alarm" if t == "cancel the alarm" else "reminder")
+            if pending is None:
+                return self._plan([(canon.LINE_CANCEL, "local", None)])
+            self._vault.reminder_done(pending["id"])
+            self._log.entry("clock", row=f"{pending['kind']}-cancel", id=pending["id"])
+            return self._plan([(canon.cancel_ack(f"the {pending['kind']}"), "local", None)])
+
+        # clipboard rows (grammar v1.1): LOCAL read/write — the content never travels (§27/§31)
+        if t == "copy that":
+            last = self._vault.last_tars_text(chat_id)
+            if last is None:
+                return self._plan([(canon.LINE_NOTHING_TO_COPY, "local", None)])
+            self._ops.clipboard_set(last)
+            return self._plan([(canon.LINE_COPIED, "local", None)])
+        if t == "what's on my clipboard":
+            content = self._ops.clipboard_get()
+            if not content:
+                return self._plan([(canon.LINE_CLIPBOARD_EMPTY, "local", None)])
+            return self._plan([(canon.clipboard_line(content), "local", None)])
+
+        # Office Studio rows (grammar v1.1): the ONE ring-spending command family — the draft
+        # travels (cloud hue + lane), the build is local (§18 Desktop, saved-line mint).
+        office_row = self._strip_any(t, ("make a ppt on ", "write a doc on ", "write a document on "), ())
+        if office_row is not None:
+            kind = "pptx" if t.startswith("make a ppt on ") else "docx"
+            topic = office_row
+            if not topic:
+                return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+            if self._never(topic):
+                return self._plan([(canon.LINE_NEVER_LIST, "local", None)])
+            reply = self._router.route(office.office_prompt(kind, topic))
+            notices = [(note, "cloud", None) for note in reply["notices"]]  # ring courtesy lines always render
+            if not reply["ok"]:
+                return self._plan(notices + [(reply["text"], "cloud", reply["lane"])])
+            parsed = office.parse_outline(kind, reply["text"])
+            if parsed is None:
+                return self._plan([(canon.LINE_CATCH_ALL, "cloud", reply["lane"])])
+            title, payload = parsed
+            if kind == "pptx":
+                name = office.build_pptx(title, payload, self._desktop)
+                draft = canon.office_draft_line(len(payload), "slides", title)
+            else:
+                name = office.build_docx(title, payload, self._desktop)
+                draft = canon.office_draft_line(len(payload), "paragraphs", title)
+            self._log.entry("office", family=kind, name=name, topic=topic)
+            return self._plan(notices + [(draft, "cloud", reply["lane"]),
+                                         (canon.saved_ack(name), "local", None)])
         return None
 
     def _red(self, t: str):

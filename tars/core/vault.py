@@ -45,6 +45,20 @@ CREATE TABLE IF NOT EXISTS messages (
     lane       TEXT,
     superseded INTEGER
 );
+CREATE TABLE IF NOT EXISTS reminders (  -- P-CORE-6: durable clock workload, same WAL posture
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    text      TEXT NOT NULL,
+    due_epoch REAL NOT NULL,
+    repeat    TEXT NOT NULL DEFAULT '',
+    kind      TEXT NOT NULL DEFAULT 'reminder',
+    done      INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS timers (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    label      TEXT NOT NULL,
+    ends_epoch REAL NOT NULL,
+    done       INTEGER NOT NULL DEFAULT 0
+);
 """
 
 
@@ -200,6 +214,73 @@ class Vault:
     def path(self) -> Path:
         """Where this vault.db lives (the layer parks logs beside it by default)."""
         return self._path
+
+    # --- clock workload (P-CORE-6): cancel = done flag, never DELETE — the trail stays auditable
+
+    def reminder_insert(self, text: str, due_epoch: float, repeat: str = "", kind: str = "reminder") -> int:
+        cur = self._db.execute(
+            "INSERT INTO reminders (text, due_epoch, repeat, kind, done) VALUES (?, ?, ?, ?, 0)",
+            (text, float(due_epoch), repeat, kind))
+        self._db.commit()
+        return cur.lastrowid
+
+    def timer_insert(self, label: str, ends_epoch: float) -> int:
+        cur = self._db.execute("INSERT INTO timers (label, ends_epoch, done) VALUES (?, ?, 0)",
+                               (label, float(ends_epoch)))
+        self._db.commit()
+        return cur.lastrowid
+
+    def due_reminders(self, now_epoch: float) -> list:
+        rows = self._db.execute(
+            "SELECT id, text, due_epoch, repeat, kind FROM reminders "
+            "WHERE done = 0 AND due_epoch <= ? ORDER BY due_epoch ASC, id ASC", (float(now_epoch),))
+        return [{"id": r[0], "text": r[1], "due_epoch": r[2], "repeat": r[3], "kind": r[4]} for r in rows]
+
+    def due_timers(self, now_epoch: float) -> list:
+        rows = self._db.execute(
+            "SELECT id, label, ends_epoch FROM timers "
+            "WHERE done = 0 AND ends_epoch <= ? ORDER BY ends_epoch ASC, id ASC", (float(now_epoch),))
+        return [{"id": r[0], "label": r[1], "ends_epoch": r[2]} for r in rows]
+
+    def reminder_done(self, rid: int) -> None:
+        self._db.execute("UPDATE reminders SET done = 1 WHERE id = ?", (int(rid),))
+        self._db.commit()
+
+    def reminder_rearm(self, rid: int, new_due: float) -> None:
+        self._db.execute("UPDATE reminders SET due_epoch = ? WHERE id = ?", (float(new_due), int(rid)))
+        self._db.commit()
+
+    def timer_done(self, tid: int) -> None:
+        self._db.execute("UPDATE timers SET done = 1 WHERE id = ?", (int(tid),))
+        self._db.commit()
+
+    def next_pending_reminder(self, kind: str):
+        row = self._db.execute(
+            "SELECT id, text, due_epoch, kind FROM reminders WHERE done = 0 AND kind = ? "
+            "ORDER BY due_epoch ASC, id ASC LIMIT 1", (kind,)).fetchone()
+        return {"id": row[0], "text": row[1], "due_epoch": row[2], "kind": row[3]} if row else None
+
+    def next_pending_timer(self):
+        row = self._db.execute(
+            "SELECT id, label, ends_epoch FROM timers WHERE done = 0 "
+            "ORDER BY ends_epoch ASC, id ASC LIMIT 1").fetchone()
+        return {"id": row[0], "label": row[1], "ends_epoch": row[2]} if row else None
+
+    def clock_counts(self) -> dict:
+        pending_r = self._db.execute("SELECT COUNT(*) FROM reminders WHERE done = 0").fetchone()[0]
+        pending_t = self._db.execute("SELECT COUNT(*) FROM timers WHERE done = 0").fetchone()[0]
+        return {"reminders_pending": pending_r, "timers_pending": pending_t}
+
+    def last_tars_text(self, chat_id=None):
+        """Newest assistant message text (chat-scoped when an id rides along) — 'copy that''s source."""
+        if chat_id is None:
+            row = self._db.execute(
+                "SELECT text FROM messages WHERE who = 'tars' ORDER BY id DESC LIMIT 1").fetchone()
+        else:
+            row = self._db.execute(
+                "SELECT text FROM messages WHERE who = 'tars' AND chat_id = ? ORDER BY id DESC LIMIT 1",
+                (int(chat_id),)).fetchone()
+        return row[0] if row else None
 
     def integrity(self) -> str:
         return str(self._db.execute("PRAGMA integrity_check").fetchone()[0])

@@ -132,9 +132,6 @@ class NtExecutor:
         ctypes.windll.user32.keybd_event(win, 0, 2, 0)
         return True
 
-    def screenshot(self, kind: str) -> bool:
-        return False  # canon: the capture itself ships in P-CORE-6 — intent recorded, never faked
-
     def open_url(self, url: str) -> bool:
         if os.name != "nt":
             return False  # canon: the OS browser hand-off happens on the AiO
@@ -215,10 +212,6 @@ class FixtureExecutor:
 
     def snap_maximize(self) -> bool:
         self.calls.append(("snap_maximize",))
-        return True
-
-    def screenshot(self, kind: str) -> bool:
-        self.calls.append(("screenshot", kind))
         return True
 
     def open_url(self, url: str) -> bool:

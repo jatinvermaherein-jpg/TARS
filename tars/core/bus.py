@@ -1,11 +1,15 @@
 """In-process bridge event bus — the contract §3 surface, headless transport.
 
-Emitters speak exactly the eight `__tarsEvent` types; at P3 merge pywebview
-replaces the transport (a subscriber that evaluates window.__tarsEvent)
-without any emitter changing. Subscriber failures never take core down.
+Emitters speak the eight contract `__tarsEvent` types plus the P-CORE-6-decreed
+`reminder` clock fire (flat-scalar payload); at P3 merge pywebview replaces
+the transport (a subscriber that evaluates window.__tarsEvent) without any
+emitter changing. Subscriber failures never take core down.
 """
 
-EVENT_TYPES = frozenset({"state", "chunk", "done", "action", "transcript", "gauge", "error", "close"})
+# reminder: the P-CORE-6 clock fire — decreed by the phase prompt (payload: flat scalars,
+# <= existing event shapes); every other emit stays one of the original 8.
+EVENT_TYPES = frozenset({"state", "chunk", "done", "action", "transcript", "gauge", "error", "close",
+                         "reminder"})
 
 
 class Bus:

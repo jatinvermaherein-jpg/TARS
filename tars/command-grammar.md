@@ -82,3 +82,44 @@ GREEN local acks: short past-tense templates, numbers in words — *"Volume set 
 `command.py` (the parser) ships in **P-CORE-5**; P-CORE-2 already carries the seed patterns (§2 dials + §3 remember) inside the dialog service; TeleSend rows land P-CORE-7; Office rows P-CORE-6; study rows P-CORE-12; wake/chords P-CORE-4/P3. Each phase's selftest asserts its rows byte-for-byte against THIS file.
 
 **Non-goals:** no free-form NL parsing beyond these patterns (that is the ring's job) · no fuzzy matching · no chained commands · no alias additions without this file's version bump.
+
+---
+
+## v1.1 — DAILY OPS + OFFICE STUDIO (APPEND-ONLY, P-CORE-6 · Architect decree Aug 19, 2026)
+*Every v1.0 byte above stands unchanged. These rows join the same parse order at (5) — GREEN, LOCAL hue unless noted; the Office family is the ONE ring-spending command family (draft travels cloud, build stays local). New closed Hinglish aliases, declared once: `yaad dilana` (remind) · `alarm lagao` (set alarm) · `timer lagao` (set timer). Natural time shapes (closed): `in N seconds/minutes/hours` · `at H[:MM][ am|pm]` · `kal subah|shaam H baje` — numbers digits-or-words per §0.*
+
+### 11. Clock — reminders / alarms / timers (LOCAL, durable in vault)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `remind me to <text> <when>` · `yaad dilana <text> <when>` | "remind me to call bhaiya in 20 minutes" · "remind me to submit the form at 6:30 pm" · "yaad dilana dawa lena kal subah 7 baje" | `Reminder set for <echo>: <text>.` |
+| `set an alarm for <when>` · `alarm lagao <when>` | "set an alarm for 6:30" · "set an alarm for 6:30 pm" · "alarm lagao kal subah 7 baje" | `Alarm set for <echo>.` |
+| `set a timer for N <units>` · `set a <label> timer for N <units>` · `timer lagao N <units>` | "set a timer for 5 minutes" · "set a tea timer for 3 minutes" · "timer lagao 10 minutes" | `Timer set for <span>[: <label>].` |
+| `cancel the timer` · `cancel the alarm` · `cancel the reminder` | "cancel the timer" · "cancel the alarm" · "cancel the reminder" | `Cancelled: the [<label>] <kind>.` (none pending: canon LINE_CANCEL) |
+| fire (tick-driven) | on-time: "Reminder: call bhaiya." · "Alarm." · "Timer done: tea." | missed-while-OFF, once on next summon: "While you were away: …" |
+
+### 12. Screenshot — GREEN, LOCAL (this phase owns the row; AiO BitBlt, pure-stdlib PNG)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `screenshot` (full\|region) | "screenshot" · "screenshot full" · "screenshot region" | `Screenshot saved to Desktop.` (unavailable: canon `… isn't available here. I won't guess.`) |
+
+### 13. Clipboard — LOCAL, never travels (§27/§31: content must never touch a ring payload)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `copy that` | "copy that" (last assistant text → clipboard) | `Copied to the clipboard.` (none yet: `Nothing to copy yet.`) |
+| `what's on my clipboard` | "what's on my clipboard" | `On your clipboard: <content>` (empty: `The clipboard is empty.`) |
+
+### 14. System answers — readings or the canon unavailable line, never an invented number
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `uptime` | "uptime" | `Uptime: <hours words> hours.` |
+| `ram` | "ram" | `RAM in use: <percent words> percent.` |
+| `storage` | "storage" | `Storage free: <gb words> gigabytes.` |
+| `cpu` · `what's eating the cpu` | "cpu" · "what's eating the cpu" | `Top of the CPU pile: <name> at <percent words> percent.` (unavailable: `CPU meter isn't available here. I won't guess.`) |
+
+### 15. Office Studio — the ONE ring-spending command family (draft cloud, build local, §18 Desktop)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `make a ppt on <topic>` | "make a ppt on the green revolution" · "make a ppt on photosynthesis" · "make a ppt on my physics chapter" | `Drafted <N words> slides for '<title>' on the cloud.` (cloud hue + lane) → `Saved to Desktop: <name>.pptx` (local) |
+| `write a doc on <topic>` · `write a document on <topic>` | "write a doc on load shedding" · "write a doc on my school trip" · "write a document on rainwater harvesting" | `Drafted <N words> paragraphs for '<title>' on the cloud.` (cloud hue + lane) → `Saved to Desktop: <name>.docx` (local) |
+
+*§34 Never-List scan fires on every new action target BEFORE any ring call. Studio packages are pure-stdlib OOXML (golden epoch, deterministic); near-miss law unchanged: a malformed clock/office utterance earns ONE clarifying question, never an execution.*
