@@ -59,6 +59,21 @@ CREATE TABLE IF NOT EXISTS timers (
     ends_epoch REAL NOT NULL,
     done       INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS contacts (  -- P-CORE-7 people-book: name is the case-insensitive key, display kept
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    name     TEXT NOT NULL,
+    telegram TEXT NOT NULL DEFAULT '',
+    whatsapp TEXT NOT NULL DEFAULT '',
+    added_on TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sent_log (  -- P-CORE-7: append-only journal of what LEFT the box (success only, never intent)
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel    TEXT NOT NULL,
+    recipient  TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    summary    TEXT NOT NULL,
+    sent_epoch REAL NOT NULL
+);
 """
 
 
@@ -270,6 +285,73 @@ class Vault:
         pending_r = self._db.execute("SELECT COUNT(*) FROM reminders WHERE done = 0").fetchone()[0]
         pending_t = self._db.execute("SELECT COUNT(*) FROM timers WHERE done = 0").fetchone()[0]
         return {"reminders_pending": pending_r, "timers_pending": pending_t}
+
+    # --- people-book + sent ledger (P-CORE-7): 'forget' is a true DELETE (contacts are not a
+    # ledger); sent_log is strictly append-only and journals successful sends ONLY — the
+    # ledger records what left the box, never the intent.
+
+    def contact_save(self, display: str, channel: str, value: str):
+        """-> ("created"|"filled"|"dup", row|None). Name matches case-insensitively; an existing
+        row only ever FILLS an empty channel — an occupied channel is a declared 'dup', never
+        a silent overwrite. channel in {"telegram", "whatsapp"}."""
+        existing = self.contact_get(display)
+        if existing is None:
+            col = {"telegram": "", "whatsapp": ""}
+            col[channel] = str(value)
+            cur = self._db.execute(
+                "INSERT INTO contacts (name, telegram, whatsapp, added_on) VALUES (?, ?, ?, ?)",
+                (str(display), col["telegram"], col["whatsapp"], _now()))
+            self._db.commit()
+            return "created", self.contact_get(display)
+        if existing[channel]:
+            return "dup", existing
+        self._db.execute(f"UPDATE contacts SET {channel} = ? WHERE id = ?",
+                         (str(value), existing["id"]))
+        self._db.commit()
+        return "filled", self.contact_get(display)
+
+    def contact_get(self, name: str):
+        row = self._db.execute(
+            "SELECT id, name, telegram, whatsapp, added_on FROM contacts WHERE lower(name) = lower(?)",
+            (str(name),)).fetchone()
+        return self._contact_dict(row) if row else None
+
+    def contact_remove(self, name: str):
+        existing = self.contact_get(name)
+        if existing is None:
+            return None
+        self._db.execute("DELETE FROM contacts WHERE id = ?", (existing["id"],))
+        self._db.commit()
+        return existing
+
+    def contacts_list(self) -> list:
+        rows = self._db.execute(
+            "SELECT id, name, telegram, whatsapp, added_on FROM contacts ORDER BY id DESC").fetchall()
+        return [self._contact_dict(r) for r in rows]
+
+    def _contact_dict(self, row) -> dict:
+        cid, name, telegram, whatsapp, added_on = row
+        return {"id": cid, "name": name, "telegram": telegram, "whatsapp": whatsapp,
+                "added_on": added_on}
+
+    def sent_add(self, channel: str, recipient: str, kind: str, summary: str, sent_epoch: float) -> int:
+        cur = self._db.execute(
+            "INSERT INTO sent_log (channel, recipient, kind, summary, sent_epoch) VALUES (?, ?, ?, ?, ?)",
+            (str(channel), str(recipient), str(kind), str(summary), float(sent_epoch)))
+        self._db.commit()
+        return int(cur.lastrowid)
+
+    def sent_recall(self, name: str, limit: int = 5) -> list:
+        """Newest-first, capped per finder-law — the honest recall row's source."""
+        rows = self._db.execute(
+            "SELECT id, channel, recipient, kind, summary, sent_epoch FROM sent_log "
+            "WHERE lower(recipient) = lower(?) ORDER BY id DESC LIMIT ?",
+            (str(name), int(limit))).fetchall()
+        return [{"id": r[0], "channel": r[1], "recipient": r[2], "kind": r[3],
+                 "summary": r[4], "sent_epoch": r[5]} for r in rows]
+
+    def sent_count(self) -> int:
+        return int(self._db.execute("SELECT COUNT(*) FROM sent_log").fetchone()[0])
 
     def last_tars_text(self, chat_id=None):
         """Newest assistant message text (chat-scoped when an id rides along) — 'copy that''s source."""

@@ -20,7 +20,7 @@ import re
 import time
 from datetime import datetime
 
-from tars.core import canon, clockd, office
+from tars.core import canon, clockd, office, telesend
 from tars.core.operator import APP_ALIASES
 
 # --- moved here from dialog.py (P-CORE-2 handlers consolidated; behavior byte-identical)
@@ -53,6 +53,7 @@ NEAR_MISS_MARKERS = {
     "open", "close", "delete", "move", "volume", "brightness", "snap", "screenshot",
     "shutdown", "restart", "sleep", "search", "find", "dhundo", "kholo", "awaaz", "band",
     "remind", "alarm", "timer", "copy", "clipboard", "make", "write",  # grammar v1.1 families
+    "send", "bhejo", "forward", "save", "forget",  # grammar v1.2 TeleSend family
 }
 
 RANK_WORDS = {"one": 1, "1": 1, "first": 1, "two": 2, "2": 2, "second": 2,
@@ -124,7 +125,7 @@ class CommandLayer:
     streams it. The layer owns no rendering — only intents, gates, and canon replies."""
 
     def __init__(self, settings, vault, executor, search_lanes, finder, log, bus, clock=None,
-                 time_fn=None, router=None, clockd=None, ops=None, desktop=None):
+                 time_fn=None, router=None, clockd=None, ops=None, desktop=None, tele=None):
         self._settings = settings
         self._vault = vault
         self._executor = executor
@@ -138,6 +139,7 @@ class CommandLayer:
         self._clockd = clockd
         self._ops = ops
         self._desktop = desktop or office.desktop_dir()
+        self._tele = tele  # P-CORE-7: the outbound client (real on the AiO, fixture in tests)
 
     @property
     def clockd_unit(self):
@@ -146,14 +148,16 @@ class CommandLayer:
 
     # ---------- gates (RED verbs) ----------
 
-    def _park(self, action: tuple, summary: str, target: str) -> str:
+    def _park(self, action: tuple, summary: str, target: str, kind: str = "red-verb") -> str:
+        # P-CORE-7: TeleSend reuses this exact machinery (single-use, 120s TTL, cancel-consumes)
+        # — only the contract action-kind label differs ("telesend"); zero forked gate code.
         seq = int(self._vault.kv_get("gate:seq") or 0) + 1
         self._vault.kv_set("gate:seq", str(seq))
         action_id = f"act-{seq}"
         record = {"action": list(action), "summary": summary, "target": target, "created": self._time()}
         self._vault.kv_set(f"gate:{action_id}", json.dumps(record))
         self._vault.kv_set("gate:pending", action_id)
-        self._bus.emit("action", {"actionId": action_id, "kind": "red-verb", "summary": summary, "target": target})
+        self._bus.emit("action", {"actionId": action_id, "kind": kind, "summary": summary, "target": target})
         self._log.entry("gate", id=action_id, state="parked", target=target)
         return summary
 
@@ -190,9 +194,42 @@ class CommandLayer:
             return self._executor.delete_path(verb[1])
         if name == "move_path":
             return self._executor.move_path(verb[1], verb[2])
+        if name == "tele_text":
+            return self._deliver("telegram", "text", verb[1], verb[2], verb[3])
+        if name == "tele_file":
+            return self._deliver("telegram", "file", verb[1], verb[2], verb[3])
+        if name == "wa_text":
+            return self._deliver("whatsapp", "text", verb[1], verb[2], verb[3])
         return self._executor.power(verb[1], verb[2])
 
+    def _deliver(self, channel: str, kind: str, key: str, display: str, payload: str) -> bool:
+        """The YES release for TeleSend: re-resolve the contact FRESH (a 120s gate can outlive
+        a book edit), touch the wire exactly once, and journal SUCCESS ONLY — the sent ledger
+        records what left the box, never the intent."""
+        contact = self._vault.contact_get(key)
+        if contact is None:
+            return False
+        if channel == "telegram":
+            handle = contact["telegram"]
+            if not handle or self._tele is None or not self._tele.linked():
+                return False
+            ok = (self._tele.send_text(handle, payload) if kind == "text"
+                  else self._tele.send_document(handle, payload))
+        else:
+            number = contact["whatsapp"]
+            if not number:
+                return False
+            ok = bool(self._executor.open_url(telesend.wa_url(number, payload)))  # door opened; the thumb sends
+        self._log.entry("telesend", channel=channel, family=kind, to=display, ok=ok)
+        if ok:
+            self._vault.sent_add(channel, display, kind, payload, self._time())
+        return ok
+
     def _action_line(self, verb: list, performed: bool, target: str) -> str:
+        if verb[0] == "tele_text" or verb[0] == "tele_file":
+            return canon.sent_ack(verb[2], "Telegram") if performed else canon.LINE_TELE_FAILED
+        if verb[0] == "wa_text":
+            return canon.opened_ack(verb[2]) if performed else canon.LINE_TELE_FAILED
         if not performed:
             return f"The {target} action could not be completed from here."
         if verb[0] == "close_app":
@@ -224,6 +261,9 @@ class CommandLayer:
         Only replies are returned; emitting is the dialog's uniform-response law."""
         raw = str(text)  # remember payload bytes persist original-case (P-CORE-2 law): match on t, slice raw
         t = " ".join(raw.strip().lower().split())
+        # rn = whitespace-normalized raw, ORIGINAL case, index-aligned with t (P-CORE-7 law:
+        # an outbound payload is staged as Cooper typed it — §17 exact bytes)
+        rn = " ".join(raw.strip().split())
 
         # (1) session / system
         if t == "stand down":
@@ -288,6 +328,11 @@ class CommandLayer:
         daily = self._daily(t, chat_id)
         if daily is not None:
             return daily
+
+        # (5c) TeleSend (grammar v1.2: people-book, send rows, sent recall)
+        teleplan = self._tele_rows(rn, t)
+        if teleplan is not None:
+            return teleplan
 
         # (6) operator RED — the typed-YES gate
         red = self._red(t)
@@ -554,6 +599,161 @@ class CommandLayer:
             return self._plan(notices + [(draft, "cloud", reply["lane"]),
                                          (canon.saved_ack(name), "local", None)])
         return None
+
+    # ---------- TeleSend rows (grammar v1.2) ----------
+
+    _CHANNEL_SUFFIXES = ((" on telegram", "telegram", "Telegram"), (" on whatsapp", "whatsapp", "WhatsApp"))
+
+    def _tele_rows(self, rn: str, t: str):
+        """§17 in rows: every send is stage -> show -> YES. rn carries the original case
+        (index-aligned with t); matching happens on t, payloads are sliced from rn."""
+
+        # people-book: "save <name>'s telegram as <handle>" / "... whatsapp as <number>"
+        if t.startswith("save ") and " as " in t:
+            head_t = t[len("save "):].rsplit(" as ", 1)[0]
+            tail_r = rn[len("save "):]
+            head_r = tail_r.rsplit(" as ", 1)[0]
+            value = tail_r.rsplit(" as ", 1)[1].strip()
+            for marker, channel in (("'s telegram", "telegram"), ("'s whatsapp", "whatsapp")):
+                if head_t.endswith(marker):
+                    display = head_r[:-len(marker)].strip()
+                    if not display or not value:
+                        return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+                    status, row = self._vault.contact_save(display, channel, value)
+                    channel_title = {"telegram": "Telegram", "whatsapp": "WhatsApp"}[channel]
+                    self._log.entry("people-book", action=status, channel=channel, name=row["name"])
+                    if status == "created":
+                        return self._plan([(canon.contact_saved_ack(row["name"], channel_title), "local", None)])
+                    if status == "filled":
+                        return self._plan([(canon.contact_updated_ack(row["name"], channel_title), "local", None)])
+                    return self._plan([(canon.contact_dup_line(row["name"], channel_title), "local", None)])
+
+        # "forget <name>" — a true delete from the book, with the honest empty-book line
+        if t.startswith("forget ") and t[len("forget "):].strip():
+            removed = self._vault.contact_remove(t[len("forget "):].strip())
+            if removed is None:
+                return self._plan([(canon.no_contact_line(t[len("forget "):].strip()), "local", None)])
+            self._log.entry("people-book", action="forgot", name=removed["name"])
+            return self._plan([(canon.contact_forgot_ack(removed["name"]), "local", None)])
+
+        # "who do i know" — honest numbered list, newest-first
+        if t == "who do i know":
+            rows = self._vault.contacts_list()
+            if not rows:
+                return self._plan([(canon.LINE_NO_CONTACTS, "local", None)])
+            return self._plan([(canon.contacts_line(rows), "local", None)])
+
+        # sent recall: "what did i send <name>" — the ledger speaks, capped per finder-law
+        if t.startswith("what did i send "):
+            key = t[len("what did i send "):].strip()
+            if not key:
+                return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+            rows = self._vault.sent_recall(key, limit=5)
+            if not rows:
+                return self._plan([(canon.nothing_sent_line(key), "local", None)])
+            return self._plan([(canon.sent_recall_line(rows[0]["recipient"], rows), "local", None)])
+
+        # file rows BEFORE generic text (they share the 'send' head): "forward <desc> to <name>
+        # on <channel>" · "send (the) file <desc> to <name> on <channel>" — channel is required
+        for prefix in ("send the file ", "send file ", "forward "):
+            if t.startswith(prefix):
+                return self._tele_file_row(rn, t, prefix)
+
+        # text rows: "send <payload> to <name> on <channel>" (verbatim, ZERO ring) ·
+        # "send <ask> to <name>" with no channel = the ONE lawful ring draft (smart lane,
+        # staged on the Telegram user lane) · closed Hinglish alias: bhejo
+        for prefix in ("send ", "bhejo "):
+            if t.startswith(prefix) and " to " in t[len(prefix):]:
+                return self._tele_text_row(rn, t, prefix)
+        return None
+
+    def _split_to_channel(self, body_t: str, body_r: str):
+        """'<payload> to <name>[ on <channel>]' -> (payload_r, name_r, channel_key, channel_title).
+        Closed rule: the FIRST ' to ' separates; the channel is a declared suffix only."""
+        payload_t, rest = body_t.split(" to ", 1)
+        payload_r = body_r[:len(payload_t)].strip()
+        name_t = rest.strip()
+        name_r = body_r.split(" to ", 1)[1].strip()
+        for suffix, key, title in self._CHANNEL_SUFFIXES:
+            if name_t.endswith(suffix):
+                return payload_r, name_r[:-len(suffix)].strip(), key, title
+        return payload_r, name_r, None, None
+
+    def _contact_or_line(self, name_r: str, channel_title: str):
+        """Resolve, then the pre-ring/pre-gate honesty ladder: unknown -> no_contact; known but
+        the channel column is empty -> no_channel. Returns (contact, display, plan|None)."""
+        contact = self._vault.contact_get(name_r)
+        if contact is None:
+            return None, name_r, self._plan([(canon.no_contact_line(name_r), "local", None)])
+        display = contact["name"]
+        if channel_title == "Telegram" and not contact["telegram"]:
+            return None, display, self._plan([(canon.no_channel_line(display, channel_title), "local", None)])
+        if channel_title == "WhatsApp" and not contact["whatsapp"]:
+            return None, display, self._plan([(canon.no_channel_line(display, channel_title), "local", None)])
+        return contact, display, None
+
+    def _tele_text_row(self, rn: str, t: str, prefix: str):
+        body_t, body_r = t[len(prefix):], rn[len(prefix):]
+        payload, name_r, channel, channel_title = self._split_to_channel(body_t, body_r)
+        if not payload or not name_r:
+            return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+        if self._never(payload) or self._never(name_r):  # §34 scans BOTH the bytes and the target
+            return self._plan([(canon.LINE_NEVER_LIST, "local", None)])
+        if channel is None:  # the declared DRAFT row: one smart-lane spend, staged on Telegram
+            contact, display, plan = self._contact_or_line(name_r, "Telegram")
+            if plan is not None:
+                return plan
+            if not self._tele or not self._tele.linked():
+                return self._plan([(canon.LINE_TELE_NOT_LINKED, "local", None)])
+            reply = self._router.route(telesend.draft_prompt(payload, display))
+            notices = [(note, "cloud", None) for note in reply["notices"]]
+            if not reply["ok"]:
+                return self._plan(notices + [(reply["text"], "cloud", reply["lane"])])
+            drafted = reply["text"].strip()
+            summary = self._park(("tele_text", display.lower(), display, drafted),
+                                 canon.stage_text_line(display, "Telegram", drafted), display,
+                                 kind="telesend")
+            return self._plan(notices + [(canon.send_draft_line(drafted), "cloud", reply["lane"]),
+                                         (summary, "local", None)])
+        contact, display, plan = self._contact_or_line(name_r, channel_title)
+        if plan is not None:
+            return plan
+        if channel == "telegram":
+            if not self._tele or not self._tele.linked():
+                return self._plan([(canon.LINE_TELE_NOT_LINKED, "local", None)])
+            verb = "tele_text"
+        else:
+            verb = "wa_text"
+        summary = self._park((verb, display.lower(), display, payload),
+                             canon.stage_text_line(display, channel_title, payload), display,
+                             kind="telesend")
+        return self._plan([(summary, "local", None)])
+
+    def _tele_file_row(self, rn: str, t: str, prefix: str):
+        body_t, body_r = t[len(prefix):], rn[len(prefix):]
+        if " to " not in body_t:
+            return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+        desc, name_r, channel, channel_title = self._split_to_channel(body_t, body_r)
+        if not desc or not name_r or channel is None:
+            return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+        if self._never(desc) or self._never(name_r):
+            return self._plan([(canon.LINE_NEVER_LIST, "local", None)])
+        if channel == "whatsapp":  # a ROW, not a boundary: the canon line, no staging (decree)
+            return self._plan([(canon.LINE_WA_FILES_OFF, "local", None)])
+        contact, display, plan = self._contact_or_line(name_r, "Telegram")
+        if plan is not None:
+            return plan
+        if not self._tele or not self._tele.linked():
+            return self._plan([(canon.LINE_TELE_NOT_LINKED, "local", None)])
+        outcome, payload = self._finder.find(desc)
+        if outcome == "list":
+            return self._plan([(canon.find_list_line(payload), "local", None)])
+        if outcome == "none":
+            return self._plan([(canon.LINE_FIND_NONE, "local", None)])
+        # File bytes never enter a ring payload; the staged artifact is a PATH (full, shown).
+        summary = self._park(("tele_file", display.lower(), display, payload),
+                             canon.stage_file_line(display, payload), display, kind="telesend")
+        return self._plan([(summary, "local", None)])
 
     def _red(self, t: str):
         # close <app> — always gated (band karo alias rows included)

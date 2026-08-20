@@ -28,6 +28,7 @@ from tars.core.findfile import FileFinder, finder_roots_from_env
 from tars.core.logx import LogX
 from tars.core.operator import NtExecutor
 from tars.core.searchlanes import SearchLanes
+from tars.core.telesend import TelethonUserClient
 
 CONTEXT_WINDOW = 10  # rolling history cap per brain call
 TITLE_CAP = 42
@@ -48,7 +49,8 @@ class Dialog:
             command_layer = CommandLayer(settings, vault, NtExecutor(), SearchLanes(),
                                          FileFinder(finder_roots_from_env()),
                                          LogX(vault.path.parent / "logs.jsonl"), bus,
-                                         router=router, clockd=clockd, ops=NtOps())
+                                         router=router, clockd=clockd, ops=NtOps(),
+                                         tele=TelethonUserClient(vault.path.parent))  # no secrets shelved: honestly unlinked
         self._command = command_layer
         self._clockd = command_layer.clockd_unit  # the layer's clock drives tick_clock's heartbeat
         self._chat_id = None

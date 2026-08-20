@@ -271,3 +271,78 @@ def clipboard_line(content: str) -> str:
 def office_draft_line(count: int, unit: str, title: str) -> str:
     """Hue honesty: the CONTENT travelled (cloud/amber); the save line stays local."""
     return f"Drafted {number_words(count)} {unit} for '{title}' on the cloud."
+
+
+# --- P-CORE-7 TeleSend ack family (grammar v1.2; bible §17 stage -> show -> YES) ---
+LINE_TELE_NOT_LINKED = "Telegram isn't linked yet. Setup happens on the AiO."
+LINE_TELE_FAILED = "That send didn't go through. Nothing left the box."
+LINE_WA_FILES_OFF = "WhatsApp file-send stays off. Telegram carries files."
+LINE_NO_CONTACTS = "I don't know anyone yet."
+
+
+def no_contact_line(name: str) -> str:
+    """I-don't-guess doctrine: ONE line, never a fuzzy match on the people-book."""
+    return f"I don't know {name} yet. Save them first."
+
+
+def no_channel_line(display: str, channel: str) -> str:
+    return f"I know {display}, but no {channel} is saved. Save it first."
+
+
+def contact_saved_ack(display: str, channel: str) -> str:
+    return f"Saved — {display} on {channel}."
+
+
+def contact_updated_ack(display: str, channel: str) -> str:
+    return f"Updated — {display} now on {channel} too."
+
+
+def contact_dup_line(display: str, channel: str) -> str:
+    """A name already owed that channel says so — never a silent overwrite."""
+    return f"I already know {display} on {channel}. Forget them first to change it."
+
+
+def contact_forgot_ack(display: str) -> str:
+    return f"Forgotten — {display}."
+
+
+def contacts_line(rows: list) -> str:
+    listing = "\n".join(
+        f"{i + 1}. {row['name']}: telegram {row['telegram'] or 'none'}, whatsapp {row['whatsapp'] or 'none'}"
+        for i, row in enumerate(rows))
+    return f"Who I know:\n{listing}"
+
+
+def stage_text_line(display: str, channel: str, payload: str) -> str:
+    """§17's face: recipient, channel, the EXACT quoted bytes, then the gate words."""
+    return f'Staged for {display} on {channel}: "{payload}". Type YES to send it.'
+
+
+def stage_file_line(display: str, path: str) -> str:
+    """Files stage with the FULL path — Cooper judges the exact artifact (§17)."""
+    return f"Staged for {display} on Telegram: the file {path}. Type YES to send it."
+
+
+def send_draft_line(payload: str) -> str:
+    """Two-truths pair: the DRAFT travelled on the ring (cloud/lane hue); the gate
+    preview that follows stays local mint."""
+    return f'Drafted on the cloud: "{payload}".'
+
+
+def sent_ack(display: str, channel: str) -> str:
+    return f"Sent to {display} on {channel}."
+
+
+def opened_ack(display: str) -> str:
+    return f"Opened WhatsApp for {display}. Review and press send there."
+
+
+def nothing_sent_line(name: str) -> str:
+    return f"Nothing sent to {name} yet."
+
+
+def sent_recall_line(display: str, rows: list) -> str:
+    listing = "\n".join(
+        f"{i + 1}. {row['channel'].capitalize()} {row['kind']}: {row['summary']}"
+        for i, row in enumerate(rows))
+    return f"What you sent {display}:\n{listing}"

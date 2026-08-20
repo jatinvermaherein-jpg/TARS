@@ -123,3 +123,33 @@ GREEN local acks: short past-tense templates, numbers in words — *"Volume set 
 | `write a doc on <topic>` · `write a document on <topic>` | "write a doc on load shedding" · "write a doc on my school trip" · "write a document on rainwater harvesting" | `Drafted <N words> paragraphs for '<title>' on the cloud.` (cloud hue + lane) → `Saved to Desktop: <name>.docx` (local) |
 
 *§34 Never-List scan fires on every new action target BEFORE any ring call. Studio packages are pure-stdlib OOXML (golden epoch, deterministic); near-miss law unchanged: a malformed clock/office utterance earns ONE clarifying question, never an execution.*
+
+## v1.2 — TELESEND (APPEND-ONLY, P-CORE-7 · Architect decree Aug 19, 2026)
+*Every v1.0 + v1.1 byte above stands unchanged. These rows join the parse order at (5c), after daily ops: people-book, send rows, sent recall. The gate reuses the standing typed-YES machinery (single-use, 120s expiry, cancel-consumes) with contract action kind `telesend` — the staged preview IS the confirm summary: recipient display name, channel name, the quoted exact bytes (files: the full path), then `Type YES to send it.` Closed Hinglish alias, declared once: `bhejo` (send). Payload bytes stage in Cooper's original case. Verbatim send = ZERO ring spend; the ONE lawful spend is the channel-less draft row (smart lane) whose drafted bytes stage verbatim for the gate.*
+
+### 16. People-book — save / forget / list (LOCAL)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `save <name>'s telegram as <handle>` · `save <name>'s whatsapp as <number>` | "save bhaiya's telegram as @arjun_verma" · "save ma's whatsapp as +91 98290 00000" · "save papa's telegram as +91 90000 00000" | `Saved — <name> on <Channel>.` (second channel fills: `Updated — <name> now on <Channel> too.`; occupied channel is never silently overwritten: `I already know <name> on <Channel>. Forget them first to change it.`) |
+| `forget <name>` | "forget bhaiya" · "forget ma" · "forget papa" | `Forgotten — <name>.` (unknown: `I don't know <name> yet. Save them first.`) |
+| `who do i know` | "who do i know" | numbered list newest-first, `telegram|whatsapp <value|none>` (empty book: `I don't know anyone yet.`) |
+
+### 17. TeleSend text — stage → show → YES (bible §17; RED-family gate, kind `telesend`)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `send <payload> to <name> on telegram` · `bhejo <payload> to <name> on telegram` | "send happy birthday to bhaiya on telegram" · "send reaching at six to ma on telegram" · "bhejo kal milte hain to bhaiya on telegram" | `Staged for <name> on Telegram: "<payload>". Type YES to send it.` → YES: `Sent to <name> on Telegram.` |
+| `send <payload> to <name> on whatsapp` | "send reaching at six to ma on whatsapp" · "send all the best to bhaiya on whatsapp" · "send happy diwali to papa on whatsapp" | `Staged for <name> on WhatsApp: "<payload>". Type YES to send it.` → YES: `Opened WhatsApp for <name>. Review and press send there.` (TARS opens the official wa.me door; the human's thumb sends) |
+| `send <ask> to <name>` (no channel — the DRAFT row, one smart-lane spend) | "send a birthday wish to ma" · "send a thank-you note to papa" · "send an exam pep-talk to bhaiya" | `Drafted on the cloud: "<bytes>".` (cloud hue + lane) → staged on Telegram as above (draft rides the lane hue; the gate preview stays local mint) |
+
+### 18. TeleSend file — Telegram only (finder confident-single, FULL path staged)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `forward <desc> to <name> on telegram` · `send (the) file <desc> to <name> on telegram` | "forward physics notes to bhaiya on telegram" · "send the file budget-final to ma on telegram" · "send file resume to papa on telegram" | `Staged for <name> on Telegram: the file <full path>. Type YES to send it.` → YES: `Sent to <name> on Telegram.` (multi-match: honest capped list, no gate; none: `Nothing in your folders matched that.`) |
+| `… on whatsapp` (file shapes) | "forward budget to ma on whatsapp" | `WhatsApp file-send stays off. Telegram carries files.` — a ROW, never a boundary, no staging |
+
+### 19. Sent recall — the append-only ledger speaks (successes only)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `what did i send <name>` | "what did i send bhaiya" · "what did i send ma" · "what did i send papa" | `What you sent <name>:\n<i>. <Channel> <kind>: <summary>` newest-first, capped at 5 (empty: `Nothing sent to <name> yet.`) |
+
+*Honesty ladder at every send row, in order: §34 Never-List scan (bytes AND target — refusal before any staging) → unknown name (`I don't know <name> yet. Save them first.`, pre-ring, zero spend) → channel column empty (`I know <name>, but no <Channel> is saved. Save it first.`) → unlinked Telegram lane (`Telegram isn't linked yet. Setup happens on the AiO.`, pre-ring, zero spend). Failure at the wire answers `That send didn't go through. Nothing left the box.` and journals NOTHING. Pre-YES is zero-wire by law; `cancel` rides the standing row byte-identically.*

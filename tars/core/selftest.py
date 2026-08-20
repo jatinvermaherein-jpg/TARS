@@ -37,6 +37,16 @@ pure-stdlib PNG), and the Office Studio under golden-file law (byte-pinned
 parts, container sha256, collision naming, round-trip zips, two-truths
 hue pairs, Never-List before the ring) — net and spawn seams patched to
 RAISE throughout, and the crash child now SIGKILLs the clock workload too.
+P-CORE-7 battery (bible §17 — the gate is the phase): TeleSend stage -> show
+-> YES over the standing typed-YES machinery (kind "telesend", flat scalars,
+bus at 9), verbatim = zero ring, the channel-less draft row's one smart-lane
+spend with its two-truths hue pair, the wa.me text lane riding the operator
+open-url seam, file sends with full-path staging and the whatsapp files-OFF
+canon row, the people-book (create/fill/dup-never-overwrite/forget/list),
+the success-only sent ledger with capped recall, the pre-YES ZERO-WIRE law
+proven with call-recording fixtures + the SEND-CANARY-17 payload, the §34
+door at every send row, the import-guarded TelethonUserClient never stirring
+off the AiO, and the crash child SIGKILLing the book + journal too.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -69,6 +79,7 @@ from tars.core.dialog import Dialog, classify_memory
 from tars.core.ears import (RMS_THRESHOLD, EarLadder, FixtureEarEngine, GroqEarsAdapter, WhisperSmallLocal,
                             build_multipart, frame_rms, run_voice_turn, slice_pcm, vad_spans)
 from tars.core.enroll import ENROLL_PHRASES, ENROLL_ROUNDS, enroll_member, list_members
+from tars.core.telesend import TELE_SESSION_FILE, FixtureTelethon, TelethonUserClient, wa_url
 from tars.core.voiceid import (MATRIX_ROWS, FixtureScorer, ProfileStore, ResemblyzerScorer, VoiceGate, classify,
                                detect_noise, detect_two_voices, hash_passphrase, matrix_line, run_recognized_turn)
 from tars.core.wake import FixtureWakeEngine, PorcupineWakeEngine, wake_turn
@@ -1905,14 +1916,16 @@ def _grammar_checks(base: Path, out) -> None:
                "Never-List battery: every §34 family refuses at every row — no gate, no execution, logged")
 
         # --- declared boundaries ride the ring until their phases land
-        # P-CORE-6 re-aim: Office is no longer a boundary (the studio battery below owns those
-        # utterances); study (P-CORE-12) + TeleSend (P-CORE-7) stay pinned exactly as before.
+        # P-CORE-7 re-aim (sanctioned §7-1, the ONLY boundary change set): TeleSend utterances
+        # leave this battery — real rows now, owned by _telesend_checks. Study (P-CORE-12)
+        # stays pinned exactly as before; whatsapp FILE send is a canon row (LINE_WA_FILES_OFF),
+        # never a boundary.
         gb = cmd_universe("gb", groq_script=[("ok", f"boundary {i}", 3) for i in range(4)])
         for text in ("explain torque with one example", "quiz me on thermodynamics",
-                     "whatsapp bhaiya reaching at 6", "send physics.pdf to bhaiya on telegram"):
+                     "why is the sky blue", "help me understand fractions"):
             gb["dialog"].send(text)
         expect(out, len(gb["gfx"].received) == 4 and not gb["executor"].calls,
-               "study/TeleSend boundaries declared: the ring answers until P-CORE-12/7")
+               "study boundary declared: the ring answers until P-CORE-12 (TeleSend is a real row set now)")
 
         # --- zero real OS effects: every Nt verb refuses off-nt while the seams are patched
         swept = NtExecutor()
@@ -2356,6 +2369,426 @@ def _dailyops_checks(base: Path, out) -> None:
         subprocess.Popen = real_popen
 
 
+def _telesend_checks(base: Path, out) -> None:
+    """P-CORE-7 battery (bible §17 — the gate is the phase): stage -> show -> YES over the
+    standing typed-YES machinery, the people-book, the append-only sent ledger, the wa.me
+    text lane, and the pre-YES ZERO-WIRE law proven by call-recording fixtures + a canary
+    payload (SEND-CANARY-17). Same patched-to-RAISE net/spawn guards — extended by decree."""
+    zone = base / "telesend"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+
+    def tele_universe(name, groq_script=(), linked=True, fail=(), roots=None, cell=None):
+        path = zone / name
+        path.mkdir(parents=True, exist_ok=True)
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", list(groq_script))
+        router = Router(load_ring(full_source), {"groq": groq_fx, "openrouter": FixtureAdapter("openrouter", [])},
+                        vault, bus)
+        executor = FixtureExecutor()
+        tele = FixtureTelethon(linked=linked, fail=fail)
+        time_cell = cell if cell is not None else [1000.0]
+        layer = CommandLayer(settings, vault, executor, SearchLanes(FixtureSearch({})),
+                             FileFinder(roots or []), log, bus,
+                             time_fn=lambda: time_cell[0], router=router,
+                             clockd=Clockd(vault, bus), ops=FixtureOps(None), tele=tele)
+        dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
+        machine.set_audience("cooper")
+        dialog.new_chat()
+        return {"dialog": dialog, "vault": vault, "events": events, "gfx": groq_fx,
+                "executor": executor, "tele": tele, "log": log, "cell": time_cell, "layer": layer}
+
+    def said(univ, chat=1):
+        return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    def msg_rows(univ, chat=1):
+        return [m for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    def actions(univ):
+        return [d for k, d in univ["events"] if k == "action"]
+
+    real_urlopen = urllib.request.urlopen
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def _no_net(*args, **kwargs):
+        raise AssertionError("network lifted inside the sandbox battery")
+
+    def _no_spawn(*args, **kwargs):
+        raise AssertionError("subprocess spawned inside the sandbox battery")
+
+    urllib.request.urlopen = _no_net
+    subprocess.run = _no_spawn
+    subprocess.Popen = _no_spawn
+    try:
+        # --- canon units: the decreed v1.2 literals, byte-exact
+        expect(out, canon.LINE_TELE_NOT_LINKED == "Telegram isn't linked yet. Setup happens on the AiO."
+               and canon.LINE_TELE_FAILED == "That send didn't go through. Nothing left the box."
+               and canon.LINE_WA_FILES_OFF == "WhatsApp file-send stays off. Telegram carries files."
+               and canon.LINE_NO_CONTACTS == "I don't know anyone yet.",
+               "decreed v1.2 literals byte-exact (linked/failed/wa-files/no-contacts)")
+        expect(out, canon.stage_text_line("bhaiya", "Telegram", "happy birthday")
+               == 'Staged for bhaiya on Telegram: "happy birthday". Type YES to send it.',
+               "staged preview literal #1: tele-text (recipient, channel, quoted bytes, gate words)")
+        expect(out, canon.stage_file_line("bhaiya", "C:\\Users\\Cooper\\Desktop\\physics.pdf")
+               == "Staged for bhaiya on Telegram: the file C:\\Users\\Cooper\\Desktop\\physics.pdf. Type YES to send it.",
+               "staged preview literal #2: tele-file shows the FULL path")
+        expect(out, canon.stage_text_line("ma", "WhatsApp", "reaching at six")
+               == 'Staged for ma on WhatsApp: "reaching at six". Type YES to send it.',
+               "staged preview literal #3: wa-text")
+        expect(out, canon.sent_ack("bhaiya", "Telegram") == "Sent to bhaiya on Telegram."
+               and canon.opened_ack("ma") == "Opened WhatsApp for ma. Review and press send there."
+               and canon.no_contact_line("papa") == "I don't know papa yet. Save them first."
+               and canon.send_draft_line("many happy returns") == 'Drafted on the cloud: "many happy returns".',
+               "delivery acks + no-contact + draft line byte-exact")
+        expect(out, canon.contact_saved_ack("bhaiya", "Telegram") == "Saved — bhaiya on Telegram."
+               and canon.contact_updated_ack("bhaiya", "WhatsApp") == "Updated — bhaiya now on WhatsApp too."
+               and canon.contact_forgot_ack("bhaiya") == "Forgotten — bhaiya."
+               and canon.nothing_sent_line("bhaiya") == "Nothing sent to bhaiya yet."
+               and canon.no_channel_line("ma", "Telegram") == "I know ma, but no Telegram is saved. Save it first."
+               and canon.contact_dup_line("bhaiya", "Telegram")
+               == "I already know bhaiya on Telegram. Forget them first to change it.",
+               "people-book speech family byte-exact")
+        expect(out, canon.contacts_line([{"name": "ma", "telegram": "", "whatsapp": "+91 98"},
+                                         {"name": "bhaiya", "telegram": "@arjun", "whatsapp": ""}])
+               == "Who I know:\n1. ma: telegram none, whatsapp +91 98\n2. bhaiya: telegram @arjun, whatsapp none",
+               "contacts list: numbered rows, empty channel honestly 'none'")
+        expect(out, canon.sent_recall_line("bhaiya", [{"channel": "telegram", "kind": "file", "summary": "C:\\f.pdf"},
+                                                      {"channel": "telegram", "kind": "text", "summary": "hi"}])
+               == "What you sent bhaiya:\n1. Telegram file: C:\\f.pdf\n2. Telegram text: hi",
+               "sent recall line: newest-first, channel + kind + exact summary")
+
+        # --- wa.me lane pure units
+        expect(out, wa_url("+91 98290 00000", "hello ma") == "https://wa.me/919829000000?text=hello%20ma",
+               "wa.me lane: digits only, space -> %20")
+        expect(out, wa_url("91", 'say "hi" & go') == "https://wa.me/91?text=say%20%22hi%22%20%26%20go",
+               "wa.me lane: quotes/ampersand encoded with safe='' — the link carries exact bytes")
+
+        # --- the real client seam (reviewable, never fired here): off-nt honestly unlinked
+        import sys as _sys
+        seam_dir = zone / "seam"
+        seam_dir.mkdir()
+        (seam_dir / TELE_SESSION_FILE).write_text("fake-session", encoding="utf-8")
+        seam = TelethonUserClient(seam_dir, {"TELEGRAM_API_ID": "1", "TELEGRAM_API_HASH": "h"})
+        expect(out, os.name != "nt" and not seam.linked()
+               and seam.send_text("@x", "hi") is False and seam.send_document("@x", "f.pdf") is False
+               and "telethon" not in _sys.modules,
+               "TelethonUserClient off-nt: session+creds present, still unlinked, zero wire, lib never imported")
+
+        # --- fixture twin records in order, scripted failures stay honest
+        fx = FixtureTelethon(linked=True, fail={"send_document"})
+        expect(out, fx.linked() is True and fx.send_text("@a", "one") is True
+               and fx.send_document("@a", "p.pdf") is False
+               and fx.calls == [("send_text", "@a", "one"), ("send_document", "@a", "p.pdf")],
+               "FixtureTelethon: ordered call record + scripted failure (dry-run/mock per roadmap)")
+
+        # --- people-book rows end-to-end
+        b1 = tele_universe("b1")
+        b1["dialog"].send("save Bhaiya's telegram as @arjun_verma")
+        b1["dialog"].send("save bhaiya's whatsapp as +91 98290 00000")
+        b1["dialog"].send("save bhaiya's telegram as @changed")
+        expect(out, said(b1) == ["Saved — Bhaiya on Telegram.", "Updated — Bhaiya now on WhatsApp too.",
+                                 "I already know Bhaiya on Telegram. Forget them first to change it."]
+               and b1["vault"].contact_get("bhaiya")["telegram"] == "@arjun_verma",
+               "book: create -> fill second channel -> dup refuses (display case kept, key lowercase)")
+        b1["dialog"].send("save ma's whatsapp as +91 11111 22222")
+        b1["dialog"].send("who do i know")
+        expect(out, said(b1)[-1] == "Who I know:\n1. ma: telegram none, whatsapp +91 11111 22222\n"
+               "2. Bhaiya: telegram @arjun_verma, whatsapp +91 98290 00000",
+               "book list: honest numbered list, newest-first")
+        b1["dialog"].send("forget papa")
+        b1["dialog"].send("forget ma")
+        b1["dialog"].send("who do i know")
+        expect(out, said(b1)[-3:] == ["I don't know papa yet. Save them first.", "Forgotten — ma.",
+                                      "Who I know:\n1. Bhaiya: telegram @arjun_verma, whatsapp +91 98290 00000"]
+               and b1["vault"].contact_get("ma") is None,
+               "forget: true DELETE with display ack; unknown name gets the one honest line")
+
+        # --- §17 flow #1: verbatim tele-text — the full stage -> show -> YES + canary law
+        t1 = tele_universe("t1")
+        t1["dialog"].send("save bhaiya's telegram as @arjun_verma")
+        t1["dialog"].send("send SEND-CANARY-17 to bhaiya on telegram")
+        staged = actions(t1)[-1]
+        expect(out, said(t1)[-1] == 'Staged for bhaiya on Telegram: "SEND-CANARY-17". Type YES to send it.'
+               and staged["kind"] == "telesend"
+               and set(staged) == {"actionId", "kind", "summary", "target"}
+               and all(isinstance(v, str) for v in staged.values())
+               and len(EVENT_TYPES) == 9,
+               "stage: exact-bytes preview; action event kind telesend, flat scalars; bus still at 9 types")
+        expect(out, t1["tele"].calls == [] and t1["gfx"].received == []
+               and not [c for c in t1["executor"].calls if c[0] == "open_url"]
+               and t1["vault"].sent_count() == 0,
+               "pre-YES zero-wire law: no tele call, no ring spend, no open_url, nothing journaled")
+        t1["dialog"].send("yes")
+        expect(out, said(t1)[-1] == "Sent to bhaiya on Telegram."
+               and t1["tele"].calls == [("send_text", "@arjun_verma", "SEND-CANARY-17")]
+               and t1["vault"].sent_count() == 1
+               and t1["gfx"].received == [],
+               "YES once: exactly one send_text carrying the canary verbatim; ledger journals; ring untouched")
+        canary_hits = sum(1 for payload in t1["gfx"].received if "SEND-CANARY-17" in str(payload))
+        expect(out, canary_hits == 0 and str(t1["tele"].calls).count("SEND-CANARY-17") == 1,
+               "SEND-CANARY-17: absent from every ring/adapter payload, present in exactly one wire call")
+        gate_id = staged["actionId"]
+        expect(out, t1["layer"].confirm(gate_id, yes=True)["line"] == canon.LINE_CANCEL
+               and len(t1["tele"].calls) == 1,
+               "single-use: a second YES on the consumed gate cancels, never double-sends")
+
+        # --- cancel + expiry ride the standing gate law byte-identically
+        t2 = tele_universe("t2", cell=[1000.0])
+        t2["dialog"].send("save ma's telegram as @ma_home")
+        t2["dialog"].send("send hello to ma on telegram")
+        t2["dialog"].send("cancel")
+        expect(out, said(t2)[-1] == canon.LINE_CANCEL and t2["tele"].calls == []
+               and t2["vault"].sent_count() == 0,
+               "cancel consumes: LINE_CANCEL, zero wire, zero journal")
+        t2["dialog"].send("send again hello to ma on telegram")
+        t2["cell"][0] += GATE_TTL_S + 1
+        t2["dialog"].send("yes")
+        expect(out, said(t2)[-1] == canon.LINE_CANCEL and t2["tele"].calls == [],
+               "expired gate (120s): the YES answers LINE_CANCEL — a dead gate never fires")
+
+        # --- §17 flow #2: wa.me text lane (the door opens; the thumb sends)
+        t3 = tele_universe("t3")
+        t3["dialog"].send("save ma's whatsapp as +91 98290 00000")
+        t3["dialog"].send("send reaching at six to ma on whatsapp")
+        expect(out, said(t3)[-1] == 'Staged for ma on WhatsApp: "reaching at six". Type YES to send it.'
+               and t3["tele"].calls == []
+               and not [c for c in t3["executor"].calls if c[0] == "open_url"],
+               "wa stage: preview shown, open-url seam cold pre-YES")
+        t3["dialog"].send("yes")
+        expect(out, said(t3)[-1] == "Opened WhatsApp for ma. Review and press send there."
+               and t3["executor"].calls == [("open_url", "https://wa.me/919829000000?text=reaching%20at%20six")]
+               and t3["tele"].calls == [],
+               "wa YES: ONE open_url with the exact wa.me link; Telegram wire never stirred")
+
+        # --- §17 flow #3: the DRAFT row — the ONE lawful ring spend, two-truths hue
+        t4 = tele_universe("t4", groq_script=[("ok", "Happy birthday, ma! Much love.", 12)])
+        t4["dialog"].send("save ma's telegram as @ma_home")
+        t4["dialog"].send("send a birthday wish to ma")  # no channel -> draft, staged on Telegram
+        rows = msg_rows(t4)
+        expect(out, said(t4)[-2:] == ['Drafted on the cloud: "Happy birthday, ma! Much love.".',
+                                      'Staged for ma on Telegram: "Happy birthday, ma! Much love.". Type YES to send it.']
+               and (rows[-2]["hue"], rows[-2]["lane"]) == ("cloud", "smart")
+               and (rows[-1]["hue"], rows[-1]["lane"]) == ("local", None)
+               and len(t4["gfx"].received) == 1 and t4["tele"].calls == [],
+               "draft row: exactly one smart-lane spend; draft amber+lane, the gate preview mint; wire cold")
+        t4["dialog"].send("yes")
+        expect(out, t4["tele"].calls == [("send_text", "@ma_home", "Happy birthday, ma! Much love.")]
+               and said(t4)[-1] == "Sent to ma on Telegram." and len(t4["gfx"].received) == 1,
+               "draft YES: the DRAFTED bytes go out exactly as shown — still one ring spend total")
+        t4b = tele_universe("t4b", groq_script=[("ok", "unused", 3)], linked=False)
+        t4b["dialog"].send("send a birthday wish to stranger")
+        t4b["dialog"].send("save ma's telegram as @ma_home")
+        t4b["dialog"].send("send a birthday wish to ma")
+        expect(out, said(t4b) == [canon.no_contact_line("stranger"), "Saved — ma on Telegram.",
+                                  canon.LINE_TELE_NOT_LINKED]
+               and t4b["gfx"].received == [],
+               "draft honesty pre-ring: unknown name + unlinked lane refuse with ZERO spend")
+
+        # --- §17 flow #4: tele-file with the finder (confident-single stages the full path)
+        froot = zone / "files"
+        froot.mkdir()
+        (froot / "physics-notes.pdf").write_text("x", encoding="utf-8")
+        (froot / "budget-final.xlsx").write_text("x", encoding="utf-8")
+        f1 = tele_universe("f1", roots=[str(froot)])
+        f1["dialog"].send("save bhaiya's telegram as @arjun_verma")
+        f1["dialog"].send("forward physics notes to bhaiya on telegram")
+        expect(out, said(f1)[-1] == canon.stage_file_line("bhaiya", str(froot / "physics-notes.pdf"))
+               and f1["tele"].calls == [] and f1["gfx"].received == [],
+               "file stage: confident-single resolves, FULL path shown, wire cold, ring untouched")
+        f1["dialog"].send("yes")
+        expect(out, said(f1)[-1] == "Sent to bhaiya on Telegram."
+               and f1["tele"].calls == [("send_document", "@arjun_verma", str(froot / "physics-notes.pdf"))]
+               and f1["gfx"].received == [],
+               "file YES: ONE send_document with the exact path; bytes never in a ring payload")
+        f1["dialog"].send("send file xyzzy-nothing to bhaiya on telegram")
+        expect(out, said(f1)[-1] == canon.LINE_FIND_NONE and len(f1["tele"].calls) == 1,
+               "file miss: the honest none-line, no gate, no send")
+
+        # --- wa file row is LINE_WA_FILES_OFF (a row, never a boundary); missing channel honest
+        f2root = zone / "files2"
+        f2root.mkdir()
+        (f2root / "budget.pdf").write_text("x", encoding="utf-8")
+        (f2root / "budget-2026.pdf").write_text("x", encoding="utf-8")
+        f2 = tele_universe("f2", roots=[str(f2root)])
+        f2["dialog"].send("save ma's whatsapp as +91 1")
+        f2["dialog"].send("forward budget to ma on whatsapp")
+        f2["dialog"].send("forward budget to ma on telegram")
+        f2["dialog"].send("forward budget to bhaiya on telegram")
+        expect(out, said(f2)[1:] == [canon.LINE_WA_FILES_OFF,
+                                     canon.no_channel_line("ma", "Telegram"),
+                                     canon.no_contact_line("bhaiya")]
+               and actions(f2) == [] and f2["tele"].calls == [],
+               "wa files OFF row + missing-channel + unknown-name lines: no gate, no wire, no finder guess")
+        f2["dialog"].send("save bhaiya's telegram as @b")
+        f2["dialog"].send("forward budget to bhaiya on telegram")
+        expect(out, said(f2)[-1].startswith("I found a few — which one?\n1. ")
+               and actions(f2) == [] and f2["tele"].calls == [],
+               "multi-match file send: the honest capped list, NEVER a guessed attachment, no gate")
+
+        # --- the §34 door at send rows (same shape as the standing battery)
+        t5 = tele_universe("t5")
+        t5["dialog"].send("save bhaiya's telegram as @arjun_verma")
+        for utterance in ("send this crack tool to bhaiya on telegram",
+                          "forward my debloat script to bhaiya on telegram",
+                          "send hello to kmspico on telegram"):
+            t5["dialog"].send(utterance)
+        expect(out, said(t5)[-3:] == [canon.LINE_NEVER_LIST] * 3
+               and t5["tele"].calls == [] and actions(t5) == []
+               and len([r for r in t5["log"].read_all() if r.get("kind") == "never-list"]) == 3,
+               "Never-List pre-stage: banned bytes or target — no gate, no wire, logged (3 rows)")
+
+        # --- unlinked + failure honesty
+        t6 = tele_universe("t6", linked=False)
+        t6["dialog"].send("save bhaiya's telegram as @arjun_verma")
+        t6["dialog"].send("send hello to bhaiya on telegram")
+        expect(out, said(t6)[-1] == canon.LINE_TELE_NOT_LINKED and actions(t6) == [],
+               "unlinked lane refuses at the ROW — no staging is ever offered without a wire")
+        t7 = tele_universe("t7", fail={"send_text"})
+        t7["dialog"].send("save bhaiya's telegram as @arjun_verma")
+        t7["dialog"].send("send hello to bhaiya on telegram")
+        t7["dialog"].send("yes")
+        expect(out, said(t7)[-1] == canon.LINE_TELE_FAILED and t7["vault"].sent_count() == 0
+               and len(t7["tele"].calls) == 1,
+               "failed send: the canon failure line + an EMPTY ledger — the journal logs what left, not intent")
+
+        # --- sent recall rows (newest-first, capped at 5 per finder-law)
+        for i in range(6):
+            t1["vault"].sent_add("telegram", "bhaiya", "text", f"ledger {i}", 2000.0 + i)
+        t1["dialog"].send("what did i send bhaiya")
+        t1["dialog"].send("what did i send nobody")
+        expect(out, said(t1)[-2] == "What you sent bhaiya:\n" + "\n".join(
+            f"{i + 1}. Telegram text: ledger {5 - i}" for i in range(5))
+               and said(t1)[-1] == "Nothing sent to nobody yet.",
+               "sent recall: newest-first, capped at 5; empty ledger answers the honest line")
+
+        # --- near-miss discipline on the new verbs (ONE question, nothing moves)
+        t8 = tele_universe("t8")
+        for utterance in ("send", "forward", "save", "forget", "bhejo kal milte hain"):
+            t8["dialog"].send(utterance)
+        expect(out, said(t8) == [canon.LINE_NEAR_MISS] * 5 and t8["tele"].calls == []
+               and actions(t8) == [] and t8["gfx"].received == [],
+               "send-near-misses: ONE question each — zero gate, zero wire, zero ring")
+
+        # --- e2e coverage of the remaining declared rows (grammar row-for-row law)
+        e1 = tele_universe("e1")
+        e1["dialog"].send("save papa's telegram as +91 90000 00000")
+        e1["dialog"].send("bhejo kal milte hain to papa on telegram")  # the closed Hinglish alias row
+        expect(out, said(e1)[-1] == canon.stage_text_line("papa", "Telegram", "kal milte hain")
+               and not e1["gfx"].received,
+               "bhejo rides the same closed send parse — verbatim, zero ring")
+        e1["dialog"].send("yes")
+        expect(out, e1["tele"].calls == [("send_text", "+91 90000 00000", "kal milte hain")],
+               "bhejo YES delivers to a phone-number identity just as to an @handle")
+        e1["dialog"].send("send Happy Birthday Beta to papa on telegram")  # case must SURVIVE staging
+        expect(out, said(e1)[-1] == 'Staged for papa on Telegram: "Happy Birthday Beta". Type YES to send it.'
+               and e1["vault"].kv_get(f"gate:{actions(e1)[-1]['actionId']}") is not None
+               and "Happy Birthday Beta" in e1["vault"].kv_get(f"gate:{actions(e1)[-1]['actionId']}"),
+               "payload stages in Cooper's original case (rn law) — quoted bytes are HIS, not lowercased")
+        fshape = tele_universe("fshape", roots=[str(froot)])
+        fshape["dialog"].send("save bhaiya's telegram as @arjun_verma")
+        fshape["dialog"].send("send the file physics notes to bhaiya on telegram")
+        expect(out, said(fshape)[-1] == canon.stage_file_line("bhaiya", str(froot / "physics-notes.pdf")),
+               "'send the file' shape stages identically — one file grammar, three spellings")
+        w1 = tele_universe("w1")
+        w1["dialog"].send("what did i send papa")
+        expect(out, said(w1)[-1] == "Nothing sent to papa yet.",
+               "recall before any send: honest empty line, never an invented history")
+
+        # --- stage-line ORDER law (§17: recipient, then channel, then quoted bytes, then gate words)
+        line = canon.stage_text_line("bhaiya", "Telegram", "hello there")
+        expect(out, line.index("bhaiya") < line.index("Telegram") < line.index('"hello there"')
+               < line.lower().index("type yes"),
+               "staged preview carries its four facts in the decreed order")
+
+        # --- gate boundary manners on send rows
+        e1["dialog"].send("send to papa on telegram")      # empty payload
+        e1["dialog"].send("send hello there")              # no recipient at all
+        e1["dialog"].send("save x's pager as 123")         # undeclared channel word
+        expect(out, said(e1)[-3:] == [canon.LINE_NEAR_MISS] * 3 and len(e1["tele"].calls) == 1,
+               "malformed send/save shapes earn ONE question — never a partial stage")
+        g_pending = e1["vault"].kv_get("gate:pending")
+        expect(out, g_pending == actions(e1)[-1]["actionId"],
+               "the earlier stage is still the ONLY pending gate — near-misses never overwrite it")
+        e1["dialog"].send("yes")
+        expect(out, e1["tele"].calls[-1] == ("send_text", "+91 90000 00000", "Happy Birthday Beta"),
+               "the preserved-case payload ships verbatim on the YES")
+        ring_yes = tele_universe("ringyes", groq_script=[("ok", "ring answer", 3)])
+        ring_yes["dialog"].send("yes")  # no gate parked: 'yes' is NOT a command here — the ring answers
+        expect(out, said(ring_yes)[-1] == "ring answer" and len(ring_yes["gfx"].received) == 1,
+               "'yes' without a pending gate falls through to the ring — never a guessed confirmation")
+
+        # --- vault units: people-book dates + re-open durability (same WAL+FULL posture)
+        v2 = Vault(zone / "b1" / "vault.db")
+        expect(out, v2.contact_get("bhaiya")["added_on"] and v2.contact_get("ma") is None,
+               "contacts persist across re-open with the added_on stamp; forgotten stays forgotten")
+        expect(out, v2.sent_count() == 0, "b1 journaled nothing (no sends happened in it) "
+               "— the ledger's silence is also honest")
+        v2.close()
+
+        # --- module-level wiring + docstring laws
+        dflt = Dialog(Settings.load(zone / "wiringset.json", LogX(zone / "wiringlog.jsonl")),
+                      Vault(zone / "wiring.db"), None,
+                      Machine(Settings.load(zone / "wset2.json", LogX(zone / "wlog2.jsonl")),
+                              LogX(zone / "wlog3.jsonl"), Bus()),
+                      Bus())
+        expect(out, isinstance(dflt._command._tele, TelethonUserClient) and not dflt._command._tele.linked(),
+               "default wiring shelves the REAL client with zero secrets — honestly unlinked off the AiO")
+        expect(out, "send_text" not in str(t5["gfx"].received)
+               and str(t5["tele"].calls) == "[]"
+               and len([r for r in t5["log"].read_all() if r.get("kind") == "never-list"]) == 3,
+               "Never-List send refusals leave the wire and the ring absolutely cold")
+
+        # --- sharp edges worth pinning
+        w2 = tele_universe("w2")
+        w2["dialog"].send("save ma's whatsapp as +91 98")
+        w2["dialog"].send("send a birthday wish to ma on whatsapp")  # channel present -> VERBATIM (closed law)
+        expect(out, said(w2)[-1] == 'Staged for ma on WhatsApp: "a birthday wish". Type YES to send it.'
+               and not w2["gfx"].received,
+               "channel spelled = verbatim, ALWAYS: the ring never rewrites what carries a channel")
+        f3 = tele_universe("f3", roots=[str(froot)], fail={"send_document"})
+        f3["dialog"].send("save bhaiya's telegram as @arjun_verma")
+        f3["dialog"].send("forward physics notes to bhaiya on telegram")
+        f3["dialog"].send("yes")
+        expect(out, said(f3)[-1] == canon.LINE_TELE_FAILED and f3["vault"].sent_count() == 0,
+               "a failed send_document: canon line, empty journal — honesty over intent, file lane too")
+        expect(out, t2["vault"].kv_get("gate:pending") == "",
+               "expired gate clears the pending slot — no ghost id lingers for a later 'yes'")
+        expect(out, t2["layer"].confirm("act-999", yes=True)["line"] == canon.LINE_CANCEL,
+               "unknown action id answers LINE_CANCEL — a YES never guesses what it confirms")
+        stage_rows = [m for m in msg_rows(t1) if m["text"].startswith("Staged for")]
+        expect(out, all(m["hue"] == "local" and m["lane"] is None for m in stage_rows),
+               "every staged preview across the battery wears LOCAL mint — the gate is never amber")
+        v3rows = t1["log"].read_all()
+        expect(out, len([r for r in v3rows if r.get("kind") == "telesend" and r.get("ok") is True]) == 1
+               and len([r for r in v3rows if r.get("kind") == "gate"]) >= 1,
+               "telesend wire deeds are logged (t1's one gate-released success) beside the standing gate trail")
+
+        f4 = tele_universe("f4", roots=[str(froot)], linked=False)
+        f4["dialog"].send("save bhaiya's telegram as @arjun_verma")
+        f4["dialog"].send("forward physics notes to bhaiya on telegram")
+        expect(out, said(f4)[-1] == canon.LINE_TELE_NOT_LINKED and actions(f4) == [],
+               "unlinked file row refuses BEFORE the finder walks a single directory")
+
+        # --- the grammar doc: v1.2 appended, v1.0 + v1.1 byte-untouched (zero-removed-lines pattern)
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
+               and "## v1.1 — DAILY OPS + OFFICE STUDIO" in grammar
+               and "## v1.2 — TELESEND" in grammar and "bhejo" in grammar,
+               "grammar doc: v1.2 appended, prior version sections untouched, closed alias declared")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        subprocess.run = real_run
+        subprocess.Popen = real_popen
+
+
 def _crash_checks(base: Path, out) -> None:
     zone = base / "crash"
     proc = subprocess.Popen([sys.executable, "-m", "tars.core.selftest", "--child", str(zone)],
@@ -2382,6 +2815,11 @@ def _crash_checks(base: Path, out) -> None:
     fired_first = crash_clock.tick(2000.0)  # everything due: 500, 700, 1000 — all long past
     fired_again = crash_clock.tick(2000.0)
     clock_pending = vault.clock_counts()
+    # P-CORE-7 crash facts are gathered before the close (a closed vault speaks no more)
+    crash_tele = vault.contact_get("crash bhaiya")
+    crash_ma = vault.contact_get("crash ma")
+    crash_sent = vault.sent_count()
+    crash_recall = [r["summary"] for r in vault.sent_recall("crash bhaiya")]
     vault.close()
     expect(out, integrity == "ok", "post-SIGKILL re-open: sqlite integrity_check ok")
     expect(out, stored == [f"v{i}" for i in range(5)], "all 5 pre-kill committed kv rows survived")
@@ -2397,6 +2835,10 @@ def _crash_checks(base: Path, out) -> None:
     expect(out, fired_again == [] and clock_pending == {"reminders_pending": 0, "timers_pending": 0}
            and len([k for k, d in crash_events if k == "reminder"]) == 3,
            "crash-fired rows fire exactly once — no duplicates, no losses, 3 reminder events")
+    # P-CORE-7: the outbound book + journal survive the same kill, append-only count intact
+    expect(out, crash_tele["telegram"] == "@crash_arjun" and crash_ma["whatsapp"] == "+91 000"
+           and crash_sent == 2 and crash_recall == ["crash hello"],
+           "people-book + sent ledger survive SIGKILL: 2 journal rows, contacts intact, recall honest")
     lx = LogX(zone / "logs.jsonl")
     torn = False
     try:
@@ -2424,6 +2866,11 @@ def _child_crash_worker(zone: Path) -> None:
     vault.reminder_insert("crash reminder one", 1000.0, "", "reminder")
     vault.reminder_insert("crash reminder two", 500.0, "", "reminder")
     vault.timer_insert("crash tea", 700.0)
+    # P-CORE-7: the people-book + sent ledger must survive it too
+    vault.contact_save("crash bhaiya", "telegram", "@crash_arjun")
+    vault.contact_save("crash ma", "whatsapp", "+91 000")
+    vault.sent_add("telegram", "crash bhaiya", "text", "crash hello", 900.0)
+    vault.sent_add("whatsapp", "crash ma", "text", "crash wa", 950.0)
     print("READY", flush=True)
     burst = 0
     while True:
@@ -2438,7 +2885,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -2453,6 +2900,7 @@ def main() -> int:
     _matrix_checks(base, out)
     _grammar_checks(base, out)
     _dailyops_checks(base, out)
+    _telesend_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0
