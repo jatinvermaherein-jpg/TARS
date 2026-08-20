@@ -291,3 +291,15 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 ## 🔑 M-1 STEP A — ✅ DONE (Cooper, Aug 20, 2026)
 - `C:\TARS\` created on the AiO; `secrets.env` landed per the loader's law (`parse_env_file`: KEY=VALUE lines, first-= split, trimmed, no quotes — slot names `GROQ_KEY_1..6` / `OPENROUTER_KEY_1..2` / `TELEGRAM_API_ID` / `TELEGRAM_API_HASH`). Courier payload: **"keys sitting"** — the secrets themselves never touched chat, repo, or sandbox. Key discipline held end-to-end.
 - Longest-open item CLOSED. M-1 remaining: B Python 3.12 · C git · D AiO deploy key + clone · E data dir + venv · F stage-1 pip (pywebview, psutil) · G no-auto-start audit · H selftest ceremony on the AiO.
+
+## ⚖️ AUDIT P-CORE-8 — ✅ PASS (banked) · Aug 20, 2026 (no-parking law · one-desk)
+- **Selftest re-executed in audit sandbox: 495/495 green, rc=0, TWICE** (fresh TARS_DATA; crash-kill green). Fresh clone HEAD `3745e8e` matches courier; one-desk rule held again.
+- Jurisdiction clean: core/* + grammar v1.3 + agent-log ONLY — APP frozen zero bytes. Line counts match courier to the file (85/158/249/117/877/267/360/3314/180). **Grammar v1.3 append-only diff-proven: ZERO removed lines** over v1.0/v1.1/v1.2 bytes.
+- Byte sweeps: zero astral · zero dead markers · zero hex · compileall clean · zero unused imports under BOTH documented-seam laws (re-export + presence-probe).
+- **§19/§31 law re-proven pixel-exact:** FRAME-CANARY batteries (2815+) — private frame (NetBanking/OTP fixture) REFUSED AT THE CLASSIFIER: zero adapter payloads, dropped pre-buffer; the lane STRENGTHENED my decree from text-hunting to pixel-exact equality over DECODED adapter dumps (stronger law, disclosed in REPORT — accepted). Classifier calls == frame captures in EVERY mode (per-mode pinned).
+- Rolling-capture law: 5-tick no-question spread → ZERO adapter calls, buffer holds newest-wins ×3 (BUFFER_CAP==3, 3≤LOOK_INTERVAL_S≤5 pinned at 2888). Rolling capture ≠ rolling spend — the RAM Charter reads §19 with both eyes open. RAM-only persistence proven (zero image bytes in data dir while watching; SIGKILL mid-watch leaves zero frames).
+- Bounds triad + panic: "enough" when NOT watching is a near-miss honest-line with zero spend (3022-27) · IDLE_S==600 and the line's "ten minutes" truthful-comment pinned (2887) · panic = standing close event, watcher dead in the same instant.
+- Canon literals byte-present incl. `LINE_LOOK_IDLE` with the truthful-number comment; hue pair: amber frame-derived answers vs mint session deeds.
+- 'look' quick_action: re-aim EXACTLY the sanctioned one, disclosed in-code at 704-712 — 'look' SERVED by the standing engine (off-nt → LINE_LOOK_NO_SEAM), the six still-unshipped roster names re-pin the catch-all byte-exact, 'open' bad-payload pin stands.
+- route_vision: ONE declared eyes message shape (text part + base64 image part), reuses the whole ring/ledger/gauge law, lane pinned, classifier-gated before the call exists.
+- **Lane B verdict: PASS. P-CORE-9 (Watcher — gauge, creep, the power-cut drill) forged and shipped in this same breath.**
