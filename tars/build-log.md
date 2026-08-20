@@ -287,3 +287,7 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - One sanctioned re-aim (§7-1): gb boundary now pins study-only; tele/wa rows re-homed to real batteries; protected law re-pinned on the same harness. Disclosed in-code + in REPORT.
 - Contract: channels CLOSED, bus exactly 9, action shape identical to red-verb. Zero new deps, zero network.
 - **Lane B verdict: PASS. P-CORE-8 (LOOK + eyes — the private-frame classifier gate) forged and shipped in this same breath.**
+
+## 🔑 M-1 STEP A — ✅ DONE (Cooper, Aug 20, 2026)
+- `C:\TARS\` created on the AiO; `secrets.env` landed per the loader's law (`parse_env_file`: KEY=VALUE lines, first-= split, trimmed, no quotes — slot names `GROQ_KEY_1..6` / `OPENROUTER_KEY_1..2` / `TELEGRAM_API_ID` / `TELEGRAM_API_HASH`). Courier payload: **"keys sitting"** — the secrets themselves never touched chat, repo, or sandbox. Key discipline held end-to-end.
+- Longest-open item CLOSED. M-1 remaining: B Python 3.12 · C git · D AiO deploy key + clone · E data dir + venv · F stage-1 pip (pywebview, psutil) · G no-auto-start audit · H selftest ceremony on the AiO.
