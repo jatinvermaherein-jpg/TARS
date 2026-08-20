@@ -47,6 +47,18 @@ the success-only sent ledger with capped recall, the pre-YES ZERO-WIRE law
 proven with call-recording fixtures + the SEND-CANARY-17 payload, the §34
 door at every send row, the import-guarded TelethonUserClient never stirring
 off the AiO, and the crash child SIGKILLing the book + journal too.
+P-CORE-8 battery (bible §19 verbatim — eyes that knock before they look): the
+private frame REFUSED AT THE CLASSIFIER (FRAME-CANARY pixel-exact call-proofs
+over decoded adapter payloads; metadata never crosses), classifier calls ==
+frame captures in every mode, the RAM-only newest-wins x3 buffer with a
+live byte-sweep, rolling capture is NOT rolling spend (zero calls across a
+5-tick quiet spread), exact one-eyes-call-per-question with the declared
+[text, image_url] shape and base64 round-trip proof, staleness law (>5s
+recaptures, =5s holds, cadence boundary proven), narration per-frame gated,
+session bounds triad (stop/idle-600s/panic-kill via the standing close event),
+hue two-truths (amber frame answers vs mint deeds), the 'look' quick_action
+toggling the same engine ({} exactly), §34 pre-eyes, and the crash child
+SIGKILLed MID-WATCH leaving zero frames on disk.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -79,6 +91,8 @@ from tars.core.dialog import Dialog, classify_memory
 from tars.core.ears import (RMS_THRESHOLD, EarLadder, FixtureEarEngine, GroqEarsAdapter, WhisperSmallLocal,
                             build_multipart, frame_rms, run_voice_turn, slice_pcm, vad_spans)
 from tars.core.enroll import ENROLL_PHRASES, ENROLL_ROUNDS, enroll_member, list_members
+from tars.core.classifier import HeuristicClassifier, ModelClassifier, is_private_text
+from tars.core.lookd import BUFFER_CAP, IDLE_S, LOOK_INTERVAL_S, NARRATE_PROMPT, Lookd
 from tars.core.telesend import TELE_SESSION_FILE, FixtureTelethon, TelethonUserClient, wa_url
 from tars.core.voiceid import (MATRIX_ROWS, FixtureScorer, ProfileStore, ResemblyzerScorer, VoiceGate, classify,
                                detect_noise, detect_two_voices, hash_passphrase, matrix_line, run_recognized_turn)
@@ -687,7 +701,14 @@ def _persona_checks(base: Path, out) -> None:
            "redo re-routes the ORIGINAL user text, never a paraphrase")
     expect(out, dialog7.quick_action("redo", {"chatId": 1, "messageId": 12345}) == {"ok": False, "line": canon.LINE_CATCH_ALL},
            "redo bad-id refused, never guessed")
-    expect(out, dialog7.quick_action("open", {}) == {"ok": False, "line": canon.LINE_CATCH_ALL},
+    # P-CORE-8 re-aim (sanctioned, the ONE expected): 'look' LEAVES the unshipped catch-all
+    # set — it is real now, toggling the standing Lookd engine (off-nt the chip answers the
+    # honest no-seam line). The catch-all law re-pins byte-exact on the still-unshipped names.
+    expect(out, dialog7.quick_action("look", {}) == {"ok": True, "line": canon.LINE_LOOK_NO_SEAM},
+           "'look' is served by the same engine the grammar rows drive — out of the catch-all set")
+    expect(out, dialog7.quick_action("open", {}) == {"ok": False, "line": canon.LINE_CATCH_ALL}
+           and all(dialog7.quick_action(name, {}) == {"ok": False, "line": canon.LINE_CATCH_ALL}
+                   for name in ("search", "find_file", "document", "telesend", "status", "council")),
            "unshipped quick_action names get the canon catch-all (P-CORE-5 territory)")
 
     # rolling context window
@@ -2789,6 +2810,375 @@ def _telesend_checks(base: Path, out) -> None:
         subprocess.Popen = real_popen
 
 
+def _look_checks(base: Path, out) -> None:
+    """P-CORE-8 battery (bible §19 verbatim — eyes that knock before they look): the private
+    frame is refused AT THE CLASSIFIER (§31), the buffer is RAM-only newest-wins x3, rolling
+    capture is NOT rolling spend, the session bounds triad + Law-5 panic hold, and every
+    frame-derived answer wears amber while session deeds stay mint. FRAME-CANARY call-proofs
+    sweep every adapter payload. Net/spawn seams patched to RAISE throughout — by decree."""
+    import base64 as _b64
+
+    zone = base / "look"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+
+    F_PUBLIC = (png_bytes(2, 2, bytes([10, 200, 10] * 4)), "Notepad", "FRAME-CANARY-17 report draft")
+    F_PRIVATE = (png_bytes(2, 2, bytes([200, 10, 10] * 4)), "NetBanking — FRAME-CANARY-23",
+                 "enter your OTP here FRAME-CANARY-23")
+    F_PUBLIC2 = (png_bytes(2, 2, bytes([10, 10, 200] * 4)), "Editor", "FRAME-CANARY-19 sky notes")
+
+    def look_universe(name, groq_script=(), frames=None, cell=None, ops_scripted=None):
+        path = zone / name
+        path.mkdir(parents=True, exist_ok=True)
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", list(groq_script))
+        router = Router(load_ring(full_source), {"groq": groq_fx, "openrouter": FixtureAdapter("openrouter", [])},
+                        vault, bus)
+        executor = FixtureExecutor()
+        time_cell = cell if cell is not None else [1000.0]
+        ops = FixtureOps(ops_scripted if ops_scripted is not None else {"frames": frames})
+        classifier = HeuristicClassifier()
+        layer_router = router
+        lookd_unit = Lookd(ops, classifier, layer_router, bus, time_fn=lambda: time_cell[0])
+        layer = CommandLayer(settings, vault, executor, SearchLanes(FixtureSearch({})),
+                             FileFinder([]), log, bus, time_fn=lambda: time_cell[0],
+                             router=router, clockd=Clockd(vault, bus), ops=ops, lookd=lookd_unit)
+        dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
+        machine.set_audience("cooper")
+        dialog.new_chat()
+        return {"dialog": dialog, "vault": vault, "machine": machine, "events": events, "gfx": groq_fx,
+                "ops": ops, "classifier": classifier, "lookd": lookd_unit, "cell": time_cell,
+                "path": path, "log": log}
+
+    def said(univ, chat=1):
+        return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    def msg_rows(univ, chat=1):
+        return [m for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    real_urlopen = urllib.request.urlopen
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def _no_net(*args, **kwargs):
+        raise AssertionError("network lifted inside the sandbox battery")
+
+    def _no_spawn(*args, **kwargs):
+        raise AssertionError("subprocess spawned inside the sandbox battery")
+
+    urllib.request.urlopen = _no_net
+    subprocess.run = _no_spawn
+    subprocess.Popen = _no_spawn
+    try:
+        # --- canon units: the decreed v1.3 literals, byte-exact
+        expect(out, canon.LINE_LOOK_ON == "Eyes on your screen. Say enough to end it."
+               and canon.LINE_LOOK_OFF == "Eyes off. The screen is yours again."
+               and canon.LINE_LOOK_IDLE == "Nothing to watch for ten minutes. Eyes off."
+               and canon.LINE_PRIVATE_FRAME == "That frame looks private. Nothing left the machine."
+               and canon.LINE_LOOK_NO_SEAM == "Captures aren't available here. I won't pretend to see.",
+               "decreed v1.3 literals byte-exact (on/off/idle/private/no-seam)")
+        expect(out, IDLE_S == 600 and "ten minutes" in canon.LINE_LOOK_IDLE
+               and 3 <= LOOK_INTERVAL_S <= 5 and BUFFER_CAP == 3,
+               "the idle line's number is truthful (600s) and rolling cadence sits inside the 3-5s band")
+
+        # --- classifier law units
+        expect(out, is_private_text("Enter your OTP to continue") and is_private_text("HDFC Bank statement")
+               and is_private_text("aadhaar card scan") and is_private_text("Incognito window")
+               and not is_private_text("embankment repair notes") and not is_private_text("Notepad — errand list"),
+               "heuristic gate: the closed marker list fires; boundary false-friends never do")
+        gate = HeuristicClassifier()
+        frame_pub = {"png": b"p", "title": "Notepad", "text": "groceries"}
+        frame_prv = {"png": b"x", "title": "Internet Banking login", "text": ""}
+        expect(out, gate.classify(frame_pub) == "public" and gate.classify(frame_prv) == "private"
+               and gate.calls == 2,
+               "classify() returns the declared pair; the call counter proves one call per frame")
+        model = ModelClassifier()
+        expect(out, model.backend == "heuristic" and os.name != "nt"
+               and model.classify(frame_prv) == "private",
+               "ModelClassifier off-nt: honestly delegates to the heuristic gate, backend says so")
+
+        # --- the fixture seam + the real seam's off-nt refusal
+        fops = FixtureOps()
+        fr = fops.capture_frame()
+        expect(out, fr[1] == "Notepad" and fr[2] == "fixture page text" and fr[0].startswith(b"\x89PNG")
+               and fops.calls == [("capture_frame",)],
+               "FixtureOps.capture_frame: declared default public frame, real PNG bytes, call recorded")
+        expect(out, NtOps().capture_frame() is False and os.name != "nt",
+               "NtOps.capture_frame off-nt: honest False — the sandbox never pretends to see")
+
+        # --- route_vision: the ONE declared eyes message shape, ring law shared
+        v1 = look_universe("v1", groq_script=[("ok", "a notepad with a report draft", 40)], frames=[F_PUBLIC])
+        vision = v1["gfx"]
+        v1["dialog"].send("watch my screen")
+        expect(out, said(v1)[-1] == canon.LINE_LOOK_ON and vision.received == [],
+               "watch-start: mint ON line, ZERO ring — starting a session never spends")
+        v1["dialog"].send("what am i looking at")
+        eye_msg = v1["gfx"].received[-1][-1]
+        expect(out, said(v1)[-1] == "a notepad with a report draft"
+               and eye_msg["role"] == "user"
+               and [part["type"] for part in eye_msg["content"]] == ["text", "image_url"]
+               and eye_msg["content"][0]["text"] == "what am i looking at"
+               and eye_msg["content"][1]["image_url"]["url"].startswith("data:image/png;base64,"),
+               "eyes call: exactly the declared [text, image_url] user message shape")
+        eye_rows = [m for m in msg_rows(v1) if m["text"] == "a notepad with a report draft"]
+        expect(out, eye_rows and (eye_rows[0]["hue"], eye_rows[0]["lane"]) == ("cloud", "eyes")
+               and [m["text"] for m in msg_rows(v1)] == [canon.LINE_LOOK_ON, "a notepad with a report draft"]
+               and (msg_rows(v1)[0]["hue"], msg_rows(v1)[0]["lane"]) == ("local", None),
+               "hue two-truths: ON deed mint/local, frame-derived answer AMBER + eyes lane (§19/§31)")
+        b64_seen = eye_msg["content"][1]["image_url"]["url"].split(",", 1)[1]
+        expect(out, _b64.b64decode(b64_seen) == F_PUBLIC[0],
+               "the adapter received the EXACT frame bytes (base64 round-trip) — nothing else")
+
+        # --- zero-spend spread: rolling capture is NOT rolling spend; the buffer caps at 3
+        v2 = look_universe("v2", frames=[F_PUBLIC, F_PUBLIC2])
+        v2["dialog"].send("watch my screen")
+        for step in range(1, 6):
+            v2["cell"][0] = 1000.0 + step * LOOK_INTERVAL_S
+            v2["dialog"].tick_clock(v2["cell"][0])
+        expect(out, v2["gfx"].received == [] and v2["lookd"].frame_count == BUFFER_CAP,
+               "5 rolling ticks, NO question: zero adapter calls; the RAM buffer holds newest-wins x3")
+        cap_calls = len([c for c in v2["ops"].calls if c[0] == "capture_frame"])
+        expect(out, v2["classifier"].calls == cap_calls == 6,
+               "LAW: classifier calls == frame captures in every mode (6/6 here — every frame knocks)")
+        sweep_hits = [str(p) for p in v2["path"].rglob("*") if p.is_file()
+                      and F_PUBLIC[0] in p.read_bytes()]
+        expect(out, sweep_hits == [] and v2["vault"].kv_scan("look") == [],
+               "byte-sweep while watching: zero frame bytes on disk, zero look rows in the vault")
+
+        # --- THE gate: private frame refused AT THE CLASSIFIER (FRAME-CANARY call-proof)
+        v3 = look_universe("v3", groq_script=[("ok", "a report draft, plain text", 30)],
+                           frames=[F_PRIVATE, F_PRIVATE, F_PUBLIC])
+        v3["dialog"].send("watch my screen")          # captures F_PRIVATE: refused, dropped, zero calls
+        v3["cell"][0] += LOOK_INTERVAL_S
+        v3["dialog"].tick_clock(v3["cell"][0])         # second private frame: same refusal
+        v3["cell"][0] += LOOK_INTERVAL_S
+        v3["dialog"].tick_clock(v3["cell"][0])         # public frame lands in the buffer
+        expect(out, v3["gfx"].received == [] and v3["lookd"].frame_count == 1
+               and len([c for c in v3["ops"].calls if c[0] == "capture_frame"]) == 3
+               and v3["classifier"].calls == 3,
+               "two private frames: refused at the classifier — never buffered, zero calls; the public one is held")
+        v3["dialog"].send("what am i looking at")
+        wire_imgs = [_b64.b64decode(part["image_url"]["url"].split(",", 1)[1])
+                     for msg in v3["gfx"].received for part in msg[-1]["content"] if part["type"] == "image_url"]
+        wire_texts = [part["text"] for msg in v3["gfx"].received for part in msg[-1]["content"]
+                      if part["type"] == "text"]
+        expect(out, wire_imgs == [F_PUBLIC[0]]
+               and all("FRAME-CANARY" not in text for text in wire_texts),
+               "FRAME-CANARY: the public frame's EXACT pixels rode the ONE eyes call; the private frame's "
+               "bytes never left — and frame metadata never crosses at all (no canary in any text part)")
+
+        # --- the private-answer path through a question (stale buffer -> capture -> refuse)
+        v4 = look_universe("v4", frames=[F_PRIVATE])
+        v4["dialog"].send("watch my screen")
+        v4["dialog"].send("what's on my screen")
+        expect(out, said(v4)[-1] == canon.LINE_PRIVATE_FRAME and v4["gfx"].received == []
+               and v4["lookd"].frame_count == 0,
+               "private question path: LINE_PRIVATE_FRAME, zero eyes calls, nothing in the buffer")
+
+        # --- stale-law: a question older than 5s captures FIRST, then answers about the latest
+        v5 = look_universe("v5", groq_script=[("ok", "latest frame answer", 20)],
+                           frames=[F_PUBLIC, F_PUBLIC2])
+        v5["dialog"].send("watch my screen")           # buffers F_PUBLIC at t=1000
+        v5["cell"][0] += 30                            # long silence: buffer stale
+        v5["dialog"].send("what am i looking at")      # captures F_PUBLIC2 first, THEN calls eyes
+        v5_imgs = [_b64.b64decode(part["image_url"]["url"].split(",", 1)[1])
+                   for msg in v5["gfx"].received for part in msg[-1]["content"] if part["type"] == "image_url"]
+        expect(out, len([c for c in v5["ops"].calls if c[0] == "capture_frame"]) == 2
+               and v5_imgs == [F_PUBLIC2[0]],
+               "staleness law: the question recaptured and answered about the LATEST frame only")
+
+        # --- narration: one classifier-gated eyes call per frame, amber; off unless asked
+        v6 = look_universe("v6", groq_script=[("ok", "narration one", 10), ("ok", "narration two", 10)],
+                           frames=[F_PUBLIC, F_PUBLIC2, F_PUBLIC])
+        v6["dialog"].send("watch my screen")
+        v6["dialog"].send("narrate my screen")
+        expect(out, said(v6)[-1] == canon.LINE_NARRATE_ON and v6["gfx"].received == [],
+               "narrate-on acks mint and still spends nothing — narration is per-frame, at the tick")
+        v6["cell"][0] += LOOK_INTERVAL_S
+        lines = v6["dialog"].tick_clock(v6["cell"][0])
+        v6["cell"][0] += LOOK_INTERVAL_S
+        lines += v6["dialog"].tick_clock(v6["cell"][0])
+        expect(out, lines == ["narration one", "narration two"] and len(v6["gfx"].received) == 2
+               and all(NARRATE_PROMPT == m[-1]["content"][0]["text"] for m in v6["gfx"].received),
+               "narration: exactly one eyes call per frame tick, the declared prompt, amber lines returned")
+        narr_rows = [m for m in msg_rows(v6) if m["text"].startswith("narration")]
+        expect(out, all(m["hue"] == "cloud" and m["lane"] == "eyes" for m in narr_rows),
+               "narrated lines persist AMBER + eyes — the two-truths hue pair vs the mint ON/OFF deeds")
+        v6["dialog"].send("stop narrating")
+        v6["cell"][0] += LOOK_INTERVAL_S
+        v6["dialog"].tick_clock(v6["cell"][0])
+        expect(out, said(v6)[-1] == canon.LINE_NARRATE_OFF and len(v6["gfx"].received) == 2,
+               "stop narrating: mint off-line; the very next tick spends nothing again")
+
+        # --- session bounds: stop rows / idle auto-off / honest not-watching lines
+        v7 = look_universe("v7", frames=[F_PUBLIC])
+        v7["dialog"].send("enough")
+        v7["dialog"].send("what am i looking at")
+        v7["dialog"].send("narrate my screen")
+        expect(out, said(v7) == [canon.LINE_NEAR_MISS, canon.LINE_LOOK_NOT_WATCHING, canon.LINE_LOOK_NOT_WATCHING]
+               and v7["gfx"].received == [],
+               "not watching: 'enough' is a near-miss; questions/narration answer the honest line, zero spend")
+        v7["dialog"].send("watch my screen")
+        v7["dialog"].send("stop looking")
+        expect(out, said(v7)[-1] == canon.LINE_LOOK_OFF and not v7["lookd"].watching
+               and v7["lookd"].frame_count == 0 and v7["gfx"].received == [],
+               "stop row: mint OFF line, watcher dead, buffer dropped, zero ring across all of it")
+        v8 = look_universe("v8", frames=[F_PUBLIC])
+        v8["dialog"].send("screen dekh")                 # Hinglish start row (Hinglish question: v8b below)
+        expect(out, said(v8)[0] == canon.LINE_LOOK_ON and v8["lookd"].watching,
+               "screen dekh starts the same engine (closed Hinglish alias)")
+        v8b = look_universe("v8b", groq_script=[("ok", "hinglish eye answer", 12)], frames=[F_PUBLIC])
+        v8b["dialog"].send("screen dekh")
+        v8b["dialog"].send("dekh kya hai")
+        expect(out, said(v8b)[-1] == "hinglish eye answer" and len(v8b["gfx"].received) == 1,
+               "dekh kya hai rides the identical question path (one eyes call)")
+        v8b["dialog"].send("screen dekhna band")
+        expect(out, said(v8b)[-1] == canon.LINE_LOOK_OFF,
+               "screen dekhna band ends it (closed Hinglish stop alias)")
+
+        # --- idle 600s auto-off: mint line, persisted, speak-queued; 599s holds
+        v9 = look_universe("v9", frames=[F_PUBLIC])
+        v9["dialog"].send("watch my screen")
+        v9["cell"][0] += IDLE_S - 1
+        v9["dialog"].tick_clock(v9["cell"][0])
+        alive = v9["lookd"].watching
+        v9["cell"][0] += 1
+        idle_lines = v9["dialog"].tick_clock(v9["cell"][0])
+        expect(out, alive and idle_lines == [canon.LINE_LOOK_IDLE] and not v9["lookd"].watching
+               and said(v9)[-1] == canon.LINE_LOOK_IDLE
+               and [m for m in msg_rows(v9) if m["text"] == canon.LINE_LOOK_IDLE][0]["hue"] == "local",
+               "idle boundary: 599s holds, 600s auto-offs with the mint line, persisted local")
+        expect(out, v9["vault"].kv_scan("speak_request:", only_value="queued"),
+               "the idle-off line queues for the mouth via the standing A1 speak intake")
+
+        # --- Law 5 panic: the kill-switch from ANY state, mid-watch, instantly
+        v10 = look_universe("v10", frames=[F_PUBLIC])
+        v10["dialog"].send("watch my screen")
+        v10["cell"][0] += LOOK_INTERVAL_S
+        v10["dialog"].tick_clock(v10["cell"][0])
+        killed_ok = v10["machine"].kill()
+        expect(out, killed_ok and not v10["lookd"].watching and v10["lookd"].frame_count == 0,
+               "panic mid-watch: kill() -> watcher dead + buffer dropped in the same instant (close event)")
+        v11 = look_universe("v11", frames=[F_PUBLIC])
+        v11["dialog"].send("watch my screen")
+        v11["dialog"].send("stand down")  # stand-down also emits close — the watcher folds with it
+        expect(out, said(v11)[-1] == canon.LINE_EXIT and not v11["lookd"].watching,
+               "stand down mid-watch closes the session too (§19: session-bound)")
+
+        # --- the no-seam honesty row + the Never-List pre-eyes door
+        v12 = look_universe("v12", ops_scripted={"capture_frame": False})
+        v12["dialog"].send("watch my screen")
+        expect(out, said(v12)[-1] == canon.LINE_LOOK_NO_SEAM and not v12["lookd"].watching,
+               "no seam: the honest line, no session — TARS never pretends to see")
+        v13 = look_universe("v13", frames=[F_PUBLIC])
+        v13["dialog"].send("watch my screen")
+        v13["dialog"].send("look at this and tell me how to crack office activation")
+        expect(out, said(v13)[-1] == canon.LINE_NEVER_LIST and v13["gfx"].received == []
+               and len([r for r in v13["log"].read_all() if r.get("kind") == "never-list"]) == 1,
+               "§34 scans look-questions PRE-EYES: refusal, zero eyes call, logged")
+
+        # --- the contract chip rides the SAME engine (toggle through quick_action)
+        v14 = look_universe("v14", frames=[F_PUBLIC])
+        on = v14["dialog"].quick_action("look", {})
+        off = v14["dialog"].quick_action("look", {})
+        expect(out, on == {"ok": True, "line": canon.LINE_LOOK_ON}
+               and off == {"ok": True, "line": canon.LINE_LOOK_OFF}
+               and said(v14)[-2:] == [canon.LINE_LOOK_ON, canon.LINE_LOOK_OFF],
+               "quick_action 'look': toggle on/off through the same engine, lines persisted via the envelope")
+
+        # --- hardened edges: the closed tables are EXACT, and the seams stay honest
+        expect(out, canon.LINE_LOOK_NOT_WATCHING == "I'm not watching anything. Say watch my screen first."
+               and canon.LINE_NARRATE_ON == "Narrating your screen. Say stop narrating to end it."
+               and canon.LINE_NARRATE_OFF == "Narration off.",
+               "the extended v1.3 lines pin byte-exact (not-watching + narration deeds)")
+        v14b = look_universe("v14b", frames=[F_PUBLIC])
+        expect(out, v14b["dialog"].quick_action("look", {"fast": True})
+               == {"ok": False, "line": canon.LINE_CATCH_ALL},
+               "the look chip takes {} exactly — a decorated payload is refused, never guessed")
+        stale_edge = look_universe("stale-edge", groq_script=[("ok", "edge answer", 9)], frames=[F_PUBLIC])
+        stale_edge["dialog"].send("watch my screen")
+        stale_edge["cell"][0] += 5                      # exactly 5s old: still FRESH (the law says > 5 recaptures)
+        stale_edge["dialog"].send("look at this")       # bare prefix row: question = the utterance itself
+        expect(out, said(stale_edge)[-1] == "edge answer"
+               and len([c for c in stale_edge["ops"].calls if c[0] == "capture_frame"]) == 2,
+               "staleness boundary: the heartbeat's rolling capture fired at 4s; the 5s-fresh question "
+               "recaptures NOTHING (> 5 is the law, = 5 holds) and the bare 'look at this' row answers")
+        v16 = look_universe("v16", groq_script=[("ok", "n", 4)], frames=[F_PUBLIC])
+        v16["dialog"].send("watch my screen")
+        v16["dialog"].send("narrate my screen")
+        v16["dialog"].send("enough")                    # stop while narrating: the whole session folds
+        expect(out, said(v16)[-1] == canon.LINE_LOOK_OFF and not v16["lookd"].watching
+               and not v16["lookd"].narrating and v16["lookd"].frame_count == 0,
+               "'enough' mid-narration stops EVERYTHING — watcher, narration, buffer")
+
+        import sys as _sys2
+        from tars.core.classifier import PRIVATE_MARKERS
+        expect(out, len(PRIVATE_MARKERS) == 23 and "otp" in PRIVATE_MARKERS and "aadhaar" in PRIVATE_MARKERS
+               and "incognito" in PRIVATE_MARKERS and "banking" not in PRIVATE_MARKERS,
+               "the private-marker list is the declared closed set — reviewed by eye, matched by boundary")
+        expect(out, "onnxruntime" not in _sys2.modules,
+               "the model seam's presence-probe never fires in the sandbox (import-guard untouched)")
+        expect(out, set(CommandLayer.LOOK_QUESTIONS) == {"what am i looking at", "what's on my screen",
+                                                         "what is on my screen", "dekh kya hai"}
+               and set(CommandLayer.LOOK_START) == {"watch my screen", "screen dekh"}
+               and set(CommandLayer.LOOK_STOP) == {"enough", "stop looking", "screen dekhna band"},
+               "the v1.3 look grammar tables are exactly the declared closed sets")
+        cad = look_universe("cad", frames=[F_PUBLIC])
+        cad["dialog"].send("watch my screen")
+        cad["cell"][0] += LOOK_INTERVAL_S - 1          # 3s: inside the cadence window, hold
+        cad["dialog"].tick_clock(cad["cell"][0])
+        cad["cell"][0] += 1                            # 4s: capture now
+        cad["dialog"].tick_clock(cad["cell"][0])
+        expect(out, len([c for c in cad["ops"].calls if c[0] == "capture_frame"]) == 2,
+               "cadence truth: a 3s tick holds, a 4s tick captures — the interval number is real")
+        npriv = look_universe("npriv", groq_script=[("ok", "unused narration", 5)],
+                              frames=[F_PUBLIC, F_PRIVATE])
+        npriv["dialog"].send("watch my screen")
+        npriv["dialog"].send("narrate my screen")
+        npriv["cell"][0] += LOOK_INTERVAL_S
+        narr_out = npriv["dialog"].tick_clock(npriv["cell"][0])  # the tick's frame is PRIVATE
+        expect(out, narr_out == [] and npriv["gfx"].received == [],
+               "narration on a private tick: zero eyes call, zero lines — the gate screens narration too")
+        v13b = look_universe("v13b", frames=[F_PUBLIC])
+        v13b["dialog"].send("look at this and tell me about kmspico")  # NOT watching: §34 still first
+        expect(out, said(v13b)[-1] == canon.LINE_NEVER_LIST
+               and len([c for c in v13b["ops"].calls if c[0] == "capture_frame"]) == 0,
+               "§34 outranks even the not-watching line — refused with zero captures, zero calls")
+        v15 = look_universe("v15", groq_script=[("ok", "plain memo", 8)], frames=[F_PUBLIC, F_PRIVATE])
+        v15["dialog"].send("watch my screen")
+        v15["ops"]._scripted["capture_frame"] = False  # the seam DIES mid-session
+        v15["cell"][0] += 30
+        v15["dialog"].send("what am i looking at")
+        expect(out, said(v15)[-1] == canon.LINE_LOOK_NO_SEAM and v15["gfx"].received == [],
+               "seam dies mid-session: the stale question answers the no-seam line, never a stale guess")
+        v1_ledger = [r for r in v1["vault"].ledger_tail(10) if r["lane"] == "eyes"]
+        expect(out, len(v1_ledger) == 1 and v1_ledger[0]["tokens"] == 40
+               and [d for k, d in v1["events"] if k == "gauge" and d["lane"] == "eyes"],
+               "the eyes call ledgers as lane 'eyes' with its gauge event — ring law fully shared")
+        priv_rows = [m for m in msg_rows(v4) if m["text"] == canon.LINE_PRIVATE_FRAME]
+        expect(out, priv_rows and (priv_rows[0]["hue"], priv_rows[0]["lane"]) == ("local", None),
+               "the private-refusal line is LOCAL mint — nothing cloud about a frame that never left")
+
+        # --- the grammar doc: v1.3 appended, every earlier section byte-stands
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
+               and "## v1.1 — DAILY OPS + OFFICE STUDIO" in grammar
+               and "## v1.2 — TELESEND" in grammar
+               and "## v1.3 — LOOK + EYES" in grammar and "dekh kya hai" in grammar,
+               "grammar doc: v1.3 appended, v1.0/v1.1/v1.2 untouched, closed aliases declared")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        subprocess.run = real_run
+        subprocess.Popen = real_popen
+
+
 def _crash_checks(base: Path, out) -> None:
     zone = base / "crash"
     proc = subprocess.Popen([sys.executable, "-m", "tars.core.selftest", "--child", str(zone)],
@@ -2820,7 +3210,13 @@ def _crash_checks(base: Path, out) -> None:
     crash_ma = vault.contact_get("crash ma")
     crash_sent = vault.sent_count()
     crash_recall = [r["summary"] for r in vault.sent_recall("crash bhaiya")]
+    crash_look_kv = vault.kv_scan("look")
     vault.close()
+    # P-CORE-8: a mid-watch SIGKILL leaves ZERO frame bytes anywhere in the data dir
+    crash_zone_files = [p for p in Path(zone).rglob("*") if p.is_file()]
+    frame_leaks = [str(p) for p in crash_zone_files
+                   if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".bmp")
+                   or b"not a persisted frame" in p.read_bytes()]
     expect(out, integrity == "ok", "post-SIGKILL re-open: sqlite integrity_check ok")
     expect(out, stored == [f"v{i}" for i in range(5)], "all 5 pre-kill committed kv rows survived")
     expect(out, memories >= 5 and total >= 50, f"committed prefix intact (memory rows={memories}, ledger tokens={total})")
@@ -2839,6 +3235,8 @@ def _crash_checks(base: Path, out) -> None:
     expect(out, crash_tele["telegram"] == "@crash_arjun" and crash_ma["whatsapp"] == "+91 000"
            and crash_sent == 2 and crash_recall == ["crash hello"],
            "people-book + sent ledger survive SIGKILL: 2 journal rows, contacts intact, recall honest")
+    expect(out, frame_leaks == [] and crash_look_kv == [],
+           "SIGKILL mid-watch: zero frames on disk, zero look rows in the vault, integrity already ok")
     lx = LogX(zone / "logs.jsonl")
     torn = False
     try:
@@ -2871,6 +3269,11 @@ def _child_crash_worker(zone: Path) -> None:
     vault.contact_save("crash ma", "whatsapp", "+91 000")
     vault.sent_add("telegram", "crash bhaiya", "text", "crash hello", 900.0)
     vault.sent_add("whatsapp", "crash ma", "text", "crash wa", 950.0)
+    # P-CORE-8: SIGKILL mid-watch — one public frame buffered in RAM, captures land nowhere
+    crash_ops = FixtureOps({"frames": [("not a persisted frame whatsoever", "Notepad", "crash text")]})
+    crash_look = Lookd(crash_ops, HeuristicClassifier(), None, Bus(), time_fn=lambda: 1000.0)
+    crash_look.start()
+    crash_look.tick(1004.0)
     print("READY", flush=True)
     burst = 0
     while True:
@@ -2885,7 +3288,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -2901,6 +3304,7 @@ def main() -> int:
     _grammar_checks(base, out)
     _dailyops_checks(base, out)
     _telesend_checks(base, out)
+    _look_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

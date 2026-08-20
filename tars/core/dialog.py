@@ -8,7 +8,8 @@ operator rows) answers locally in milliseconds with zero ring spend; only a
 non-match falls to the brain ring with the persona prompt (LIVE dials, never
 cached) plus a rolling <=10-message window. Every reply chunk/done pair ends
 with the A2 done-shape: {chatId, messageId, hue, lane}. quick_action pays the
-A1 debt (read_aloud/redo), A3 (enroll_voice), and the ranked search pick; the
+A1 debt (read_aloud/redo), A3 (enroll_voice), the ranked search pick, and the
+P-CORE-8 'look' toggle ({} exactly, same engine as the grammar rows); the
 RED-verb typed-YES seam is confirm(actionId, yes) per contract §3.
 
 Design declarations (also pinned in code comments where they live):
@@ -95,23 +96,35 @@ class Dialog:
         return {"chatId": self._chat_id}
 
     def tick_clock(self, now_epoch=None) -> list:
-        """Clock heartbeat (grammar v1.1): every due reminder/timer fires once as a persisted
-        LOCAL assistant line (firing is a local deed) and queues for the mouth via the A1
-        speak intake. The state machine dances only when the fire lands mid-turn."""
+        """Clock heartbeat (grammar v1.1 + v1.3): every due reminder/timer fires once as a
+        persisted LOCAL assistant line and queues for the mouth via the A1 speak intake;
+        the same tick drives the LOOK session — idle-off (mint) and narration (amber)
+        lines persist with their own hues. The state machine dances only mid-turn."""
         fired = self._clockd.tick(now_epoch)
-        if not fired:
-            return []
-        if self._chat_id is None:
-            self.new_chat()  # a fired line must persist into a real chat, never a null row
-        mid_turn = self._machine.state == "thinking"
-        if mid_turn:
-            self._machine.reply()
-        for detail in fired:
-            mid = self._emit_message(detail["line"], "local", None)
-            self._vault.kv_set(f"speak_request:{mid}", "queued")  # the mouth drains when a tier is live
-        if mid_turn:
-            self._machine.spoken()
-        return [detail["line"] for detail in fired]
+        lines = []
+        if fired:
+            if self._chat_id is None:
+                self.new_chat()  # a fired line must persist into a real chat, never a null row
+            mid_turn = self._machine.state == "thinking"
+            if mid_turn:
+                self._machine.reply()
+            for detail in fired:
+                mid = self._emit_message(detail["line"], "local", None)
+                self._vault.kv_set(f"speak_request:{mid}", "queued")  # the mouth drains when a tier is live
+            if mid_turn:
+                self._machine.spoken()
+            lines = [detail["line"] for detail in fired]
+        # LOOK heartbeat (grammar v1.3): the same tick drives idle-off (mint) and narration
+        # (amber) lines — each persisted with its own hue, each queued for the mouth.
+        lookd = self._command.lookd_unit
+        if lookd is not None:
+            for text, hue, lane in lookd.tick(now_epoch):
+                if self._chat_id is None:
+                    self.new_chat()
+                mid = self._emit_message(text, hue, lane)
+                self._vault.kv_set(f"speak_request:{mid}", "queued")
+                lines.append(text)
+        return lines
 
     def _dispatch(self, text: str) -> None:
         self._machine.reply()
@@ -164,6 +177,15 @@ class Dialog:
             return enroll.open_wizard()
         if name == "open":
             return self._open_rank(payload)  # the ranked search pick ("open the second") — P-CORE-5
+        if name == "look":  # P-CORE-8: contract-rostered chip — toggles the SAME engine the grammar rows drive
+            if payload:  # the chip takes {} exactly (the enroll_voice law) — anything else never guesses
+                return {"ok": False, "line": canon.LINE_CATCH_ALL}
+            unit = self._command.lookd_unit
+            line = unit.stop() if (unit and unit.watching) else (unit.start() if unit else canon.LINE_LOOK_NO_SEAM)
+            if self._chat_id is None:
+                self.new_chat()
+            self._emit_message(line, "local", None)
+            return {"ok": True, "line": line}
         return {"ok": False, "line": canon.LINE_CATCH_ALL}
 
     def _emit_message(self, text: str, hue, lane) -> int:

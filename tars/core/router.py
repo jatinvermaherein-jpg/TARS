@@ -62,6 +62,15 @@ class Router:
             return self._council(text, system_prompt, history)
         return self._single(text, mode, system_prompt, history)
 
+    def route_vision(self, question: str, image_b64: str) -> dict:
+        """The eyes lane (bible §19, P-CORE-8): ONE declared message shape — a single user
+        message whose content is [text part, base64 data-URL image part]. It reuses
+        _single's whole ring/ledger/gauge law with the lane pinned; the classifier has
+        already gated the frame before this is ever called (lookd enforces it)."""
+        content = [{"type": "text", "text": question},
+                   {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}}]
+        return self._single(content, "eyes")
+
     def _single(self, text: str, lane: str, system_prompt: str = None, history: list = None) -> dict:
         provider = "openrouter" if lane in ("ultra", "council") else "groq"
         adapter = self._adapters[provider]

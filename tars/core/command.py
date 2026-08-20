@@ -21,6 +21,8 @@ import time
 from datetime import datetime
 
 from tars.core import canon, clockd, office, telesend
+from tars.core.classifier import ModelClassifier
+from tars.core.lookd import Lookd
 from tars.core.operator import APP_ALIASES
 
 # --- moved here from dialog.py (P-CORE-2 handlers consolidated; behavior byte-identical)
@@ -54,6 +56,7 @@ NEAR_MISS_MARKERS = {
     "shutdown", "restart", "sleep", "search", "find", "dhundo", "kholo", "awaaz", "band",
     "remind", "alarm", "timer", "copy", "clipboard", "make", "write",  # grammar v1.1 families
     "send", "bhejo", "forward", "save", "forget",  # grammar v1.2 TeleSend family
+    "watch", "look", "narrate", "screen", "dekh",  # grammar v1.3 LOOK family
 }
 
 RANK_WORDS = {"one": 1, "1": 1, "first": 1, "two": 2, "2": 2, "second": 2,
@@ -125,7 +128,8 @@ class CommandLayer:
     streams it. The layer owns no rendering — only intents, gates, and canon replies."""
 
     def __init__(self, settings, vault, executor, search_lanes, finder, log, bus, clock=None,
-                 time_fn=None, router=None, clockd=None, ops=None, desktop=None, tele=None):
+                 time_fn=None, router=None, clockd=None, ops=None, desktop=None, tele=None,
+                 lookd=None):
         self._settings = settings
         self._vault = vault
         self._executor = executor
@@ -140,11 +144,21 @@ class CommandLayer:
         self._ops = ops
         self._desktop = desktop or office.desktop_dir()
         self._tele = tele  # P-CORE-7: the outbound client (real on the AiO, fixture in tests)
+        # P-CORE-8 LOOK: the session engine rides the standing ops seam + classifier gate.
+        # Default build = the bible's model seam, which honestly delegates to the heuristic
+        # gate everywhere the <100MB weights haven't landed (import-guarded, zero wire).
+        self._lookd = lookd if lookd is not None else (
+            Lookd(ops, ModelClassifier(), router, bus, time_fn=self._time) if ops is not None else None)
 
     @property
     def clockd_unit(self):
         """The clock the dialog heartbeats (owned here so both share one vault+bus binding)."""
         return self._clockd
+
+    @property
+    def lookd_unit(self):
+        """The look session the dialog heartbeats + the 'look' quick_action toggles."""
+        return self._lookd
 
     # ---------- gates (RED verbs) ----------
 
@@ -333,6 +347,11 @@ class CommandLayer:
         teleplan = self._tele_rows(rn, t)
         if teleplan is not None:
             return teleplan
+
+        # (5d) LOOK (grammar v1.3: watch/question/narrate/bounds — bible §19)
+        lookplan = self._look_rows(t)
+        if lookplan is not None:
+            return lookplan
 
         # (6) operator RED — the typed-YES gate
         red = self._red(t)
@@ -754,6 +773,44 @@ class CommandLayer:
         summary = self._park(("tele_file", display.lower(), display, payload),
                              canon.stage_file_line(display, payload), display, kind="telesend")
         return self._plan([(summary, "local", None)])
+
+    # ---------- LOOK rows (grammar v1.3): watch / question / narrate / bounds ----------
+
+    LOOK_QUESTIONS = ("what am i looking at", "what's on my screen", "what is on my screen",
+                      "dekh kya hai")
+    LOOK_START = ("watch my screen", "screen dekh")
+    LOOK_STOP = ("enough", "stop looking", "screen dekhna band")
+
+    def _look_rows(self, t: str):
+        unit = self._lookd
+        if unit is None:
+            return None
+        if t in self.LOOK_START:
+            return self._plan([(unit.start(), "local", None)])
+        if t in self.LOOK_STOP:
+            if not unit.watching:
+                return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+            return self._plan([(unit.stop(), "local", None)])
+        if t == "narrate my screen":
+            if not unit.watching:
+                return self._plan([(canon.LINE_LOOK_NOT_WATCHING, "local", None)])
+            return self._plan([(unit.narrate(True), "local", None)])
+        if t == "stop narrating":
+            if not unit.watching:
+                return self._plan([(canon.LINE_LOOK_NOT_WATCHING, "local", None)])
+            if not unit.narrating:
+                return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
+            return self._plan([(unit.narrate(False), "local", None)])
+        # look-questions: the closed set + the "look at this[...]" prefix family. §34 scans
+        # the utterance FIRST — refuse pre-eyes, before a single capture or call (§19 law).
+        if t in self.LOOK_QUESTIONS or t.startswith("look at this"):
+            if never_list_hit(t):
+                self._log.entry("never-list", target=t)
+                return self._plan([(canon.LINE_NEVER_LIST, "local", None)])
+            if not unit.watching:
+                return self._plan([(canon.LINE_LOOK_NOT_WATCHING, "local", None)])
+            return self._plan(unit.answer(t)["replies"])
+        return None
 
     def _red(self, t: str):
         # close <app> — always gated (band karo alias rows included)

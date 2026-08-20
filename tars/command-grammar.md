@@ -153,3 +153,28 @@ GREEN local acks: short past-tense templates, numbers in words — *"Volume set 
 | `what did i send <name>` | "what did i send bhaiya" · "what did i send ma" · "what did i send papa" | `What you sent <name>:\n<i>. <Channel> <kind>: <summary>` newest-first, capped at 5 (empty: `Nothing sent to <name> yet.`) |
 
 *Honesty ladder at every send row, in order: §34 Never-List scan (bytes AND target — refusal before any staging) → unknown name (`I don't know <name> yet. Save them first.`, pre-ring, zero spend) → channel column empty (`I know <name>, but no <Channel> is saved. Save it first.`) → unlinked Telegram lane (`Telegram isn't linked yet. Setup happens on the AiO.`, pre-ring, zero spend). Failure at the wire answers `That send didn't go through. Nothing left the box.` and journals NOTHING. Pre-YES is zero-wire by law; `cancel` rides the standing row byte-identically.*
+
+## v1.3 — LOOK + EYES (APPEND-ONLY, P-CORE-8 · Architect decree Aug 20, 2026)
+*Every v1.0 + v1.1 + v1.2 byte above stands unchanged. These rows join the parse order at (5d), after TeleSend: LOOK session rows (bible §19 verbatim). Closed Hinglish aliases, declared once: `screen dekh` (watch-start) · `dekh kya hai` (what is on screen) · `screen dekhna band` (stop). The gate law: EVERY frame passes the classifier before any eyes-lane call; private = `LINE_PRIVATE_FRAME` + zero calls, refused at the classifier (§31). ON/OFF/bounds rows spend ZERO ring; a pure look-question spends EXACTLY ONE eyes call; idle is machine-side (no row).*
+
+### 20. Watch-start — session ON (LOCAL mint; zero ring)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `watch my screen` · `screen dekh` | "watch my screen" · "screen dekh" · "watch my screen" (toggle via the contract `look` chip rides the same engine) | `Eyes on your screen. Say enough to end it.` (no capture seam: `Captures aren't available here. I won't pretend to see.`) |
+
+### 21. Look-questions — exactly ONE eyes call, AMBER answer (cloud eyes saw it)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `what am i looking at` · `what's on my screen` · `dekh kya hai` · `look at this <question>` | "what am i looking at" · "what's on my screen" · "look at this error" · "dekh kya hai" | frame-derived answer, cloud hue + `eyes` lane, about the LATEST frame only (stale buffer captures first; private frame: `That frame looks private. Nothing left the machine.` — zero calls; not watching: `I'm not watching anything. Say watch my screen first.`) |
+
+### 22. Narration — per-frame eyes calls, classifier-gated every frame (off unless asked)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `narrate my screen` · `stop narrating` | "narrate my screen" · "stop narrating" | `Narrating your screen. Say stop narrating to end it.` / `Narration off.` (both LOCAL mint; the narrated lines ride amber) |
+
+### 23. Session bounds — stop / idle (idle is machine-side: no row)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `enough` · `stop looking` · `screen dekhna band` | "enough" · "stop looking" · "screen dekhna band" | `Eyes off. The screen is yours again.` (mint; idle auto-off after 600s quiet: `Nothing to watch for ten minutes. Eyes off.`; panic kill any state: watcher + buffer drop in the same instant via the standing close event) |
+
+*Privacy law at every eye deed: the frame buffer is RAM-only, newest-wins ×3, NEVER persisted; rolling capture without a question or narration spends ZERO ring; the §34 Never-List scans look-questions pre-eyes; a private frame is dropped at the classifier and never enters the buffer. Hue two-truths: amber = cloud eyes answered; mint = the session deed.*

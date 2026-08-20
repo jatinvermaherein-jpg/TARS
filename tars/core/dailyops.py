@@ -7,6 +7,10 @@ honest exception: shutil.disk_usage is stdlib on every OS, so the reading is
 REAL in the sandbox too. FixtureOps records every call and answers scripted
 values (clipboard round-trips through its own store off-nt).
 
+P-CORE-8: capture_frame() is LOOK's end of the ONE capture path (_grab) — the
+same BitBlt deed, but the frame returns as RAM bytes (never a file, §19) while
+screenshot() keeps writing the Desktop artifact (§18).
+
 Zero-dep doctrine: the PNG writer is ~40 lines of zlib+struct — NO PIL ever.
 psutil is OPTIONAL for the CPU-hog meter on nt; never required, never imported
 off-nt (an unavailable meter answers the canon line, not a guess).
@@ -122,7 +126,11 @@ class NtOps:
         finally:
             user32.CloseClipboard()
 
-    def screenshot(self, kind: str, dest_dir: str):
+    def _grab(self):
+        """The ONE capture path (canon): BitBlt the primary display -> top-down RGB rows.
+        Off-nt answers False — AiO deed. Callers decide the destination: screenshot()
+        writes the Desktop PNG (the §18 artifact); capture_frame() hands RAM bytes to
+        LOOK (§19 — never a file)."""
         if os.name != "nt":
             return False  # canon: BitBlt is an AiO deed; off-nt the row answers, not pretends
         import ctypes
@@ -154,11 +162,33 @@ class NtOps:
         gdi32.DeleteObject(bitmap)
         gdi32.DeleteDC(mem)
         user32.ReleaseDC(0, src)
+        return width, height, bytes(rows)
+
+    def screenshot(self, kind: str, dest_dir: str):
+        grabbed = self._grab()
+        if grabbed is False:
+            return False
+        width, height, rows = grabbed
         os.makedirs(dest_dir, exist_ok=True)
         name = os.path.join(dest_dir, "screenshot.png")
         with open(name, "wb") as fh:
-            fh.write(png_bytes(width, height, bytes(rows)))
+            fh.write(png_bytes(width, height, rows))
         return name
+
+    def capture_frame(self):
+        """LOOK's raw material: (png_bytes, window_title, visible_text) in RAM — NEVER a file.
+        Visible text needs OCR (M-era); the title rides with the frame for the classifier."""
+        grabbed = self._grab()
+        if grabbed is False:
+            return False
+        width, height, rows = grabbed
+        import ctypes
+        user32 = ctypes.windll.user32  # canon: foreground-title read is an nt-only seam
+        hwnd = user32.GetForegroundWindow()
+        length = user32.GetWindowTextLengthW(hwnd)
+        title_buf = ctypes.create_unicode_buffer(length + 1)
+        user32.GetWindowTextW(hwnd, title_buf, length + 1)
+        return png_bytes(width, height, rows), title_buf.value, ""
 
 
 class FixtureOps:
@@ -203,3 +233,17 @@ class FixtureOps:
         with open(name, "wb") as fh:  # a real, parseable PNG so the APP surface can preview it
             fh.write(png_bytes(2, 2, bytes([26, 26, 26] * 4)))
         return name
+
+    def capture_frame(self):
+        """LOOK's fixture: scripted ("frame": (png, title, text)) or a cyclic "frames" list;
+        default is a declared public gray page. Bytes on the wire only — NEVER a file here."""
+        self.calls.append(("capture_frame",))
+        if self._scripted.get("capture_frame") is False:
+            return False
+        frames = self._scripted.get("frames")
+        if frames:
+            idx = int(self._scripted.get("_frame_idx", 0))
+            self._scripted["_frame_idx"] = idx + 1
+            return frames[idx % len(frames)]
+        return self._scripted.get("frame", (png_bytes(2, 2, bytes([26, 26, 26] * 4)),
+                                            "Notepad", "fixture page text"))

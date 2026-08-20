@@ -342,7 +342,19 @@ def nothing_sent_line(name: str) -> str:
 
 
 def sent_recall_line(display: str, rows: list) -> str:
+    channels = {"telegram": "Telegram", "whatsapp": "WhatsApp"}  # brand case, never capitalize-guessed
     listing = "\n".join(
-        f"{i + 1}. {row['channel'].capitalize()} {row['kind']}: {row['summary']}"
+        f"{i + 1}. {channels.get(row['channel'], row['channel'])} {row['kind']}: {row['summary']}"
         for i, row in enumerate(rows))
     return f"What you sent {display}:\n{listing}"
+
+
+# --- P-CORE-8 LOOK + eyes family (grammar v1.3; bible §19 verbatim law) ---
+LINE_LOOK_ON = "Eyes on your screen. Say enough to end it."
+LINE_LOOK_OFF = "Eyes off. The screen is yours again."
+LINE_LOOK_IDLE = "Nothing to watch for ten minutes. Eyes off."  # the number matches IDLE_S=600, truthfully
+LINE_PRIVATE_FRAME = "That frame looks private. Nothing left the machine."
+LINE_LOOK_NO_SEAM = "Captures aren't available here. I won't pretend to see."
+LINE_LOOK_NOT_WATCHING = "I'm not watching anything. Say watch my screen first."
+LINE_NARRATE_ON = "Narrating your screen. Say stop narrating to end it."
+LINE_NARRATE_OFF = "Narration off."
