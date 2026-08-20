@@ -303,3 +303,6 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - 'look' quick_action: re-aim EXACTLY the sanctioned one, disclosed in-code at 704-712 — 'look' SERVED by the standing engine (off-nt → LINE_LOOK_NO_SEAM), the six still-unshipped roster names re-pin the catch-all byte-exact, 'open' bad-payload pin stands.
 - route_vision: ONE declared eyes message shape (text part + base64 image part), reuses the whole ring/ledger/gauge law, lane pinned, classifier-gated before the call exists.
 - **Lane B verdict: PASS. P-CORE-9 (Watcher — gauge, creep, the power-cut drill) forged and shipped in this same breath.**
+
+## 📦 ZIP RELOCATED (Cooper decree, Aug 20, 2026)
+- `discord-team-management-bot-main.zip` (4.7MB, web-uploaded at `7918a49`) LEFT the TARS vault: its code now lives as *code* at github.com/jatinvermaherein-jpg/bot (main `83bbd8b`, 118 files, secret-scan CLEAN — token reads via env only). Deploy key `discord_bot` minted for the lane; alias `github-bot`. Normal delete-commit; no history rewrite.
