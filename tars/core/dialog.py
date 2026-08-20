@@ -9,8 +9,11 @@ non-match falls to the brain ring with the persona prompt (LIVE dials, never
 cached) plus a rolling <=10-message window. Every reply chunk/done pair ends
 with the A2 done-shape: {chatId, messageId, hue, lane}. quick_action pays the
 A1 debt (read_aloud/redo), A3 (enroll_voice), the ranked search pick, and the
-P-CORE-8 'look' toggle ({} exactly, same engine as the grammar rows); the
-RED-verb typed-YES seam is confirm(actionId, yes) per contract §3.
+P-CORE-8 'look' toggle ({} exactly, same engine as the grammar rows), and the
+P-CORE-9 'status' chip ({} exactly, the same 5-line digest as the status row);
+the RED-verb typed-YES seam is confirm(actionId, yes) per contract §3.
+Since P-CORE-9 the boot also carries the §32 drill: send() confesses a dirty
+prior run ONCE, first, mint LOCAL, speak queued — then never again.
 
 Design declarations (also pinned in code comments where they live):
 - chunk.seq restarts per message until true streaming lands.
@@ -30,6 +33,7 @@ from tars.core.logx import LogX
 from tars.core.operator import NtExecutor
 from tars.core.searchlanes import SearchLanes
 from tars.core.telesend import TelethonUserClient
+from tars.core.watcher import drill_boot, drill_mark_clean, survival_line
 
 CONTEXT_WINDOW = 10  # rolling history cap per brain call
 TITLE_CAP = 42
@@ -55,6 +59,10 @@ class Dialog:
         self._command = command_layer
         self._clockd = command_layer.clockd_unit  # the layer's clock drives tick_clock's heartbeat
         self._chat_id = None
+        # §32 power-cut drill: this run boots dirty (innocent only after a clean exit proves it);
+        # a dirty PRIOR run returns the survival payload, spoken once on the first summon.
+        self._survival = drill_boot(vault)
+        bus.subscribe(lambda kind, _detail: drill_mark_clean(vault) if kind == "close" else None)
 
     def new_chat(self) -> dict:
         self._chat_id = self._vault.chat_insert()
@@ -78,12 +86,24 @@ class Dialog:
     def send(self, text) -> dict:
         if self._machine.state == "off":
             self._machine.summon()  # a bridge send implies a summoned app
+            self._speak_survival()  # §32: a power event is confessed ONCE, before anything else is answered
         if self._chat_id is None:
             self.new_chat()
         self._machine.text()
         self.tick_clock()  # clock heartbeat: missed-while-OFF fires once, here, before the turn
         self._dispatch(str(text))
         return {"chatId": self._chat_id}
+
+    def _speak_survival(self) -> None:
+        """First summon after a dirty end: the survival report, mint and local, then consumed."""
+        if self._survival is None:
+            return
+        payload, self._survival = self._survival, None  # consumed before speaking — never twice
+        if self._chat_id is None:
+            self.new_chat()
+        line = survival_line(self._vault, payload["when"])
+        mid = self._emit_message(line, "local", None)
+        self._vault.kv_set(f"speak_request:{mid}", "queued")
 
     def send_voice(self, text) -> dict:
         """Voice entry: ears own capture + heard(); the dialog takes over from THINKING."""
@@ -182,6 +202,15 @@ class Dialog:
                 return {"ok": False, "line": canon.LINE_CATCH_ALL}
             unit = self._command.lookd_unit
             line = unit.stop() if (unit and unit.watching) else (unit.start() if unit else canon.LINE_LOOK_NO_SEAM)
+            if self._chat_id is None:
+                self.new_chat()
+            self._emit_message(line, "local", None)
+            return {"ok": True, "line": line}
+        if name == "status":  # P-CORE-9: rostered chip — serves the same digest as the status row
+            if payload:
+                return {"ok": False, "line": canon.LINE_CATCH_ALL}
+            unit = self._command.watcher_unit
+            line = unit.status_report() if unit else canon.LINE_CATCH_ALL
             if self._chat_id is None:
                 self.new_chat()
             self._emit_message(line, "local", None)

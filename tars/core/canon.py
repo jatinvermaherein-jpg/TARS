@@ -358,3 +358,41 @@ LINE_LOOK_NO_SEAM = "Captures aren't available here. I won't pretend to see."
 LINE_LOOK_NOT_WATCHING = "I'm not watching anything. Say watch my screen first."
 LINE_NARRATE_ON = "Narrating your screen. Say stop narrating to end it."
 LINE_NARRATE_OFF = "Narration off."
+
+
+# --- P-CORE-9 Watcher family (grammar v1.4; §29 meter-only + §32 drill) ---
+LINE_STARTUP_CLEAN = "Startup is clean. Nothing crept in."
+
+
+def keys_summary_line(healthy: int, total: int, warn: int, spent: int) -> str:
+    """Reports carry digits (they're reports, not acks — the declared voice, literal-pinned)."""
+    return f"Keys: {healthy} of {total} healthy ({warn} warn, {spent} spent)."
+
+
+def storage_meter_line(vault_mb: int, brain_mb: int, free_gb: int, advisory: bool) -> str:
+    """§29: the meter SHOWS. The advisory is a sentence of visibility, never a gate."""
+    line = (f"Storage meter: vault {vault_mb} MB · brain {brain_mb} MB · disk free {free_gb} GB. "
+            "Meter only, by law.")
+    if advisory:
+        line += " Free space is under two GB — worth a look. Nothing blocked, by law."
+    return line
+
+
+def creep_line(name: str) -> str:
+    return f"{name} added itself to startup. Your call whether it stays."
+
+
+def creep_violation_line(name: str) -> str:
+    """Law 3, self-policed: TARS never auto-starts — its own name in a startup set is a breach."""
+    return f"{name} put TARS in startup. That breaks Law 3 — flagged, never ignored."
+
+
+def power_event_line(when: str) -> str:
+    """§32 + the line-62 flavor, verbatim shape: intact case, spoken ONCE on first summon."""
+    return f"Power event at {when}. Memory intact. Nothing lost."
+
+
+def power_event_damage_line(when: str, losses: list) -> str:
+    """The damage variant: names exactly what the probe verified, never sadder nor happier."""
+    named = "; ".join(losses)
+    return f"Power event at {when}. Not everything survived — {named}. Everything else is intact."

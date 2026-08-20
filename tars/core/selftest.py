@@ -59,6 +59,19 @@ session bounds triad (stop/idle-600s/panic-kill via the standing close event),
 hue two-truths (amber frame answers vs mint deeds), the 'look' quick_action
 toggling the same engine ({} exactly), §34 pre-eyes, and the crash child
 SIGKILLed MID-WATCH leaving zero frames on disk.
+P-CORE-9 battery (bible §21 Tier-3 — make the pulse honest): the Watcher — a
+live key gauge riding gauge.py/keys.py math never forked (warn inclusive at
+20, the midnight reset, the fully-spent desk), storage/RAM/uptime meters as
+§29 visibility-NOT-enforcement proven grep-level (no enforcement branch in
+the module), the startup-creep watch on a stored-baseline diff with Law-3
+self-policing (violations outrank the list, never seed a baseline, clear
+honestly), the power-cut drill — dirty-boot marker, boots OFF by Law 3, ONE
+survival confession on the first summon (line-62 flavor verbatim, damage
+variant honest, speak_request queued, mint LOCAL), never twice, and the
+'status' quick_action chip serving the same 5-line digest with the {}-payload
+law. Every watcher row counter-pinned ZERO-ring, every line mint LOCAL; the
+crash child now SIGKILLs a DIRTY drill run and the reopened vault confesses
+exactly once.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -94,13 +107,15 @@ from tars.core.enroll import ENROLL_PHRASES, ENROLL_ROUNDS, enroll_member, list_
 from tars.core.classifier import HeuristicClassifier, ModelClassifier, is_private_text
 from tars.core.lookd import BUFFER_CAP, IDLE_S, LOOK_INTERVAL_S, NARRATE_PROMPT, Lookd
 from tars.core.telesend import TELE_SESSION_FILE, FixtureTelethon, TelethonUserClient, wa_url
+from tars.core.watcher import (FixtureCreepSource, NtCreepSource, Watcher, drill_boot,
+                               drill_mark_clean, survival_line, survival_probe)
 from tars.core.voiceid import (MATRIX_ROWS, FixtureScorer, ProfileStore, ResemblyzerScorer, VoiceGate, classify,
                                detect_noise, detect_two_voices, hash_passphrase, matrix_line, run_recognized_turn)
 from tars.core.wake import FixtureWakeEngine, PorcupineWakeEngine, wake_turn
 from tars.core.findfile import (CONFIDENT_LEAD, FileFinder, MAX_LIST, RECENCY_BONUS, TOKEN_SCORE,
                                 finder_roots_from_env)
 from tars.core.gauge import council_note, gauge_rows
-from tars.core.keys import LANE_CAPS, load_ring, parse_env_file
+from tars.core.keys import LANE_CAPS, KeyState, Ring, load_ring, parse_env_file
 from tars.core.logx import LogX
 from tars.core.mouth import EdgeTier, FixtureTier, Mouth, PiperTier, SapiTier
 from tars.core.office import (GOLDEN_EPOCH, build_docx, build_pptx, office_prompt,
@@ -706,9 +721,15 @@ def _persona_checks(base: Path, out) -> None:
     # honest no-seam line). The catch-all law re-pins byte-exact on the still-unshipped names.
     expect(out, dialog7.quick_action("look", {}) == {"ok": True, "line": canon.LINE_LOOK_NO_SEAM},
            "'look' is served by the same engine the grammar rows drive — out of the catch-all set")
+    # P-CORE-9 re-aim (the ONE sanctioned): 'status' LEAVES the unshipped catch-all set — the
+    # chip serves the live digest now. Off-nt meters answer honestly; the rest of the roster
+    # re-pins the catch-all byte-exact. (Row-side twin disclosed in _grammar_checks at g1.)
+    status_chip = dialog7.quick_action("status", {})
+    expect(out, status_chip["ok"] is True and status_chip["line"].startswith("Keys: 8 of 8 healthy (0 warn, 0 spent)."),
+           "'status' is served by the watcher digest — out of the catch-all set")
     expect(out, dialog7.quick_action("open", {}) == {"ok": False, "line": canon.LINE_CATCH_ALL}
            and all(dialog7.quick_action(name, {}) == {"ok": False, "line": canon.LINE_CATCH_ALL}
-                   for name in ("search", "find_file", "document", "telesend", "status", "council")),
+                   for name in ("search", "find_file", "document", "telesend", "council")),
            "unshipped quick_action names get the canon catch-all (P-CORE-5 territory)")
 
     # rolling context window
@@ -1572,8 +1593,13 @@ def _grammar_checks(base: Path, out) -> None:
                "clock rows answer from the injected clock, both alias shapes, zero ring")
         g1["dialog"].send("status")
         g1["dialog"].send("system status")
-        expect(out, said(g1)[-2:] == [canon.pending_line("The Watcher report", "P-CORE-9")] * 2,
-               "status rows answer the declared watcher-pending line (P-CORE-9 owns the report)")
+        # P-CORE-9 re-aim (row-side twin of the ONE sanctioned re-aim — the prompt's §1: the
+        # digest powers the `status` GRAMMAR ROW too, and the old pending pin's own bytes had
+        # become a lie: "ships with P-CORE-9"). The rows now serve the live digest, zero ring.
+        expect(out, said(g1)[-2].startswith("Keys: 8 of 8 healthy (0 warn, 0 spent).")
+               and said(g1)[-2] == said(g1)[-1]
+               and not g1["gfx"].received and not g1["ofx"].received,
+               "status rows serve the live watcher digest, both alias shapes, zero ring")
         g1["dialog"].send("commands")
         g1["dialog"].send("help")
         expect(out, said(g1)[-2:] == [COMMANDS_HELP, COMMANDS_HELP]
@@ -3179,6 +3205,332 @@ def _look_checks(base: Path, out) -> None:
         subprocess.Popen = real_popen
 
 
+def _watcher_checks(base: Path, out) -> None:
+    """P-CORE-9 battery (bible §21/§29/§32 — make the pulse honest): live gauge renders off
+    the standing keys.py/gauge.py math (warn inclusive at 20, midnight reset), storage/RAM
+    meters with visibility-NOT-enforcement proven grep-level, the startup-creep watch with
+    Law-3 self-policing, the power-cut drill confession (once, then never), and ZERO ring
+    spend across every watcher row — counter-pinned. Net/spawn seams patched RAISE, per decree."""
+    zone = base / "watcher"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+
+    def watch_universe(name, groq_script=(), ops_scripted=None, creep_entries=(), cell=None,
+                       ring_clock=None):
+        path = zone / name
+        path.mkdir(parents=True, exist_ok=True)
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", list(groq_script))
+        or_fx = FixtureAdapter("openrouter", [])
+        clock_fn = (lambda: ring_clock[0]) if ring_clock else None
+        if ring_clock is not None:
+            keys = [KeyState(provider="groq", index=i, key=f"gsk-{i}") for i in range(1, 7)]
+            keys += [KeyState(provider="openrouter", index=6 + i, key=f"or-{i}") for i in range(1, 3)]
+            ring = Ring(keys, clock_fn)
+        else:
+            ring = load_ring(full_source)
+        router = Router(ring, {"groq": groq_fx, "openrouter": or_fx}, vault, bus)
+        executor = FixtureExecutor()
+        time_cell = cell if cell is not None else [1000.0]
+        ops = FixtureOps(ops_scripted)
+        creep = FixtureCreepSource(creep_entries)
+        watcher = Watcher(ring, ops, vault, creep=creep, time_fn=lambda: time_cell[0])
+        layer = CommandLayer(settings, vault, executor, SearchLanes(FixtureSearch({})),
+                             FileFinder([]), log, bus, time_fn=lambda: time_cell[0],
+                             router=router, clockd=Clockd(vault, bus), ops=ops, watcher=watcher)
+        dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
+        machine.set_audience("cooper")
+        dialog.new_chat()
+        return {"dialog": dialog, "vault": vault, "machine": machine, "events": events,
+                "gfx": groq_fx, "ofx": or_fx, "ops": ops, "creep": creep, "watcher": watcher,
+                "cell": time_cell, "path": path, "ring": ring}
+
+    def said(univ, chat=1):
+        return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    def spend(univ, index, lane, count):
+        """Direct per-lane counter writes — the fixture way to pose a gauge state (keys.py law)."""
+        for key in univ["ring"].keys():
+            if key.index == index:
+                key.lane_spent[lane] = count
+                key.budget_pct = round(count / LANE_CAPS[lane] * 100, 1)
+
+    real_urlopen = urllib.request.urlopen
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def _no_net(*args, **kwargs):
+        raise AssertionError("network lifted inside the sandbox battery")
+
+    def _no_spawn(*args, **kwargs):
+        raise AssertionError("subprocess spawned inside the sandbox battery")
+
+    urllib.request.urlopen = _no_net
+    subprocess.run = _no_spawn
+    subprocess.Popen = _no_spawn
+    try:
+        # --- canon units: the v1.4 family, literal-pinned
+        expect(out, canon.LINE_STARTUP_CLEAN == "Startup is clean. Nothing crept in."
+               and canon.power_event_line("8:41 PM") == "Power event at 8:41 PM. Memory intact. Nothing lost."
+               and canon.creep_line("SpotifyWebHelper")
+               == "SpotifyWebHelper added itself to startup. Your call whether it stays."
+               and canon.creep_violation_line("TARSLauncher")
+               == "TARSLauncher put TARS in startup. That breaks Law 3 — flagged, never ignored.",
+               "decreed v1.4 literals byte-exact (clean / power-event flavor / creep / Law-3 violation)")
+        expect(out, canon.keys_summary_line(8, 8, 0, 0) == "Keys: 8 of 8 healthy (0 warn, 0 spent)."
+               and canon.storage_meter_line(0, 3, 250, False)
+               == "Storage meter: vault 0 MB · brain 3 MB · disk free 250 GB. Meter only, by law."
+               and canon.storage_meter_line(0, 3, 1, True)
+               == ("Storage meter: vault 0 MB · brain 3 MB · disk free 1 GB. Meter only, by law. "
+                   "Free space is under two GB — worth a look. Nothing blocked, by law."),
+               "report renders carry digits (declared voice), incl. the §29 advisory variant")
+        expect(out, canon.power_event_damage_line("8:41 PM", ["the vault's newest rows"])
+               == "Power event at 8:41 PM. Not everything survived — the vault's newest rows. "
+                  "Everything else is intact.",
+               "the damage variant names its losses — never sadder, never happier")
+
+        # --- §29 enforcement-absence, grep-level (the decree's own audit shape)
+        wsrc = (REPO_ROOT / "tars" / "core" / "watcher.py").read_text()
+        expect(out, "VISIBILITY, NOT ENFORCEMENT" in wsrc and "os.remove" not in wsrc
+               and "rmtree" not in wsrc and ".unlink(" not in wsrc,
+               "§29 grep-law: the visibility comment stands; ZERO enforcement/deletion branches exist")
+
+        # --- gauge report: clean ring literal (whole 8-row render pinned)
+        w1 = watch_universe("w1")
+        clean_render = ("Key gauge:\n" + "\n".join(
+            [f"{i}. groq#{i} fast: 100% left, ok." for i in range(1, 7)]
+            + [f"7. openrouter#7 ultra: 100% left, ok.", "8. openrouter#8 ultra: 100% left, ok."])
+            + "\nKeys: 8 of 8 healthy (0 warn, 0 spent).")
+        expect(out, w1["watcher"].gauge_report() == clean_render,
+               "gauge report on a fresh ring: all 8 rows 100%, pressure lanes named, summary tail")
+
+        # --- warn crossing (INCLUSIVE at 20% remaining) + spent + the keys_summary tell
+        w2 = watch_universe("w2")
+        spend(w2, 1, "fast", int(LANE_CAPS["fast"] * 0.8))   # 80% budget -> 20% left, warn
+        spend(w2, 2, "fast", LANE_CAPS["fast"])              # 100% -> spent
+        render = w2["watcher"].gauge_report()
+        expect(out, "1. groq#1 fast: 20% left, warn." in render
+               and "2. groq#2 fast: 0% left, spent." in render
+               and render.endswith("Keys: 6 of 8 healthy (1 warn, 1 spent)."),
+               "gauge math: warn inclusive at 20% remaining, spent at 0, summary counts honestly")
+
+        # --- midnight reset through the ring's own clock (keys.py law, watched not forked)
+        from datetime import date as _date
+        daycell = [_date(2026, 8, 19)]
+        w3 = watch_universe("w3", ring_clock=daycell)
+        spend(w3, 3, "fast", int(LANE_CAPS["fast"] * 0.9))   # 10% left yesterday-ish
+        warn_before = "3. groq#3 fast: 10% left, warn." in w3["watcher"].gauge_report()
+        daycell[0] = _date(2026, 8, 20)                      # midnight flips
+        after = w3["watcher"].gauge_report()
+        expect(out, warn_before and "3. groq#3 fast: 100% left, ok." in after
+               and after.endswith("Keys: 8 of 8 healthy (0 warn, 0 spent)."),
+               "midnight reset: the local-date flip clears every counter — the report proves it live")
+
+        # --- storage/RAM meters: readings from the ONE ops seam, honest lines otherwise
+        w4 = watch_universe("w4", ops_scripted={"storage_free_bytes": 250 * (1024 ** 3),
+                                                "ram_percent": 41, "uptime_seconds": 14 * 3600})
+        brain = w4["path"] / "tars-brain"
+        brain.mkdir()
+        (brain / "note.md").write_bytes(b"x" * (3 * 1024 ** 2))
+        expect(out, w4["watcher"].storage_report()
+               == "Storage meter: vault 0 MB · brain 3 MB · disk free 250 GB. Meter only, by law."
+               and w4["watcher"].ram_report() == "RAM in use: forty one percent."
+               and w4["watcher"].uptime_report() == "Uptime: fourteen hours.",
+               "meters render REAL readings (vault 0 MB honest, brain 3 MB measured)")
+        w5 = watch_universe("w5", ops_scripted={"ram_percent": False, "uptime_seconds": False})
+        expect(out, w5["watcher"].ram_report() == canon.meter_unavailable_line("The RAM meter")
+               and w5["watcher"].uptime_report() == canon.meter_unavailable_line("The uptime meter"),
+               "reading-or-honest-line: absent meters answer the canon line, never an invented digit")
+
+        # --- startup-creep watch: baseline -> clean -> honest additions -> Law-3 self-police
+        w6 = watch_universe("w6", creep_entries=("OneDrive", "Steam"))
+        expect(out, w6["watcher"].creep_report() == canon.LINE_STARTUP_CLEAN
+               and w6["vault"].kv_get(Watcher.CREEP_BASELINE_KV) is not None,
+               "first snapshot baselines honestly and answers the clean line")
+        w6["creep"].add("SpotifyWebHelper")
+        expect(out, w6["watcher"].creep_report()
+               == "Startup creep:\n1. " + canon.creep_line("SpotifyWebHelper"),
+               "an addition is named plainly — Cooper's call whether it stays")
+        w6["creep"].add("TARSLauncher")
+        expect(out, w6["watcher"].creep_report() == canon.creep_violation_line("TARSLauncher"),
+               "LAW 3 self-policing: a tars-named startup entry is a FIRST-CLASS violation, flagged first")
+        w7 = watch_universe("w7")
+        w7["watcher"]._creep = NtCreepSource()
+        expect(out, w7["watcher"].creep_report() == canon.meter_unavailable_line("The startup watch"),
+               "off-nt the registry read is honestly unavailable — the sandbox never invents a startup set")
+
+        # --- the digest: the full five-line assembly, literal-pinned on a scripted desk
+        w8 = watch_universe("w8", ops_scripted={"storage_free_bytes": 250 * (1024 ** 3),
+                                                "ram_percent": 41, "uptime_seconds": 14 * 3600},
+                            creep_entries=("OneDrive",))
+        expect(out, w8["watcher"].status_report()
+               == ("Keys: 8 of 8 healthy (0 warn, 0 spent).\n"
+                   "Storage meter: vault 0 MB · brain 0 MB · disk free 250 GB. Meter only, by law.\n"
+                   "RAM in use: forty one percent.\n"
+                   "Startup is clean. Nothing crept in.\n"
+                   "Uptime: fourteen hours."),
+               "status_report: keys + storage + RAM + creep + uptime, in the declared order")
+
+        # --- grammar rows end-to-end, ZERO RING counter-pinned across every one
+        w9 = watch_universe("w9", ops_scripted={"storage_free_bytes": 300 * (1024 ** 3),
+                                                "ram_percent": 30, "uptime_seconds": 3600},
+                            creep_entries=("OneDrive",))
+        for text in ("status", "system status", "status report", "status bata", "how are the keys",
+                     "storage status", "is ram ok", "startup check", "what's creeping in"):
+            w9["dialog"].send(text)
+        rows = said(w9)
+        expect(out, rows[0] == rows[2] == rows[3]  # status pair + report + Hinglish alias all digest
+               and rows[0].startswith("Keys: 8 of 8 healthy") and rows[1] == rows[0]
+               and rows[4].startswith("Key gauge:\n1. groq#1")
+               and rows[5].startswith("Storage meter: vault 0 MB")
+               and rows[6] == "RAM in use: thirty percent."
+               and rows[7] == rows[8] == canon.LINE_STARTUP_CLEAN,
+               "every v1.4 watcher row answers its own family — aliases, Hinglish, and all")
+        expect(out, w9["gfx"].received == [] and w9["ofx"].received == []
+               and all(m["hue"] == "local" and m["lane"] is None for m in
+                       w9["vault"].messages_for(1) if m["who"] == "tars"),
+               "ZERO-RING LAW: nine watcher rows, not one adapter call, every line LOCAL mint")
+
+        # --- the chip serves the same object, with the {}-payload law
+        chip = w9["dialog"].quick_action("status", {})
+        expect(out, chip == {"ok": True, "line": said(w9)[0]}
+               and w9["dialog"].quick_action("status", {"fast": True})
+               == {"ok": False, "line": canon.LINE_CATCH_ALL},
+               "quick_action 'status': the same digest as the row, {} payload law upheld")
+        chip_rows = [m for m in w9["vault"].messages_for(1) if m["who"] == "tars"]
+        expect(out, chip_rows[-1]["text"] == chip["line"]
+               and chip_rows[-1]["hue"] == "local" and chip_rows[-1]["lane"] is None,
+               "the status chip is no phantom: the digest lands in the audit trail, mint LOCAL")
+
+        # --- the drill, in-process fixed-clock literal: dirty run -> once -> never again
+        from datetime import datetime as _dt
+        dv_path = zone / "drillpure"
+        dv_path.mkdir()
+        dvault = Vault(dv_path / "vault.db")
+        expect(out, drill_boot(dvault, now=_dt(2026, 8, 19, 20, 41)) is None,
+               "a first-ever boot has nothing to confess")
+        survival = drill_boot(dvault, now=_dt(2026, 8, 20, 7, 15))  # run 1 never cleaned = outage
+        expect(out, survival == {"when": "2026-08-19T20:41:00"}
+               and survival_line(dvault, "2026-08-19T20:41:00")
+               == "Power event at 8:41 PM. Memory intact. Nothing lost.",
+               "dirty prior run: the payload carries the last heartbeat; the line is the §62 flavor verbatim")
+        drill_mark_clean(dvault)
+        expect(out, drill_boot(dvault, now=_dt(2026, 8, 20, 8, 0)) is None,
+               "a clean exit leaves NOTHING to confess on the next boot — exactly once, then silence")
+        expect(out, survival_probe(dvault) == [],
+               "the intact probe names zero losses — append-only laws keep damage rare")
+        dvault.close()
+
+        # --- hardened edges: drill matrix, boundaries, persistence, honest variants
+        expect(out, canon.power_event_damage_line("9:02 AM", ["the vault's newest rows", "the brain index"])
+               == ("Power event at 9:02 AM. Not everything survived — the vault's newest rows; "
+                   "the brain index. Everything else is intact.")
+               and canon.power_event_line("7:05 AM") == "Power event at 7:05 AM. Memory intact. Nothing lost.",
+               "damage line joins losses honestly; the clock-face zero-pads minutes, 12-hour truth")
+        class _CorruptVault:  # the drill's damage probe through survival_line (live path)
+            def integrity(self): return "corrupt"
+        expect(out, survival_line(_CorruptVault(), "2026-08-19T20:41:00").startswith(
+            "Power event at 8:41 PM. Not everything survived"),
+            "a damaged vault earns the damage variant through the REAL probe path, never the happy line")
+        w10 = watch_universe("w10")
+        for key in w10["ring"].keys():  # pose the fully-spent desk
+            key.lane_spent[key.pressure_lane()] = LANE_CAPS[key.pressure_lane()]
+            key.budget_pct = 100.0
+        expect(out, w10["watcher"].gauge_report().endswith("Keys: 0 of 8 healthy (0 warn, 8 spent).")
+               and "8. openrouter#8 ultra: 0% left, spent." in w10["watcher"].gauge_report(),
+               "a fully-spent ring reports spent honestly — every row, plus the summary")
+        expect(out, w10["watcher"].status_report().splitlines()[0]
+               == "Keys: 0 of 8 healthy (0 warn, 8 spent).",
+               "the digest's first line rides the SAME live gauge math — a spent desk digests spent")
+        w11 = watch_universe("w11")
+        spend(w11, 1, "fast", int(LANE_CAPS["fast"] * 0.79))  # 21% left: OUTSIDE the warn band
+        spend(w11, 2, "eyes", int(LANE_CAPS["eyes"] * 0.5))   # a different lane under pressure
+        expect(out, "1. groq#1 fast: 21% left, ok." in w11["watcher"].gauge_report()
+               and "2. groq#2 eyes: 50% left, ok." in w11["watcher"].gauge_report(),
+               "boundaries: 21% remaining is NOT warn (inclusive band proven); the pressure lane is named")
+        w12 = watch_universe("w12", creep_entries=("OneDrive",))
+        baseline_line = w12["watcher"].creep_report()  # FIRST snapshot: seeds the baseline, cleanly
+        w12["creep"].add("SpotifyWebHelper")
+        w12["creep"].add("EpicGamesLauncher")
+        expect(out, baseline_line == canon.LINE_STARTUP_CLEAN and w12["watcher"].creep_report()
+               == "Startup creep:\n1. " + canon.creep_line("EpicGamesLauncher")
+               + "\n2. " + canon.creep_line("SpotifyWebHelper"),
+               "two additions after the baseline: alphabetical, numbered, each its own honest line")
+        expect(out, w12["watcher"].creep_report() == w12["watcher"].creep_report()
+               and w12["creep"].calls >= 2,
+               "creep reports are repeatable — the baseline is read, never re-seeded")
+        w12b = Watcher(w12["ring"], w12["ops"], w12["vault"], creep=w12["creep"])
+        expect(out, w12b.creep_report().startswith("Startup creep:"),
+               "a fresh Watcher on the same vault reads the STORED baseline — persistence law holds")
+        w13 = watch_universe("w13", ops_scripted={"storage_free_bytes": 1 * (1024 ** 3)})
+        expect(out, w13["watcher"].status_report().splitlines()[1].endswith(
+            "Free space is under two GB — worth a look. Nothing blocked, by law."),
+            "the advisory rides INSIDE the digest at the soft-mark — visibility, exactly one sentence")
+        w14 = watch_universe("w14", ops_scripted={"ram_percent": False, "uptime_seconds": False})
+        expect(out, w14["watcher"].status_report().splitlines()[2:]
+               == [canon.meter_unavailable_line("The RAM meter"),
+                   "Startup is clean. Nothing crept in.",
+                   canon.meter_unavailable_line("The uptime meter")],
+               "a dark desk reports dark meters inside the digest — honest lines everywhere")
+        expect(out, not any("Power event" in m for m in said(w9)),
+               "first-boot-quiet law: nine watcher rows on a fresh vault — NO phantom power event")
+        w16 = watch_universe("w16", creep_entries=("Teams", "OneDrive"))
+        w16["watcher"].creep_report()  # seeds an honest baseline first
+        w16["creep"].add("MyTARSTool")
+        w16["creep"].add("NewCreepApp")
+        expect(out, w16["watcher"].creep_report()
+               == canon.creep_violation_line("MyTARSTool"),
+               "Law 3 outranks the creep list: a tars-named entry reports ALONE, ordinary additions wait")
+        w17 = watch_universe("w17", creep_entries=("OldTarsService",))
+        expect(out, w17["watcher"].creep_report()
+               == canon.creep_violation_line("OldTarsService")
+               and w17["vault"].kv_get(Watcher.CREEP_BASELINE_KV) is None,
+               "a Law-3 flag on the very first snapshot seeds NO baseline — judgment before bookkeeping")
+        w17b = Watcher(w17["ring"], w17["ops"], w17["vault"], creep=FixtureCreepSource(()))
+        expect(out, w17b.creep_report() == canon.LINE_STARTUP_CLEAN,
+               "violation cleared: the first clean snapshot becomes the baseline, honestly clean")
+        w18 = watch_universe("w18", ops_scripted={"ram_percent": 42, "uptime_seconds": 9375})
+        w18_lines = w18["watcher"].status_report().splitlines()
+        expect(out, len(w18_lines) == 5
+               and w18_lines[2] == "RAM in use: forty two percent."
+               and w18_lines[4] == "Uptime: two hours.",
+               "the digest is exactly five lines; live meters render LIVE numbers, never placeholders")
+        expect(out, NtCreepSource().snapshot() is False and os.name != "nt",
+               "NtCreepSource off-nt: honest False, zero registry reads attempted")
+        w15 = watch_universe("w15")
+        expect(out, w15["watcher"]._dir_size_mb(w15["path"] / "never-existed") == 0,
+               "an absent store honestly measures zero MB")
+        dv_path2 = zone / "drillclean"
+        dv_path2.mkdir()
+        dv2 = Vault(dv_path2 / "vault.db")
+        drill_boot(dv2, now=_dt(2026, 8, 20, 9, 0))
+        drill_mark_clean(dv2)  # stand-down proves innocence
+        after_clean = drill_boot(dv2, now=_dt(2026, 8, 20, 10, 0))
+        expect(out, after_clean is None and dv2.kv_get("drill:clean_exit") == "no"
+               and dv2.kv_get("drill:last_boot") == "2026-08-20T10:00:00",
+               "drill kv law: clean run confesses nothing; the CURRENT run still boots marked dirty")
+        dv2.close()
+
+        # --- the grammar doc: v1.4 appended, every earlier section byte-stands
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
+               and "## v1.2 — TELESEND" in grammar
+               and "## v1.3 — LOOK + EYES" in grammar and "## v1.4 — WATCHER" in grammar
+               and "status bata" in grammar,
+               "grammar doc: v1.4 appended, v1.0-v1.3 untouched, closed alias declared")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        subprocess.run = real_run
+        subprocess.Popen = real_popen
+
+
 def _crash_checks(base: Path, out) -> None:
     zone = base / "crash"
     proc = subprocess.Popen([sys.executable, "-m", "tars.core.selftest", "--child", str(zone)],
@@ -3237,6 +3589,48 @@ def _crash_checks(base: Path, out) -> None:
            "people-book + sent ledger survive SIGKILL: 2 journal rows, contacts intact, recall honest")
     expect(out, frame_leaks == [] and crash_look_kv == [],
            "SIGKILL mid-watch: zero frames on disk, zero look rows in the vault, integrity already ok")
+
+    # --- P-CORE-9 drill: the killed child left a DIRTY run marker. A fresh run must boot OFF
+    # (Law 3), confess exactly once on first summon, and restore state exactly where state.py
+    # left it. This dialog lives on the crash vault itself.
+    drill_zone = zone / "drill"
+    drill_zone.mkdir(exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    dlog = LogX(drill_zone / "logs.jsonl")
+    dsettings = Settings.load(drill_zone / "settings.json", dlog)
+    dvault = Vault(zone / "vault.db")  # the crash vault, reopened for the drill run
+    dbus = Bus()
+    devents = []
+    dbus.subscribe(lambda kind, detail: devents.append((kind, detail)))
+    dmachine = Machine(dsettings, dlog, dbus)
+    dgfx = FixtureAdapter("groq", [("ok", "alive answer", 5), ("ok", "second answer", 5)])
+    drouter = Router(load_ring(full_source), {"groq": dgfx, "openrouter": FixtureAdapter("openrouter", [])},
+                     dvault, dbus)
+    dops = FixtureOps(None)
+    ddl = CommandLayer(dsettings, dvault, FixtureExecutor(), SearchLanes(FixtureSearch({})),
+                       FileFinder([]), dlog, dbus, router=drouter, clockd=Clockd(dvault, dbus), ops=dops)
+    ddialog = Dialog(dsettings, dvault, drouter, dmachine, dbus, command_layer=ddl)
+    boots_off = dmachine.state == "off"
+    ddialog.send("still there?")
+    drill_chat = max(r["id"] for r in dvault.chat_rows())  # the drill run's own fresh chat
+    drill_msgs = [m["text"] for m in dvault.messages_for(drill_chat) if m["who"] == "tars"]
+    ddialog.send("and after that?")
+    drill_msgs2 = [m["text"] for m in dvault.messages_for(drill_chat) if m["who"] == "tars"]
+    drill_rows = [m for m in dvault.messages_for(drill_chat) if m["who"] == "tars"]
+    surv_row = (drill_rows[0]["hue"], drill_rows[0]["lane"])  # the confession, mint law
+    surv_speak = dvault.kv_get(f"speak_request:{drill_rows[0]['id']}")
+    plain_speak = dvault.kv_get(f"speak_request:{drill_rows[1]['id']}")
+    dvault.close()
+    expect(out, boots_off and drill_msgs[0].startswith("Power event at ")
+               and drill_msgs[0].endswith("Memory intact. Nothing lost.")
+               and drill_msgs[1] == "alive answer",
+           "drill: boots OFF, survival line speaks FIRST on the first summon, intact confession")
+    expect(out, "Power event" not in " | ".join(drill_msgs2[1:])
+               and dmachine.state == "armed",
+           "drill: a second summon NEVER repeats the report; the machine restores to ARMED per state.py")
+    expect(out, surv_row == ("local", None) and surv_speak == "queued" and plain_speak is None,
+           "drill: the confession mints LOCAL and queues its own voice; ordinary answers never do")
     lx = LogX(zone / "logs.jsonl")
     torn = False
     try:
@@ -3274,6 +3668,9 @@ def _child_crash_worker(zone: Path) -> None:
     crash_look = Lookd(crash_ops, HeuristicClassifier(), None, Bus(), time_fn=lambda: 1000.0)
     crash_look.start()
     crash_look.tick(1004.0)
+    # P-CORE-9: the drill — this child run marks itself dirty at boot and never reaches a
+    # clean exit (the SIGKILL is the power cut)
+    drill_boot(vault)
     print("READY", flush=True)
     burst = 0
     while True:
@@ -3288,7 +3685,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look + watcher batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -3305,6 +3702,7 @@ def main() -> int:
     _dailyops_checks(base, out)
     _telesend_checks(base, out)
     _look_checks(base, out)
+    _watcher_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

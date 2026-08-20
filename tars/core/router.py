@@ -46,6 +46,11 @@ class Router:
         self._bus = bus
         self._lock = threading.Lock()  # serializes ring/reply book-keeping across council threads
 
+    @property
+    def ring(self):
+        """Read handle for the Watcher's gauge report (P-CORE-9) — reads only, never routes."""
+        return self._ring
+
     def gate(self, text: str) -> str:
         lowered = text.strip().lower()
         if lowered.startswith("council"):

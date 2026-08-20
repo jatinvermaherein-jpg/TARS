@@ -178,3 +178,25 @@ GREEN local acks: short past-tense templates, numbers in words — *"Volume set 
 | `enough` · `stop looking` · `screen dekhna band` | "enough" · "stop looking" · "screen dekhna band" | `Eyes off. The screen is yours again.` (mint; idle auto-off after 600s quiet: `Nothing to watch for ten minutes. Eyes off.`; panic kill any state: watcher + buffer drop in the same instant via the standing close event) |
 
 *Privacy law at every eye deed: the frame buffer is RAM-only, newest-wins ×3, NEVER persisted; rolling capture without a question or narration spends ZERO ring; the §34 Never-List scans look-questions pre-eyes; a private frame is dropped at the classifier and never enters the buffer. Hue two-truths: amber = cloud eyes answered; mint = the session deed.*
+
+## v1.4 — WATCHER (APPEND-ONLY, P-CORE-9 · Architect decree Aug 20, 2026)
+*Every v1.0–v1.3 byte above stands unchanged. These rows join the parse order at (5e), after LOOK: the pulse rows. Closed Hinglish alias, declared once: `status bata` (status digest). EVERY watcher row is a pure LOCAL read — zero ring spend, counter-pinned in the battery. §29 doctrine: the meter SHOWS; nothing cages — no render refuses, blocks, or deletes on size. Reports may carry digits (they're reports, not acks); the declared voice is literal-pinned.*
+
+### 24. Status digest + key gauge (the morning report; `status`/`system status` earn the real row this phase)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `status` · `system status` · `status report` · `status bata` | "status" · "system status" · "status bata" | five-line digest: `Keys: <h> of <t> healthy (<w> warn, <s> spent).` · storage meter · RAM · creep · uptime (reading-or-honest-line law at every meter) |
+| `how are the keys` | "how are the keys" | `Key gauge:` — one row per ring key `<name> <lane>: <pct>% left, <ok|warn|spent>.` + the summary tail (warn inclusive at 20% remaining; midnight reset on the local-date flip) |
+
+### 25. Storage + RAM meters (§29 visibility only — NEVER enforcement)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `storage status` | "storage status" | `Storage meter: vault <v> MB · brain <b> MB · disk free <g> GB. Meter only, by law.` (past the 2 GB soft-mark one advisory sentence is appended — visibility, never a block; unavailable meter: the canon line) |
+| `is ram ok` | "is ram ok" | `RAM in use: <percent words> percent.` (unavailable: `The RAM meter isn't available here. I won't guess.`) |
+
+### 26. Startup-creep watch (Law 3 self-policed)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `startup check` · `what's creeping in` · `what is creeping in` | "startup check" · "what's creeping in" · "what is creeping in" | clean: `Startup is clean. Nothing crept in.` · additions numbered: `<name> added itself to startup. Your call whether it stays.` · a tars-named entry is a FIRST-CLASS violation: `<name> put TARS in startup. That breaks Law 3 — flagged, never ignored.` (first snapshot baselines honestly) |
+
+*The power-cut drill is machine-side (no row): every run boots marked dirty and proves innocence at stand-down/kill; a dirty prior end = a power event confessed ONCE on the first summon — `Power event at <h:mm AM|PM>. Memory intact. Nothing lost.` — with an honest damage variant naming verified losses. Boot after any outage is OFF (Law 3), and the restore test asserts the machine resumes exactly where state.py left it.*

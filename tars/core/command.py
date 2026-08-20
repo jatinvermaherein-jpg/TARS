@@ -24,6 +24,7 @@ from tars.core import canon, clockd, office, telesend
 from tars.core.classifier import ModelClassifier
 from tars.core.lookd import Lookd
 from tars.core.operator import APP_ALIASES
+from tars.core.watcher import Watcher
 
 # --- moved here from dialog.py (P-CORE-2 handlers consolidated; behavior byte-identical)
 DIAL_NAMES = ("humor", "vernacular", "discretion", "trust", "honesty")
@@ -129,7 +130,7 @@ class CommandLayer:
 
     def __init__(self, settings, vault, executor, search_lanes, finder, log, bus, clock=None,
                  time_fn=None, router=None, clockd=None, ops=None, desktop=None, tele=None,
-                 lookd=None):
+                 lookd=None, watcher=None):
         self._settings = settings
         self._vault = vault
         self._executor = executor
@@ -149,6 +150,10 @@ class CommandLayer:
         # gate everywhere the <100MB weights haven't landed (import-guarded, zero wire).
         self._lookd = lookd if lookd is not None else (
             Lookd(ops, ModelClassifier(), router, bus, time_fn=self._time) if ops is not None else None)
+        # P-CORE-9 Watcher: reads the LIVE ring + the ONE ops seam; never duplicated math.
+        self._watcher = watcher if watcher is not None else (
+            Watcher(router.ring, ops, vault, time_fn=self._time)
+            if ops is not None and router is not None else None)
 
     @property
     def clockd_unit(self):
@@ -159,6 +164,11 @@ class CommandLayer:
     def lookd_unit(self):
         """The look session the dialog heartbeats + the 'look' quick_action toggles."""
         return self._lookd
+
+    @property
+    def watcher_unit(self):
+        """The pulse-reader the 'status' quick_action serves (same object the rows answer with)."""
+        return self._watcher
 
     # ---------- gates (RED verbs) ----------
 
@@ -296,7 +306,10 @@ class CommandLayer:
             dials = self._settings.dials
             return self._plan([(canon.boot_line(dials["humor"], dials["vernacular"]), "local", None)], new_chat=True)
         if t in ("status", "system status"):
-            return self._plan([(canon.pending_line("The Watcher report", "P-CORE-9"), "local", None)])
+            # P-CORE-9 owns this row now: the live digest, zero ring. (The v1.0-era pending
+            # pin retired with the phase that was named in it — disclosure at the battery site.)
+            report = self._watcher.status_report() if self._watcher else canon.LINE_CATCH_ALL
+            return self._plan([(report, "local", None)])
         if t in ("commands", "help"):
             return self._plan([(COMMANDS_HELP, "local", None)])
         if t in ("what time is it", "what is the time"):
@@ -352,6 +365,11 @@ class CommandLayer:
         lookplan = self._look_rows(t)
         if lookplan is not None:
             return lookplan
+
+        # (5e) Watcher (grammar v1.4: pulse rows — every one a LOCAL read, zero ring)
+        watchplan = self._watch_rows(t)
+        if watchplan is not None:
+            return watchplan
 
         # (6) operator RED — the typed-YES gate
         red = self._red(t)
@@ -810,6 +828,26 @@ class CommandLayer:
             if not unit.watching:
                 return self._plan([(canon.LINE_LOOK_NOT_WATCHING, "local", None)])
             return self._plan(unit.answer(t)["replies"])
+        return None
+
+    # ---------- Watcher rows (grammar v1.4): the pulse, read locally, zero ring ----------
+
+    def _watch_rows(self, t: str):
+        unit = self._watcher
+        if unit is None:
+            return None
+        watch_rows = {
+            "status report": unit.status_report,
+            "status bata": unit.status_report,      # closed Hinglish alias (declared v1.4)
+            "how are the keys": unit.gauge_report,
+            "storage status": unit.storage_report,
+            "is ram ok": unit.ram_report,
+            "startup check": unit.creep_report,
+            "what's creeping in": unit.creep_report,
+            "what is creeping in": unit.creep_report,
+        }
+        if t in watch_rows:
+            return self._plan([(watch_rows[t](), "local", None)])
         return None
 
     def _red(self, t: str):
