@@ -84,12 +84,30 @@ wrote-nothing belt pin, v1.5 rows zero-ring + audience-gated, and the
 roadmap acceptance pinned end-to-end: journal folds -> profiles update ->
 tomorrow's recall. The crash child now also folds mid-burst: reopen finds
 zero tmp debris and every page complete-or-absent.
+P-CORE-11 battery (Part IX — leave cleanly + the §31 matrix): the Handover —
+triple-gated (Cooper tier -> spoken passphrase over the STANDING hash flow
+-> typed CONFIRM) -> the keys question (both branches: kept ring whole /
+disowned ring honestly spent, caller-provided secrets mapping) -> the
+10-second abortable window ("abort handover" AND "cancel", the bare word is
+conversation), Law 5 at the window AND at the gates (dead, never fired),
+a crashed countdown found DEAD on reopen (battery + crash child), the §30
+wipe per-store atomic (mid-wipe halt halves nothing) with EXACTLY ONE
+surviving log line, the factory greeting once (mint LOCAL), re-ask restarts
+at the gates, every farewell line hue-LOCAL, blast-radius sentinels
+byte-standing, irreversibility grep-pinned, ZERO ring across the flow, and
+the audience-tier matrix over every personal surface (memory recall,
+persona memory block both cells, people/inner explorer, journal read-back,
+sent recall, tree/counts structural-open) x {cooper, family, guest} with
+PERSONAL-CANARY swept absent from every non-Cooper surface and every ring
+payload under their watch — the rolling history window now rides Cooper
+only (machine-taught this phase: the side window leaked prior answers).
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
 import io
 import json
 import os
+import re
 import signal
 import struct
 import subprocess
@@ -109,8 +127,8 @@ from tars.core.adapters import GROQ_URL, OPENROUTER_URL, TIMEOUT_S, FixtureAdapt
 from tars.core.bus import EVENT_TYPES, Bus
 from tars.core.capture import FakeCapture, SoundDeviceCapture
 from tars.core.clockd import Clockd, GRACE_S, parse_alarm, parse_reminder, parse_timer
-from tars.core.command import (COMMANDS_HELP, GATE_TTL_S, CommandLayer, never_list_hit,
-                               parse_dial_command, remember_payload)
+from tars.core.command import (COMMANDS_HELP, GATE_TTL_S, NEAR_MISS_MARKERS, CommandLayer,
+                               never_list_hit, parse_dial_command, remember_payload)
 from tars.core.dailyops import FixtureOps, NtOps, png_bytes
 from tars.core.dialog import Dialog, classify_memory
 from tars.core.ears import (RMS_THRESHOLD, EarLadder, FixtureEarEngine, GroqEarsAdapter, WhisperSmallLocal,
@@ -128,6 +146,8 @@ from tars.core.wake import FixtureWakeEngine, PorcupineWakeEngine, wake_turn
 from tars.core.findfile import (CONFIDENT_LEAD, FileFinder, MAX_LIST, RECENCY_BONUS, TOKEN_SCORE,
                                 finder_roots_from_env)
 from tars.core.gauge import council_note, gauge_rows
+from tars.core.handover import (COUNTDOWN_S, DEADLINE_KEY, FACTORY_KEY, KEEP_KEYS_KEY,
+                                STAGE_KEY, WIPE_ORDER, Handover)
 from tars.core.keys import LANE_CAPS, KeyState, Ring, load_ring, parse_env_file
 from tars.core.logx import LogX
 from tars.core.mouth import EdgeTier, FixtureTier, Mouth, PiperTier, SapiTier
@@ -4011,6 +4031,479 @@ def _brain_checks(base: Path, out) -> None:
         subprocess.Popen = real_popen
 
 
+def _handover_checks(base: Path, out) -> None:
+    """P-CORE-11 battery (Part IX — leave cleanly + the §31 matrix): the triple-gated,
+    abortable farewell (voice tier -> spoken pass -> typed CONFIRM -> keys choice -> 10s
+    window), Law 5 cold inside the window, the §30 wipe per-store atomic with EXACTLY ONE
+    surviving log line, the factory greeting once, zero ring at every gate, irreversibility
+    grep-pinned, and the audience-tier matrix swept PERSONAL-CANARY across every personal
+    surface. Net/spawn seams patched RAISE, per decree."""
+    zone = base / "handover"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    CANARY = "PERSONAL-CANARY-47"
+    INNER_CANARY = "CANARY-INNER-31 speaks fast"
+
+    def hand_universe(name, groq_script=()):
+        path = zone / name
+        path.mkdir(parents=True, exist_ok=True)
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", list(groq_script))
+        or_fx = FixtureAdapter("openrouter", [])
+        router = Router(load_ring(full_source), {"groq": groq_fx, "openrouter": or_fx}, vault, bus)
+        layer = CommandLayer(settings, vault, FixtureExecutor(), SearchLanes(FixtureSearch({})),
+                             FileFinder([]), log, bus, router=router, clockd=Clockd(vault, bus),
+                             ops=FixtureOps(None))
+        dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
+        # enroll Cooper WITH a passphrase through a SEPARATE store instance (enrollment's shape)
+        store = ProfileStore(path / "profiles.json", log)
+        store.add({"name": "Cooper", "relationship": "self", "tier": "cooper",
+                   "passSalt": "salt1", "passHash": hash_passphrase("open sesame", "salt1")})
+        return {"path": path, "vault": vault, "bus": bus, "events": events, "machine": machine,
+                "router": router, "gfx": groq_fx, "ofx": or_fx, "layer": layer, "dialog": dialog,
+                "log": log, "settings": settings, "store": store,
+                "handover": layer.handover_unit, "brain": layer.brain_unit}
+
+    def said(univ, chat=1) -> list:
+        return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    def personal_corpus(univ) -> None:
+        """Every personal store carries the canary — the matrix and the wipe read from truth."""
+        univ["vault"].remember("note", f"the wifi code is {CANARY}")
+        univ["vault"].contact_save("matrixbhaiya", "telegram", "@mx_bhaiya")
+        univ["vault"].sent_add("telegram", "matrixbhaiya", "text", CANARY, 900.0)
+        univ["vault"].reminder_insert(f"call about {CANARY}", 1000.0, "", "reminder")
+        root = univ["brain"].root
+        (root / "people" / "mb.md").write_text(f"# Ma\nWorry-voice. {CANARY}\n", encoding="utf-8")
+        (root / "inner" / "iv.md").write_text(f"{INNER_CANARY}\n", encoding="utf-8")
+        (root / "lessons" / "never-guess.md").write_text(
+            "# Never guess a command target\nThe near-miss law holds.\n", encoding="utf-8")
+        univ["dialog"].send(f"remember that {CANARY} stays home")  # today's journal material
+
+    real_urlopen = urllib.request.urlopen
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def _no_net(*args, **kwargs):
+        raise AssertionError("network lifted inside the sandbox battery")
+
+    def _no_spawn(*args, **kwargs):
+        raise AssertionError("subprocess spawned inside the sandbox battery")
+
+    urllib.request.urlopen = _no_net
+    subprocess.run = _no_spawn
+    subprocess.Popen = _no_spawn
+    try:
+        # --- decreed literals + the generative pair, byte-exact
+        expect(out, canon.LINE_HANDOVER_VOICE_ONLY == "Only Cooper hands TARS over."
+               and canon.LINE_HANDOVER_PASS == "Passphrase, please. Spoken."
+               and canon.LINE_HANDOVER_CONFIRM == ("Type CONFIRM to erase my memories. "
+                                                   "This is a goodbye. It cannot be undone.")
+               and canon.LINE_HANDOVER_ABORTED == "Handover aborted. Everything stays."
+               and canon.LINE_FACTORY == ("Factory state. New commander, identify yourself. "
+                                          "Honesty: ninety. Humor: five."),
+               "decreed v1.6 literals byte-exact (five gates of the farewell)")
+        expect(out, canon.handover_countdown_line() == "Wiping in ten. Say abort to stop me."
+               and canon.handover_countdown_line(3) == "Wiping in three. Say abort to stop me."
+               and canon.handover_keys_line() == "Keep the API keys for the machine? YES keeps them.",
+               "the countdown number is truthful in words; the keys question is Part IX's ask")
+        expect(out, canon.handover_countdown_line(1) == "Wiping in one. Say abort to stop me.",
+               "the countdown number stays truthful at the singular boundary (one, not ones)")
+
+        # --- irreversibility, grep-level: no copy, no shadow, no undo path in the engine
+        hsrc = (REPO_ROOT / "tars" / "core" / "handover.py").read_text()
+        expect(out, "shutil.copy" not in hsrc and "copytree" not in hsrc and "copy2" not in hsrc
+               and "backup" not in hsrc.lower()
+               and WIPE_ORDER == ("vault", "profiles", "settings", "secrets", "brain", "logs"),
+               "irreversibility law: no backup/undo/copy seam anywhere — the declared wipe order stands")
+
+        # --- the gates: tier law, answer-or-cancel law at every gated stage, zero ring
+        h1 = hand_universe("h1", groq_script=[("ok", "a plain conversation answer", 5)])
+        personal_corpus(h1)
+        h1["machine"].set_audience("family")
+        h1["dialog"].send("tars handover")
+        h1["machine"].set_audience("guest")
+        h1["dialog"].send("tars handover")
+        expect(out, said(h1)[-2:] == [canon.LINE_HANDOVER_VOICE_ONLY, canon.LINE_HANDOVER_VOICE_ONLY]
+               and h1["handover"].active() is None,
+               "tier law: family AND guest hear the voice-only line and NO flow ever starts")
+        h1["machine"].set_audience("cooper")
+        h1["dialog"].send("tars handover")
+        h1["dialog"].send("wrong words entirely")
+        expect(out, said(h1)[-2:] == [canon.LINE_HANDOVER_PASS, canon.LINE_HANDOVER_ABORTED]
+               and h1["vault"].kv_get(STAGE_KEY) == ""
+               and any(CANARY in r["text"] for r in h1["vault"].recall()),
+               "a wrong passphrase cancels honestly — stage dead, every memory byte still home")
+        h1["dialog"].send("tars handover")
+        h1["dialog"].send("open sesame")
+        h1["dialog"].send("maybe later")  # anything-else law at the typed gate
+        expect(out, said(h1)[-3:] == [canon.LINE_HANDOVER_PASS, canon.LINE_HANDOVER_CONFIRM,
+                                      canon.LINE_HANDOVER_ABORTED],
+               "pass verified via the standing hash flow; a non-CONFIRM utterance cancels honestly")
+        h1["dialog"].send("tars handover")
+        h1["dialog"].send("open sesame")
+        h1["dialog"].send("confirm")
+        h1["dialog"].send("maybe")
+        expect(out, said(h1)[-2:] == [canon.handover_keys_line(), canon.LINE_HANDOVER_ABORTED],
+               "the keys question insists on YES or NO — a shrug cancels, everything stays")
+        h1["dialog"].send("tars handover")
+        h1["dialog"].send("open sesame")
+        h1["dialog"].send("confirm")
+        h1["dialog"].send("yes")
+        expect(out, said(h1)[-1] == "Wiping in ten. Say abort to stop me."
+               and h1["handover"].active() == "countdown"
+               and abs(float(h1["vault"].kv_get(DEADLINE_KEY)) - time.time()) <= COUNTDOWN_S,
+               "the window opens: truthful countdown line, deadline stamped, state countable")
+        h1["dialog"].send("abort handover")
+        expect(out, said(h1)[-1] == canon.LINE_HANDOVER_ABORTED
+               and any(CANARY in r["text"] for r in h1["vault"].recall())
+               and (h1["brain"].root / "people" / "mb.md").is_file(),
+               "abort inside the window: flow dead, ZERO wipe — the corpus stands whole")
+        h1["dialog"].send("tars handover")
+        h1["dialog"].send("open sesame")
+        h1["dialog"].send("confirm")
+        h1["dialog"].send("yes")
+        h1["dialog"].send("cancel")  # the window's second word carries the same law
+        expect(out, said(h1)[-1] == canon.LINE_HANDOVER_ABORTED
+               and h1["handover"].active() is None
+               and any(CANARY in r["text"] for r in h1["vault"].recall()),
+               "'cancel' inside the window aborts identically — zero wipe, flow dead")
+        h1["dialog"].send("tars handover")
+        h1["dialog"].send("open sesame")
+        h1["dialog"].send("confirm")
+        h1["dialog"].send("yes")
+        h1["dialog"].send("abort")  # the bare word is CONVERSATION, not an abort — deliberate
+        expect(out, said(h1)[-1] == "a plain conversation answer"
+               and h1["handover"].active() == "countdown",
+               "near-miss discipline: 'abort' alone routes to the ring; the window stays honest")
+        h1["dialog"].send("tars handover")  # re-asked mid-window: the farewell re-gates itself
+        expect(out, said(h1)[-1] == canon.LINE_HANDOVER_PASS
+               and h1["handover"].active() == "pass"
+               and h1["handover"].tick() is False,
+               "re-asking mid-window restarts at the passphrase gate — the old deadline inert, zero wipe")
+        h1["dialog"].send("open sesame")  # re-drive to the window so the kill below stays in it
+        h1["dialog"].send("confirm")
+        h1["dialog"].send("yes")
+        h1["machine"].kill()  # Law 5 inside the countdown
+        expect(out, h1["handover"].active() is None
+               and any(CANARY in r["text"] for r in h1["vault"].recall())
+               and (h1["brain"].root / "inner" / "iv.md").is_file(),
+               "Law 5 in the window: instant death, NO wipe — the farewell was never spoken")
+        expect(out, len(h1["gfx"].received) == 1 and h1["ofx"].received == [],
+               "ZERO-RING flow: the only adapter call in the whole battery is the deliberate conversation one")
+        farewell_lines = {canon.LINE_HANDOVER_VOICE_ONLY, canon.LINE_HANDOVER_PASS,
+                          canon.LINE_HANDOVER_CONFIRM, canon.LINE_HANDOVER_ABORTED,
+                          canon.handover_keys_line(), canon.handover_countdown_line(COUNTDOWN_S)}
+        farewell_rows = [m for m in h1["vault"].messages_for(1)
+                         if m["who"] == "tars" and m["text"] in farewell_lines]
+        expect(out, len(farewell_rows) >= 10
+               and all(m["hue"] == "local" and m["lane"] is None for m in farewell_rows),
+               "hue law: EVERY farewell line mints LOCAL, lane-less — privacy visible by hue (Law 1)")
+
+        # --- the wipe, keep-keys branch: §30 ledger order, sole survivor, blast-radius negative
+        h2 = hand_universe("h2", groq_script=[("ok", "welcome aboard", 5)])
+        personal_corpus(h2)
+        h2["settings"].set_dial("humor", 60)  # a moved dial must return to birth
+        sentinel_dir = h2["path"] / "UserFiles"
+        (sentinel_dir / "docs").mkdir(parents=True)
+        (sentinel_dir / "docs" / "homework.txt").write_text("Cooper's essay", encoding="utf-8")
+        (h2["path"] / "WindowsMarker").write_text("nt-marker", encoding="utf-8")
+        h2["dialog"].send("tars handover")
+        h2["dialog"].send("open sesame")
+        h2["dialog"].send("confirm")
+        h2["dialog"].send("yes")
+        h2["vault"].kv_set(DEADLINE_KEY, str(time.time() - 1))  # the window closes, clock told true
+        expect(out, h2["handover"].tick() is True
+               and h2["gfx"].received == [] and h2["ofx"].received == [],
+               "countdown completion alone fires the wipe — zero calls, a farewell never phones a friend")
+        keep_ring = h2["router"].ring.keys()
+        expect(out, h2["vault"].recall() == [] and h2["vault"].messages_for(1) == []
+               and h2["vault"].chat_rows() == [] and h2["vault"].memory_count() == 0
+               and h2["vault"].sent_count() == 0 and h2["vault"].contact_get("matrixbhaiya") is None
+               and h2["vault"].integrity() == "ok",
+               "§30: every personal vault table empty in one transaction — schema stands, integrity ok")
+        expect(out, h2["vault"].clock_counts() == {"reminders_pending": 0, "timers_pending": 0}
+               and h2["vault"].ledger_total() == 0,
+               "§30 continued: the clock emptied with the person; spend counters reset — operational, declared")
+        expect(out, ProfileStore(h2["path"] / "profiles.json", h2["log"]).pass_credentials() is None
+               and list_members(ProfileStore(h2["path"] / "profiles.json", h2["log"])) == []
+               and h2["settings"].dials == {"humor": 5, "vernacular": 30, "discretion": 95, "trust": 25},
+               "voiceprints + passphrase wiped (the Member File stands EMPTY); dials back at birth")
+        settings_raw = json.loads((h2["path"] / "settings.json").read_text(encoding="utf-8"))
+        expect(out, settings_raw["honesty"] == 90 and settings_raw["dials"]["humor"] == 5,
+               "settings.json on DISK wears factory bytes — honesty 90 standing, humor back at five")
+        logx_check = LogX(h2["path"] / "logs.jsonl")
+        survivor_lines = logx_check.count()
+        survivor_raw = (h2["path"] / "logs.jsonl").read_text(encoding="utf-8")
+        logx_check.close()
+        expect(out, survivor_lines == 1
+               and "Handover executed " in survivor_raw
+               and re.search(r"Handover executed \d{4}-\d{2}-\d{2}", survivor_raw),
+               "EXACTLY ONE log line survives: 'Handover executed <date>', valid parseable jsonl")
+        expect(out, not h2["brain"].root.exists()
+               and len(keep_ring) == 8 and h2["vault"].kv_get(FACTORY_KEY) == "yes",
+               "tars-brain wiped in full; YES kept the ring whole; the factory flag is owed")
+        expect(out, (h2["path"] / "UserFiles" / "docs" / "homework.txt").read_bytes()
+               == b"Cooper's essay"
+               and (h2["path"] / "WindowsMarker").read_bytes() == b"nt-marker",
+               "blast radius: Windows + user files 100% OUTSIDE the wipe — sentinels byte-identical")
+        expect(out, h2["vault"].kv_get("drill:clean_exit") is None
+               and h2["vault"].kv_get(STAGE_KEY) is None,
+               "the drill markers died with the vault — the reboot boots silent-clean by the drill's own law")
+        expect(out, h2["vault"].kv_get(KEEP_KEYS_KEY) is None
+               and h2["vault"].kv_get(DEADLINE_KEY) is None,
+               "the gate flags died with the person — only the factory flag is owed to the machine")
+
+        # --- the factory greeting: once, mint, first-of-everything — then never again
+        b2_log = LogX(h2["path"] / "logs.jsonl")
+        b2_settings = Settings.load(h2["path"] / "settings.json", b2_log)
+        b2_bus = Bus()
+        b2_machine = Machine(b2_settings, b2_log, b2_bus)
+        b2_fx = FixtureAdapter("groq", [("ok", "welcome aboard", 5), ("ok", "settling in", 5)])
+        b2_router = Router(h2["router"].ring, {"groq": b2_fx,
+                                               "openrouter": FixtureAdapter("openrouter", [])},
+                           h2["vault"], b2_bus)
+        b2_layer = CommandLayer(b2_settings, h2["vault"], FixtureExecutor(),
+                                SearchLanes(FixtureSearch({})), FileFinder([]), b2_log, b2_bus,
+                                router=b2_router, clockd=Clockd(h2["vault"], b2_bus),
+                                ops=FixtureOps(None))
+        b2_dialog = Dialog(b2_settings, h2["vault"], b2_router, b2_machine, b2_bus,
+                           command_layer=b2_layer)
+        b2_dialog.send("hello?")
+        b2_dialog.send("and now?")
+        factory_chat = max(r["id"] for r in h2["vault"].chat_rows())  # AUTOINCREMENT sequence
+        new_rows = [m for m in h2["vault"].messages_for(factory_chat) if m["who"] == "tars"]
+        new_chat = [m["text"] for m in new_rows]
+        expect(out, new_chat[0] == canon.LINE_FACTORY
+               and sum(1 for line in new_chat if line == canon.LINE_FACTORY) == 1
+               and new_rows[0]["hue"] == "local" and new_rows[0]["lane"] is None
+               and h2["vault"].kv_get(FACTORY_KEY) == "no",
+               "LINE_FACTORY: spoken ONCE, mint LOCAL, first of everything — never a second greeting")
+        expect(out, new_chat[-1] == "settling in"
+               and len(b2_fx.received) == 2,
+               "the new commander's ring answers normally — the wiped machine works at factory truth")
+
+        # --- the disown branch: keys answered NO — mapping cleared, ring refuses honestly
+        h3 = hand_universe("h3")
+        personal_corpus(h3)
+        h3["dialog"].send("tars handover")
+        h3["dialog"].send("open sesame")
+        h3["dialog"].send("confirm")
+        h3["dialog"].send("no")
+        h3["vault"].kv_set(DEADLINE_KEY, str(time.time() - 1))
+        h3["handover"].tick()
+        disown_answer = h3["router"].route("hello")
+        expect(out, h3["router"].ring.keys() == []
+               and disown_answer["ok"] is False and disown_answer["text"] == canon.LINE_ALL_SPENT,
+               "NO at the keys gate: the live ring lets go — the next call refuses honestly")
+        secrets_map = {"GROQ_KEY_1": "gsk-secret"}
+        hv = hand_universe("h3b")
+        unit_hand = Handover(hv["vault"], hv["bus"], hv["store"], hv["settings"],
+                             hv["path"] / "logs.jsonl", secrets=secrets_map)
+        hv["machine"].set_audience("cooper")
+        unit_hand.open(hv["machine"])
+        unit_hand.handle("open sesame")
+        unit_hand.handle("confirm")
+        unit_hand.handle("no")
+        hv["vault"].kv_set(DEADLINE_KEY, str(time.time() - 1))
+        unit_hand.tick()
+        expect(out, secrets_map == {} and hv["vault"].kv_get(FACTORY_KEY) == "yes",
+               "the caller-provided secrets mapping is disowned (nt file-erase is AiO-era truth)")
+
+        # --- countdown mechanics: held before the deadline; a crashed countdown never resumes
+        h4 = hand_universe("h4")
+        personal_corpus(h4)
+        expect(out, h4["handover"].active() is None and h4["handover"].tick() is False,
+               "a heartbeat on an untouched vault is born cold — no stage alive, nothing fires")
+        h4["vault"].kv_set(STAGE_KEY, "something-foreign")
+        expect(out, h4["handover"].active() is None and h4["handover"].tick() is False,
+               "a foreign stage value is no stage — the state machine reads exactly four literals")
+        h4["vault"].kv_set(STAGE_KEY, "")
+        h4["dialog"].send("tars handover")
+        h4["dialog"].send("open sesame")
+        h4["dialog"].send("confirm")
+        expect(out, h4["handover"].active() == "keys" and h4["handover"].tick() is False,
+               "the heartbeat is stage-gated, not only deadline-gated — no deadline exists before the window")
+        h4["dialog"].send("yes")
+        expect(out, h4["handover"].tick() is False
+               and any(CANARY in r["text"] for r in h4["vault"].recall()),
+               "inside the window the tick holds — the deadline, not the mood, fires the wipe")
+        h4["vault"].kv_set(STAGE_KEY, "countdown")
+        h4["vault"].kv_set(DEADLINE_KEY, str(time.time() + 3600))
+        reopen = Handover(h4["vault"], h4["bus"], h4["store"], h4["settings"],
+                          h4["path"] / "logs.jsonl")
+        expect(out, reopen.active() is None
+               and reopen.tick() is False
+               and any(CANARY in r["text"] for r in h4["vault"].recall()),
+               "a countdown found on a reopened process is DEAD — never resumed, never fired")
+        # the standing heartbeat seam drives it: a send with a crossed deadline lands the wipe
+        h4["vault"].kv_set(STAGE_KEY, "countdown")
+        h4["vault"].kv_set(KEEP_KEYS_KEY, "yes")
+        h4["vault"].kv_set(DEADLINE_KEY, str(time.time() - 1))
+        h4["dialog"].send("what's in your brain")  # a LOCAL row: zero ring even across the wipe
+        expect(out, h4["vault"].kv_get(FACTORY_KEY) == "yes"
+               and h4["vault"].recall() == []
+               and said(h4)[-1] == canon.LINE_BRAIN_NEW,
+               "the dialog heartbeat observed the deadline — the wipe fired on the standing tick seam")
+
+        # --- per-store atomicity: a failure BETWEEN stores leaves truth on both sides
+        h5 = hand_universe("h5")
+        personal_corpus(h5)
+        h5["dialog"].send("tars handover")
+        h5["dialog"].send("open sesame")
+        h5["dialog"].send("confirm")
+        h5["dialog"].send("yes")
+        h5["vault"].kv_set(DEADLINE_KEY, str(time.time() - 1))
+
+        def trip_secrets(_keep):
+            raise RuntimeError("power cut mid-wipe (battery pose)")
+        h5["handover"]._wipe_secrets = trip_secrets
+        try:
+            h5["handover"].tick()
+        except RuntimeError:
+            pass
+        expect(out, h5["vault"].recall() == []
+               and not ProfileStore(h5["path"] / "profiles.json", h5["log"]).pass_credentials()
+               and (h5["brain"].root / "people" / "mb.md").is_file()
+               and len(h5["router"].ring.keys()) == 8,
+               "mid-wipe halt: earlier stores wholly wiped, later stores wholly standing — never half")
+        h5["handover"]._wipe_secrets = Handover._wipe_secrets.__get__(h5["handover"], Handover)
+        h5["handover"]._wipe(False)  # the re-run is lawful: an unwiped farewell completes
+        expect(out, not h5["brain"].root.exists()
+               and h5["vault"].kv_get(FACTORY_KEY) == "yes"
+               and LogX(h5["path"] / "logs.jsonl").count() == 1,
+               "an interrupted farewell completes wholesale on re-run — per-store atomicity holds")
+
+        # --- the OTHER closes on the live flow: stand down folds lawfully but never fires;
+        # a kill at a mid gate is as dead as a kill in the window (ANY close kills the flow)
+        h6 = hand_universe("h6", groq_script=[("ok", "night fold", 5)])
+        personal_corpus(h6)
+        h6["dialog"].send("tars handover")
+        h6["dialog"].send("open sesame")
+        h6["dialog"].send("confirm")
+        h6["dialog"].send("yes")
+        h6["dialog"].send("stand down")  # the ordinary goodnight, said inside the farewell window
+        expect(out, h6["handover"].active() is None
+               and any(CANARY in r["text"] for r in h6["vault"].recall())
+               and said(h6)[-1] == canon.LINE_EXIT
+               and h6["vault"].kv_get(FACTORY_KEY) is None,
+               "stand down inside the window: the close kills the farewell, NEVER fires it")
+        h6b = hand_universe("h6b")
+        h6b["dialog"].send("tars handover")
+        h6b["dialog"].send("open sesame")
+        h6b["machine"].kill()  # Law 5 at a mid gate, not only the window
+        expect(out, h6b["handover"].active() is None
+               and h6b["vault"].kv_get(FACTORY_KEY) is None
+               and h6b["gfx"].received == [] and h6b["ofx"].received == [],
+               "Law 5 at the gates too: dead at the passphrase is as dead as the countdown")
+
+        # --- §31 the audience-tier matrix: every personal surface x every tier, canary-swept
+        m1 = hand_universe("m1", groq_script=[("ok", "generic answer one", 5),
+                                              ("ok", "generic answer two", 5),
+                                              ("ok", "generic answer three", 5),
+                                              ("ok", "generic answer four", 5),
+                                              ("ok", "generic answer five", 5),
+                                              ("ok", "generic answer six", 5)])
+        personal_corpus(m1)
+        m1["dialog"].send("stand down")   # fold today so the journal surface carries the canary
+        # COOPER — full matrix allowance (the owner sees his own)
+        m1["dialog"].send(f"what do you remember about {CANARY.lower()}")
+        m1["dialog"].send("read me my journal")
+        cooper_ok = said(m1)[-2:]
+        coop_people = m1["dialog"].brain_text("people/mb.md")
+        coop_inner = m1["dialog"].brain_text("inner/iv.md")
+        m1["dialog"].send("what did i send matrixbhaiya")
+        m1["dialog"].send("what's in your brain")
+        m1["dialog"].send("what did you learn today")
+        cooper_open = said(m1)[-3:]
+        expect(out, CANARY in cooper_ok[0]
+               and CANARY in cooper_ok[1] and CANARY in coop_people
+               and INNER_CANARY in coop_inner
+               and CANARY in cooper_open[0]
+               and cooper_open[1].startswith("My brain holds:")
+               and cooper_open[2] == "Lessons I've written down:\n1. Never guess a command target",
+               "matrix row COOPER: every personal surface answers him — recall, journal, explorer, sent")
+        m1["dialog"].send("just thinking aloud")  # the one ordinary Cooper ring turn in the matrix
+        coop_call = m1["gfx"].received[-1]
+        expect(out, said(m1)[-1] == "generic answer two"
+               and coop_call[0]["role"] == "system"
+               and persona.MEMORY_HEADER in coop_call[0]["content"]
+               and CANARY in coop_call[0]["content"],
+               "matrix allow-cell: under Cooper the persona memory block RIDES — his own system prompt")
+        # FAMILY + GUEST — refusal/allow pinned byte-exact, canary swept absent
+        matrix_report = {}
+        for tier in ("family", "guest"):
+            m1["machine"].set_audience(tier)
+            m1["dialog"].send(f"what do you remember about {CANARY.lower()}")  # falls through, no gate lie
+            recall_reply = said(m1)[-1]
+            tier_window = m1["gfx"].received[-1]  # the fall-through ring call, this tier's watch
+            expect(out, len(tier_window) == 2 and tier_window[0]["role"] == "system"
+                   and all(msg["role"] != "assistant" for msg in tier_window[1:]),
+                   f"matrix closure law: the rolling window rides empty under {tier} — "
+                   "no Cooper-era answer can leak through the side window (luck is not law)")
+            expect(out, persona.MEMORY_HEADER not in tier_window[0]["content"],
+                   f"persona-omission law re-proven at matrix scale: the {tier} payload carries NO memory block")
+            m1["dialog"].send("read me my journal")
+            journal_reply = said(m1)[-1]
+            people_gate = m1["dialog"].brain_text("people/mb.md")
+            inner_gate = m1["dialog"].brain_text("inner/iv.md")
+            tree_open = m1["dialog"].list_brain("")
+            m1["dialog"].send("what did i send matrixbhaiya")  # gated fall-through (v1.2 row hardened)
+            sent_reply = said(m1)[-1]
+            m1["dialog"].send("what's in your brain")
+            m1["dialog"].send("what did you learn today")
+            open_pair = said(m1)[-2:]
+            matrix_report[tier] = (recall_reply, journal_reply, people_gate, inner_gate,
+                                   sent_reply, open_pair, tree_open)
+        fam, gst = matrix_report["family"], matrix_report["guest"]
+        expect(out, fam[1] == canon.LINE_INNER_PRIVATE and gst[1] == canon.LINE_INNER_PRIVATE
+               and fam[2] == {"ok": False, "line": canon.LINE_INNER_PRIVATE}
+               and fam[3] == {"ok": False, "line": canon.LINE_INNER_PRIVATE}
+               and gst[2] == {"ok": False, "line": canon.LINE_INNER_PRIVATE}
+               and gst[3] == {"ok": False, "line": canon.LINE_INNER_PRIVATE},
+               "matrix: journal + people + inner answer family/guest with the refusal — zero content bytes")
+        expect(out, fam[0] == "generic answer three" and fam[4] == "generic answer four"
+               and gst[0] == "generic answer five" and gst[4] == "generic answer six",
+               "matrix: personal rows under non-Cooper FALL THROUGH to plain ring answers — no gate lie")
+        expect(out, isinstance(fam[6], list) and any(n["kind"] == "dir" for n in fam[6])
+               and fam[5][0].startswith("My brain holds:")
+               and fam[5][1] == "Lessons I've written down:\n1. Never guess a command target",
+               "matrix: the STRUCTURAL surfaces stay open — tree listing, counts, lessons (no names)")
+        joined = json.dumps(matrix_report)
+        expect(out, CANARY not in joined and INNER_CANARY not in joined
+               and CANARY not in str(m1["gfx"].received[2:])
+               and "What you remember (local vault):" not in str(m1["gfx"].received[2:]),
+               "PERSONAL-CANARY swept ABSENT from every family/guest surface and every payload under their watch")
+        # edge-tts audience rule at matrix scale: a private utterance never rides the edge tier
+        edge_probe = FixtureTier("edge", False, True)
+        dead_first = FixtureTier("piper", True, True, "fail")
+        Mouth([dead_first, edge_probe], LogX(zone / "edge-matrix.jsonl")).speak(
+            f"the wifi code is {CANARY}", private=True)
+        expect(out, edge_probe.calls == [],
+               "edge rule re-pinned under the matrix: private text never reaches the edge tier")
+
+        # --- the deliberate-hardness law + the grammar doc
+        expect(out, "handover" not in NEAR_MISS_MARKERS and "abort" not in NEAR_MISS_MARKERS
+               and "hand over" not in NEAR_MISS_MARKERS,
+               "deliberate hardness: no near-miss rescue around the farewell row — exact bytes only")
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
+               and "## v1.5 — LIVING BRAIN" in grammar and "## v1.6 — HANDOVER" in grammar
+               and "tars handover" in grammar,
+               "grammar doc: v1.6 appended, v1.0-v1.5 untouched, the alias-less row declared")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        subprocess.run = real_run
+        subprocess.Popen = real_popen
+
+
 def _crash_checks(base: Path, out) -> None:
     zone = base / "crash"
     proc = subprocess.Popen([sys.executable, "-m", "tars.core.selftest", "--child", str(zone)],
@@ -4043,6 +4536,10 @@ def _crash_checks(base: Path, out) -> None:
     crash_sent = vault.sent_count()
     crash_recall = [r["summary"] for r in vault.sent_recall("crash bhaiya")]
     crash_look_kv = vault.kv_scan("look")
+    # P-CORE-11: the SIGKILL landed mid-countdown — the pose must be real, not vacuous
+    crash_stage = vault.kv_get(STAGE_KEY)
+    crash_deadline = vault.kv_get(DEADLINE_KEY)
+    crash_keep = vault.kv_get(KEEP_KEYS_KEY)
     vault.close()
     # P-CORE-8: a mid-watch SIGKILL leaves ZERO frame bytes anywhere in the data dir
     crash_zone_files = [p for p in Path(zone).rglob("*") if p.is_file()]
@@ -4069,6 +4566,10 @@ def _crash_checks(base: Path, out) -> None:
            "people-book + sent ledger survive SIGKILL: 2 journal rows, contacts intact, recall honest")
     expect(out, frame_leaks == [] and crash_look_kv == [],
            "SIGKILL mid-watch: zero frames on disk, zero look rows in the vault, integrity already ok")
+    expect(out, crash_stage == "countdown" and crash_deadline not in (None, "")
+           and float(crash_deadline) > time.time() and crash_keep == "yes",
+           "crash child: the farewell was LIVE mid-countdown at the kill — stage, future "
+           "deadline, keep-choice all committed (the reopen law below is not vacuous)")
     # P-CORE-10: the killed child was folding its journal mid-burst — the atomic law's proof
     brain_root = zone / "tars-brain"
     brain_files = [p for p in brain_root.rglob("*") if p.is_file()]
@@ -4101,6 +4602,15 @@ def _crash_checks(base: Path, out) -> None:
     ddl = CommandLayer(dsettings, dvault, FixtureExecutor(), SearchLanes(FixtureSearch({})),
                        FileFinder([]), dlog, dbus, router=drouter, clockd=Clockd(dvault, dbus), ops=dops)
     ddialog = Dialog(dsettings, dvault, drouter, dmachine, dbus, command_layer=ddl)
+    # P-CORE-11: building the drill run put a fresh Handover on the crash vault — it found the
+    # crashed countdown. The law: DEAD, never resumed — cleared honestly, the heartbeat cold.
+    expect(out, ddl.handover_unit.active() is None and dvault.kv_get(STAGE_KEY) == ""
+           and ddl.handover_unit.tick() is False,
+           "SIGKILL mid-countdown: the reopened machine finds a DEAD countdown — cleared, never resumed")
+    expect(out, dvault.kv_get(FACTORY_KEY) is None
+           and dvault.contact_get("crash ma") == crash_ma
+           and dvault.contact_get("crash bhaiya") == crash_tele,
+           "SIGKILL mid-countdown: ZERO wipe — no factory flag owed, every personal canary standing")
     boots_off = dmachine.state == "off"
     ddialog.send("still there?")
     drill_chat = max(r["id"] for r in dvault.chat_rows())  # the drill run's own fresh chat
@@ -4161,6 +4671,12 @@ def _child_crash_worker(zone: Path) -> None:
     # P-CORE-9: the drill — this child run marks itself dirty at boot and never reaches a
     # clean exit (the SIGKILL is the power cut)
     drill_boot(vault)
+    # P-CORE-11: the farewell was LIVE mid-countdown when the power died — stage, keep-choice
+    # and a still-future deadline committed; the wipe never started (a crashed countdown
+    # is a DEAD countdown on reopen, never a resumed one)
+    vault.kv_set(STAGE_KEY, "countdown")
+    vault.kv_set(KEEP_KEYS_KEY, "yes")
+    vault.kv_set(DEADLINE_KEY, str(time.time() + COUNTDOWN_S))
     # P-CORE-10: the journal folds ATOMICALLY mid-burst, forever — the SIGKILL will land
     # somewhere inside the write stream; tmp-then-rename is the only shield
     crash_brain = Brain(vault)
@@ -4180,7 +4696,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look + watcher + brain batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look + watcher + brain + handover batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -4199,6 +4715,7 @@ def main() -> int:
     _look_checks(base, out)
     _watcher_checks(base, out)
     _brain_checks(base, out)
+    _handover_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

@@ -237,6 +237,15 @@ class ProfileStore:
         self._data["members"].append(member)
         self.save()
 
+    def wipe(self) -> None:
+        """Part IX Handover: the Member File back to factory-empty — atomically, unrecoverably."""
+        self._data = {"members": []}
+        self.save()
+
+    def refresh(self) -> None:
+        """Re-read from disk — another seam (enrollment) may have written since construction."""
+        self._data = self._load()
+
     def pass_credentials(self):
         for member in self._data["members"]:
             if member.get("passHash") and member.get("passSalt"):

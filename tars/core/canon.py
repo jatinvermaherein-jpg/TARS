@@ -424,3 +424,21 @@ def brain_tree_line(counts: dict) -> str:
     parts = " · ".join(f"{shelf} {counts.get(shelf, 0)}" for shelf in
                        ("people", "journal", "lessons", "knowledge", "plans", "inner"))
     return f"My brain holds: {parts}."
+
+# --- P-CORE-11 Handover family (grammar v1.6; Part IX — the built-in farewell) ---
+LINE_HANDOVER_VOICE_ONLY = "Only Cooper hands TARS over."
+LINE_HANDOVER_PASS = "Passphrase, please. Spoken."
+LINE_HANDOVER_CONFIRM = ("Type CONFIRM to erase my memories. This is a goodbye. "
+                         "It cannot be undone.")
+LINE_HANDOVER_ABORTED = "Handover aborted. Everything stays."
+LINE_FACTORY = "Factory state. New commander, identify yourself. Honesty: ninety. Humor: five."
+
+
+def handover_countdown_line(seconds: int = 10) -> str:
+    """The abortable window, truthful number: N seconds in words, abort word named."""
+    return f"Wiping in {number_words(seconds)}. Say abort to stop me."
+
+
+def handover_keys_line() -> str:
+    """Part IX's one question at the gate — the keys are Cooper's choice, never assumed."""
+    return "Keep the API keys for the machine? YES keeps them."

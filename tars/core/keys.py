@@ -93,6 +93,11 @@ class Ring:
         self._roll_if_needed()
         return list(self._keys)
 
+    def disown(self) -> None:
+        """Part IX Handover (keys answered NO at the gate): the live ring lets every key go.
+        next_key then finds an empty stable and refuses honestly — no key strings remain."""
+        self._keys = []
+
     def next_key(self, provider: str, lane: str):
         """Next healthy, under-cap key for the lane, walking round-robin. None = drained."""
         self._roll_if_needed()

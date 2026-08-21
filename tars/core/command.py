@@ -23,6 +23,7 @@ from datetime import datetime
 from tars.core import canon, clockd, office, telesend
 from tars.core.brain import Brain
 from tars.core.classifier import ModelClassifier
+from tars.core.handover import Handover
 from tars.core.lookd import Lookd
 from tars.core.operator import APP_ALIASES
 from tars.core.watcher import Watcher
@@ -132,7 +133,7 @@ class CommandLayer:
 
     def __init__(self, settings, vault, executor, search_lanes, finder, log, bus, clock=None,
                  time_fn=None, router=None, clockd=None, ops=None, desktop=None, tele=None,
-                 lookd=None, watcher=None, brain=None):
+                 lookd=None, watcher=None, brain=None, handover=None):
         self._settings = settings
         self._vault = vault
         self._executor = executor
@@ -160,6 +161,13 @@ class CommandLayer:
         # the router only ever serves consolidate() (ring-bounded, honestly deferred without one).
         self._brain = brain if brain is not None else Brain(
             vault, router=router, bus=bus, now_fn=self._clock)
+        # P-CORE-11 Handover (Part IX): the farewell engine on standing seams — the Member
+        # File + the data-root conventions; the disown branch empties the provided ring.
+        from tars.core.voiceid import ProfileStore
+        data_dir = vault.path.parent
+        self._handover = handover if handover is not None else Handover(
+            vault, bus, ProfileStore(data_dir / "profiles.json", log), self._settings,
+            data_dir / "logs.jsonl", ring=router.ring if router is not None else None)
 
     @property
     def clockd_unit(self):
@@ -291,6 +299,13 @@ class CommandLayer:
         Only replies are returned; emitting is the dialog's uniform-response law."""
         raw = str(text)  # remember payload bytes persist original-case (P-CORE-2 law): match on t, slice raw
         t = " ".join(raw.strip().lower().split())
+
+        # (0) an alive Handover flow consumes FIRST (Part IX): gated stages need their
+        # answer; during the countdown only the abort words are ours — the rest is conversation.
+        if self._handover.active() is not None:
+            answers = self._handover.handle(t)
+            if answers:
+                return self._plan(answers)
         # rn = whitespace-normalized raw, ORIGINAL case, index-aligned with t (P-CORE-7 law:
         # an outbound payload is staged as Cooper typed it — §17 exact bytes)
         rn = " ".join(raw.strip().split())
@@ -298,6 +313,8 @@ class CommandLayer:
         # (1) session / system
         if t == "stand down":
             return self._plan([(canon.LINE_EXIT, "local", None)], stand_down=True)
+        if t == "tars handover":  # grammar v1.6 — the ONLY opener, no alias by deliberate decree
+            return self._plan(self._handover.open(machine))
         if t == "cancel":
             pending = self._vault.kv_get("gate:pending")
             if pending:  # abort CONSUMES the gate: a later confirm(id) can never resurrect it (§16)
@@ -363,7 +380,7 @@ class CommandLayer:
             return daily
 
         # (5c) TeleSend (grammar v1.2: people-book, send rows, sent recall)
-        teleplan = self._tele_rows(rn, t)
+        teleplan = self._tele_rows(rn, t, machine)
         if teleplan is not None:
             return teleplan
 
@@ -652,7 +669,7 @@ class CommandLayer:
 
     _CHANNEL_SUFFIXES = ((" on telegram", "telegram", "Telegram"), (" on whatsapp", "whatsapp", "WhatsApp"))
 
-    def _tele_rows(self, rn: str, t: str):
+    def _tele_rows(self, rn: str, t: str, machine):
         """§17 in rows: every send is stage -> show -> YES. rn carries the original case
         (index-aligned with t); matching happens on t, payloads are sliced from rn."""
 
@@ -692,7 +709,9 @@ class CommandLayer:
             return self._plan([(canon.contacts_line(rows), "local", None)])
 
         # sent recall: "what did i send <name>" — the ledger speaks, capped per finder-law
-        if t.startswith("what did i send "):
+        # P-CORE-11 §7-1 hardening: the sent ledger is personal — Cooper's surface alone
+        # (the standing (3)-family law: a non-Cooper utterance falls through, nothing leaks)
+        if t.startswith("what did i send ") and machine.audience == "cooper":
             key = t[len("what did i send "):].strip()
             if not key:
                 return self._plan([(canon.LINE_NEAR_MISS, "local", None)])
@@ -847,6 +866,11 @@ class CommandLayer:
     def brain_unit(self):
         """The Living Brain the A3 explorer + the v1.5 rows read (same object, one root)."""
         return self._brain
+
+    @property
+    def handover_unit(self):
+        """The farewell engine the v1.6 row drives and the dialog heartbeats (tick)."""
+        return self._handover
 
     def _watch_rows(self, t: str):
         unit = self._watcher

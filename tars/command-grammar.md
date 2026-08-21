@@ -220,3 +220,16 @@ GREEN local acks: short past-tense templates, numbers in words — *"Volume set 
 | `read me my journal` · `read today's journal` | "read me my journal" · "read today's journal" | today's journal bytes, verbatim (folded at stand-down: asks by who, memory captures, the failure lines actually spoken; an empty day folds nothing) · none yet: `No journal yet today — the day is still being lived.` · non-Cooper audience: `That's my own journal. Cooper's ears only.` |
 
 *The fold + sleep pass are machine-side (no row): natural stand-down (the standing close event, reason "stand down") folds the journal then consolidates — at most TWO smart-lane calls, FILE-protocol blocks confined to the five declared shelves, knowledge/lessons WHY-lines landing in tomorrow's recall surface. The kill-switch close folds and passes NOTHING (Law 5 instant, zero calls). The Inner-Voice shelf never appears in any ring payload, never reaches a non-Cooper audience, never leaves the machine. The A3 explorer (list_brain / brain_text) is read-only + path-confined: `..`, absolute paths, symlink escapes — a clean refusal, never the host filesystem.*
+
+## v1.6 — HANDOVER (APPEND-ONLY, P-CORE-11 · Architect decree Aug 21, 2026)
+*Every v1.0–v1.5 byte above stands unchanged. This row joins at session level — deliberately THE hardest row in the grammar to hit: NO Hinglish alias, NO near-miss rescue, exact bytes only. The whole flow is LOCAL — zero ring at every gate, counter-pinned. Part IX: triple-gate → abortable countdown → one surviving log line → the factory line. Irreversible by design.*
+
+### 30. Handover open (the farewell, triple-gated)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `tars handover` | "tars handover" · "tars handover" · "tars handover" | Cooper tier only (`Only Cooper hands TARS over.`) → `Passphrase, please. Spoken.` → exact `CONFIRM` earns `Type CONFIRM to erase my memories. This is a goodbye. It cannot be undone.` → keys question `Keep the API keys for the machine? YES keeps them.` → countdown `Wiping in ten. Say abort to stop me.` Every gated stage: the answer, or an honest cancel (`Handover aborted. Everything stays.`) — nothing else is consumed. |
+
+### 31. Abort (inside the window only)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `abort handover` · `cancel` (during the countdown only) | "abort handover" · "cancel" · "abort handover" | `Handover aborted. Everything stays.` — zero wipe, flow dead. Law 5: the kill-switch during the countdown is instant death with NO wipe; a crashed countdown is a dead countdown, never a resumed one. The wipe (§30 ledger order, per-store atomic): vault rows · profiles.json · settings.json (factory; honesty 90 stands) · the keys mapping (unless kept) · tars-brain/ in full · logs.jsonl down to exactly `Handover executed <date>`. Kept: the app, the laws, the Never List, gauge schemas — house rules aren't memories. First summon after: `Factory state. New commander, identify yourself. Honesty: ninety. Humor: five.` — once, then never again. |

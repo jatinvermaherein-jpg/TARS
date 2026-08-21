@@ -364,6 +364,15 @@ class Vault:
                 (int(chat_id),)).fetchone()
         return row[0] if row else None
 
+    def wipe(self) -> None:
+        """Part IX Handover: every personal table emptied in ONE transaction — the store is
+        wholly pre-wipe or wholly post-wipe, never half. The schema stands; the rows were
+        the person. There is no recovery path here by design (the farewell means it)."""
+        with self._db:  # sqlite transaction: all tables or none
+            for table in ("kv", "memory", "ledger", "chats", "messages",
+                          "reminders", "timers", "contacts", "sent_log"):
+                self._db.execute(f"DELETE FROM {table}")  # static names above — data never mixes in
+
     def integrity(self) -> str:
         return str(self._db.execute("PRAGMA integrity_check").fetchone()[0])
 

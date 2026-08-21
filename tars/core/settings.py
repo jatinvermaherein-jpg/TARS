@@ -47,6 +47,11 @@ class Settings:
         """The four movable dials, as a copy (HONESTY never leaves this class)."""
         return dict(self._dials)
 
+    def reset_factory(self) -> None:
+        """Part IX Handover: dials return to birth; HONESTY 90 never moves, here or anywhere."""
+        self._dials = dict(DIAL_DEFAULTS)
+        self.save()
+
     def save(self) -> None:
         """Atomic tmp-then-rename write (crash-safety rule for every TARS write)."""
         self._path.parent.mkdir(parents=True, exist_ok=True)

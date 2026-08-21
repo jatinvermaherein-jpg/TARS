@@ -25,6 +25,9 @@ Design declarations (also pinned in code comments where they live):
 - Remember-intents are honored for audience == "cooper" only; family/guest
   payloads fall through to a memory-less brain answer (command.py keeps the
   same fall-through, behavior byte-for-byte).
+- The rolling history window rides ring calls for audience == "cooper" only
+  (P-CORE-11 §31): under family/guest the window is empty by law — window
+  rollover is luck, the matrix pins closure.
 - The P-CORE-2 dial/remember handlers moved to command.py (harness moved,
   behavior untouched); classify_memory stays importable from here.
 """
@@ -33,6 +36,7 @@ from tars.core.clockd import Clockd
 from tars.core.command import CommandLayer, classify_memory  # classify_memory: re-export, callers keep importing it from here
 from tars.core.dailyops import NtOps
 from tars.core.findfile import FileFinder, finder_roots_from_env
+from tars.core.handover import FACTORY_KEY
 from tars.core.logx import LogX
 from tars.core.operator import NtExecutor
 from tars.core.searchlanes import SearchLanes
@@ -91,6 +95,11 @@ class Dialog:
         if self._machine.state == "off":
             self._machine.summon()  # a bridge send implies a summoned app
             self._speak_survival()  # §32: a power event is confessed ONCE, before anything else is answered
+            if self._vault.kv_get(FACTORY_KEY) == "yes":  # Part IX: the wiped machine greets once
+                self._vault.kv_set(FACTORY_KEY, "no")  # consumed before speaking — never twice
+                if self._chat_id is None:
+                    self.new_chat()  # the greeting persists into a real chat, never a null row
+                self._emit_message(canon.LINE_FACTORY, "local", None)
         if self._chat_id is None:
             self.new_chat()
         self._machine.text()
@@ -148,6 +157,9 @@ class Dialog:
                 mid = self._emit_message(text, hue, lane)
                 self._vault.kv_set(f"speak_request:{mid}", "queued")
                 lines.append(text)
+        # Handover heartbeat (Part IX): the standing tick observes the countdown deadline —
+        # the wipe speaks nothing here; the factory line greets at the next summon.
+        self._command.handover_unit.tick()
         return lines
 
     def _dispatch(self, text: str) -> None:
@@ -189,16 +201,35 @@ class Dialog:
         self._machine.spoken()
         return mid
 
+    _BRAIN_PERSONAL_SHELVES = ("people", "journal", "inner")  # §31: Cooper's alone (P-CORE-11)
+
+    def _explorer_allowed(self, path: str) -> bool:
+        """P-CORE-11 §7-1 hardening: the personal shelves gate by audience at the bridge too.
+        The root listing stays open (shelf names are structural); people/journal/inner
+        bytes and listings answer Cooper alone — the refusal carries zero content bytes."""
+        if self._machine.audience == "cooper":
+            return True
+        parts = str(path or "").strip().replace("\\", "/").strip("/").split("/", 1)
+        return parts[0] not in self._BRAIN_PERSONAL_SHELVES
+
     def list_brain(self, path: str = ""):
         """A3 (P-CORE-10, earned surface): the Living Brain explorer — read-only,
         path-confined. Success -> [BrainNode]; escape -> the clean refusal dict."""
         unit = self._command.brain_unit
-        return unit.list_brain(path) if unit is not None else {"ok": False, "line": canon.LINE_BRAIN_ABSENT}
+        if unit is None:
+            return {"ok": False, "line": canon.LINE_BRAIN_ABSENT}
+        if not self._explorer_allowed(path):
+            return {"ok": False, "line": canon.LINE_INNER_PRIVATE}
+        return unit.list_brain(path)
 
     def brain_text(self, path: str):
         """A3: a leaf's preview bytes; escape/kind-mismatch/absent -> refusal dict. Zero ring."""
         unit = self._command.brain_unit
-        return unit.brain_text(path) if unit is not None else {"ok": False, "line": canon.LINE_BRAIN_ABSENT}
+        if unit is None:
+            return {"ok": False, "line": canon.LINE_BRAIN_ABSENT}
+        if not self._explorer_allowed(path):
+            return {"ok": False, "line": canon.LINE_INNER_PRIVATE}
+        return unit.brain_text(path)
 
     def quick_action(self, name, payload) -> dict:
         payload = payload or {}
@@ -250,9 +281,17 @@ class Dialog:
         memories = self._vault.recall()[-8:] if audience == "cooper" else []
         return persona.build_system_prompt(self._dial_snapshot(), audience, memories)
 
+    def _history_window(self, chat_id: int, before_mid: int) -> list:
+        # Part IX §31: the rolling window is Cooper-era context — personal by charter, exactly
+        # like the memories. Under family/guest watch the ring call rides stateless, or a prior
+        # personal answer (or his own remembered line) would leak through the side window.
+        if self._machine.audience != "cooper":
+            return []
+        return [{"role": ("user" if m["who"] == "cooper" else "assistant"), "content": m["text"]}
+                for m in self._vault.message_context(chat_id, before_mid, CONTEXT_WINDOW)]
+
     def _brain_turn(self, text: str, user_mid: int) -> None:
-        history = [{"role": ("user" if m["who"] == "cooper" else "assistant"), "content": m["text"]}
-                   for m in self._vault.message_context(self._chat_id, user_mid, CONTEXT_WINDOW)]
+        history = self._history_window(self._chat_id, user_mid)
         reply = self._router.route(text, system_prompt=self._system_prompt(), history=history)
         for notice in reply["notices"]:
             self._emit_message(notice, "cloud", None)
@@ -298,8 +337,7 @@ class Dialog:
             self._machine.summon()
         self._machine.text()
         self._machine.reply()
-        history = [{"role": ("user" if m["who"] == "cooper" else "assistant"), "content": m["text"]}
-                   for m in self._vault.message_context(ids[0], user_message["id"], CONTEXT_WINDOW)]
+        history = self._history_window(ids[0], user_message["id"])
         reply = self._router.route(user_message["text"], system_prompt=self._system_prompt(), history=history)
         notice_marks = 0
         for notice in reply["notices"]:
