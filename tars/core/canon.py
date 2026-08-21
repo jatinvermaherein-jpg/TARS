@@ -396,3 +396,31 @@ def power_event_damage_line(when: str, losses: list) -> str:
     """The damage variant: names exactly what the probe verified, never sadder nor happier."""
     named = "; ".join(losses)
     return f"Power event at {when}. Not everything survived — {named}. Everything else is intact."
+
+# --- P-CORE-10 Living Brain family (grammar v1.5; bible §25.5 — a brain, not a cache) ---
+LINE_INNER_PRIVATE = "That's my own journal. Cooper's ears only."  # decreed byte-exact
+LINE_BRAIN_REFUSAL = "That path leaves my brain. I stay inside."   # A3 escape refusal
+LINE_BRAIN_DIR = "That's a shelf, not a page. Ask for a listing."  # brain_text on a dir
+LINE_BRAIN_ABSENT = "That page isn't in my brain."                 # brain_text on a missing leaf
+LINE_NO_JOURNAL = "No journal yet today — the day is still being lived."
+LINE_LESSONS_EMPTY = "No lessons filed yet. The day is young."
+LINE_BRAIN_NEW = "My brain is new. The shelves are built; nothing filed yet."
+
+
+def lessons_digest_line(titles: list) -> str:
+    """The lessons shelf, newest last (file order kept); titles are the lessons' WHY lines."""
+    if not titles:
+        return LINE_LESSONS_EMPTY
+    listing = "\n".join(f"{i + 1}. {title}" for i, title in enumerate(titles))
+    return f"Lessons I've written down:\n{listing}"
+
+
+def brain_tree_line(counts: dict) -> str:
+    """The honest tree summary: shelf counts only — names and bytes stay home."""
+    total = sum(counts.get(shelf, 0) for shelf in ("people", "journal", "lessons",
+                                                   "knowledge", "plans", "inner"))
+    if total == 0:
+        return LINE_BRAIN_NEW
+    parts = " · ".join(f"{shelf} {counts.get(shelf, 0)}" for shelf in
+                       ("people", "journal", "lessons", "knowledge", "plans", "inner"))
+    return f"My brain holds: {parts}."

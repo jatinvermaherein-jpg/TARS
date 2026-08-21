@@ -67,6 +67,12 @@ class Router:
             return self._council(text, system_prompt, history)
         return self._single(text, mode, system_prompt, history)
 
+    def route_lane(self, text: str, lane: str, system_prompt: str = None) -> dict:
+        """A lane-pinned text call (P-CORE-10): the sleep-cycle consolidation is smart by
+        DECREE, not by the gate's length/keyword read. Same ring/ledger/gauge law as any
+        lane — _single does all of it, nothing forked."""
+        return self._single(text, lane, system_prompt)
+
     def route_vision(self, question: str, image_b64: str) -> dict:
         """The eyes lane (bible §19, P-CORE-8): ONE declared message shape — a single user
         message whose content is [text part, base64 data-URL image part]. It reuses

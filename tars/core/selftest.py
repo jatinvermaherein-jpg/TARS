@@ -72,6 +72,18 @@ variant honest, speak_request queued, mint LOCAL), never twice, and the
 law. Every watcher row counter-pinned ZERO-ring, every line mint LOCAL; the
 crash child now SIGKILLs a DIRTY drill run and the reopened vault confesses
 exactly once.
+P-CORE-10 battery (bible §25.5 — grow the mind): the tars-brain tree (six
+declared shelves, atomic tmp-then-rename proven), the daily journal folding
+ONLY at the natural stand-down close (the kill-switch folds nothing, zero
+ring), the ring-bounded sleep pass (at most TWO smart calls — distill +
+people merge, FILE-protocol confinement, spent ring honestly deferred:
+journaled, silent, never stormed), Inner-Voice sovereignty canary-swept
+across every ring payload, WHY-line recall selected per shelf, the A3
+explorer path-confined ("..", absolute, symlink escapes refused) with the
+wrote-nothing belt pin, v1.5 rows zero-ring + audience-gated, and the
+roadmap acceptance pinned end-to-end: journal folds -> profiles update ->
+tomorrow's recall. The crash child now also folds mid-burst: reopen finds
+zero tmp debris and every page complete-or-absent.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -88,7 +100,7 @@ import urllib.request
 import wave
 import zipfile
 import zlib
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from tars.core import canon, persona, voicefix
@@ -107,6 +119,7 @@ from tars.core.enroll import ENROLL_PHRASES, ENROLL_ROUNDS, enroll_member, list_
 from tars.core.classifier import HeuristicClassifier, ModelClassifier, is_private_text
 from tars.core.lookd import BUFFER_CAP, IDLE_S, LOOK_INTERVAL_S, NARRATE_PROMPT, Lookd
 from tars.core.telesend import TELE_SESSION_FILE, FixtureTelethon, TelethonUserClient, wa_url
+from tars.core.brain import BRAIN_DIRS, CONSOLIDATE_CALL_CAP, CONSOLIDATE_SYSTEM, Brain
 from tars.core.watcher import (FixtureCreepSource, NtCreepSource, Watcher, drill_boot,
                                drill_mark_clean, survival_line, survival_probe)
 from tars.core.voiceid import (MATRIX_ROWS, FixtureScorer, ProfileStore, ResemblyzerScorer, VoiceGate, classify,
@@ -3336,8 +3349,7 @@ def _watcher_checks(base: Path, out) -> None:
         # --- storage/RAM meters: readings from the ONE ops seam, honest lines otherwise
         w4 = watch_universe("w4", ops_scripted={"storage_free_bytes": 250 * (1024 ** 3),
                                                 "ram_percent": 41, "uptime_seconds": 14 * 3600})
-        brain = w4["path"] / "tars-brain"
-        brain.mkdir()
+        brain = w4["path"] / "tars-brain"  # P-CORE-10: the auto-built Brain already owns this dir
         (brain / "note.md").write_bytes(b"x" * (3 * 1024 ** 2))
         expect(out, w4["watcher"].storage_report()
                == "Storage meter: vault 0 MB · brain 3 MB · disk free 250 GB. Meter only, by law."
@@ -3531,6 +3543,474 @@ def _watcher_checks(base: Path, out) -> None:
         subprocess.Popen = real_popen
 
 
+def _brain_checks(base: Path, out) -> None:
+    """P-CORE-10 battery (bible §25.5 — grow the mind): the tars-brain tree (atomic law),
+    the daily journal folding ONLY at natural stand-down, the ring-bounded sleep pass
+    (<= 2 smart calls, honestly deferred when spent), Inner-Voice sovereignty swept by
+    canary, the A3 explorer path-confined and read-only, v1.5 rows zero-ring — and the
+    roadmap acceptance pinned end-to-end: journal folds -> profiles update -> tomorrow's
+    recall. Net/spawn seams patched RAISE, per decree."""
+    zone = base / "brain"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    today = datetime.now().date().isoformat()
+
+    def brain_universe(name, groq_script=()):
+        path = zone / name
+        path.mkdir(parents=True, exist_ok=True)
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", list(groq_script))
+        or_fx = FixtureAdapter("openrouter", [])
+        router = Router(load_ring(full_source), {"groq": groq_fx, "openrouter": or_fx}, vault, bus)
+        ops = FixtureOps(None)
+        layer = CommandLayer(settings, vault, FixtureExecutor(), SearchLanes(FixtureSearch({})),
+                             FileFinder([]), log, bus, router=router, clockd=Clockd(vault, bus),
+                             ops=ops)
+        dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
+        return {"path": path, "vault": vault, "bus": bus, "events": events, "machine": machine,
+                "router": router, "gfx": groq_fx, "ofx": or_fx, "layer": layer, "dialog": dialog,
+                "brain": layer.brain_unit}
+
+    def said(univ, chat=1) -> list:
+        return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    real_urlopen = urllib.request.urlopen
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def _no_net(*args, **kwargs):
+        raise AssertionError("network lifted inside the sandbox battery")
+
+    def _no_spawn(*args, **kwargs):
+        raise AssertionError("subprocess spawned inside the sandbox battery")
+
+    urllib.request.urlopen = _no_net
+    subprocess.run = _no_spawn
+    subprocess.Popen = _no_spawn
+    try:
+        # --- decreed + declared canon literals, byte-exact
+        expect(out, canon.LINE_INNER_PRIVATE == "That's my own journal. Cooper's ears only."
+               and canon.LINE_BRAIN_REFUSAL == "That path leaves my brain. I stay inside."
+               and canon.LINE_BRAIN_DIR == "That's a shelf, not a page. Ask for a listing."
+               and canon.LINE_BRAIN_ABSENT == "That page isn't in my brain."
+               and canon.LINE_NO_JOURNAL == "No journal yet today — the day is still being lived.",
+               "decreed/declared v1.5 literals byte-exact (inner privacy + explorer refusals + no-journal)")
+        expect(out, canon.LINE_LESSONS_EMPTY == "No lessons filed yet. The day is young."
+               and canon.LINE_BRAIN_NEW == "My brain is new. The shelves are built; nothing filed yet."
+               and canon.lessons_digest_line(["Never guess", "Ask first"])
+               == "Lessons I've written down:\n1. Never guess\n2. Ask first"
+               and canon.brain_tree_line({"journal": 2, "people": 1, "inner": 3})
+               == "My brain holds: people 1 · journal 2 · lessons 0 · knowledge 0 · plans 0 · inner 3.",
+               "digest family: >=3 literal renders pinned (lessons list, tree counts, both empties)")
+
+        # --- the tree law: exactly the six declared shelves, zero ring at birth
+        b1 = brain_universe("b1")
+        expect(out, sorted(p.name for p in b1["brain"].root.iterdir()) == sorted(BRAIN_DIRS)
+               and all(p.is_dir() for p in b1["brain"].root.iterdir())
+               and b1["gfx"].received == [] and b1["ofx"].received == [],
+               "the tree is born with exactly the six declared shelves — and zero ring at birth")
+        expect(out, not list(b1["brain"].root.rglob("*.tmp")),
+               "no tmp debris anywhere after construction — the atomic law starts clean")
+
+        # --- the journal: fixture-grade, honest sections, idempotent re-fold (byte-exact)
+        b2 = brain_universe("b2")
+        b2["vault"].message_add(1 if b2["vault"].chat_rows() else b2["vault"].chat_insert(),
+                                "cooper", "remember that Ma calls on Sundays", None, None)
+        chat_id = b2["vault"].chat_rows()[0]["id"]
+        b2["vault"].message_add(chat_id, "tars", "Noted.", "local", None)
+        b2["vault"].message_add(chat_id, "tars", canon.LINE_TELE_FAILED, "local", None)
+        b2["vault"].remember("fact", "Ma calls on Sundays")
+        folded = b2["brain"].fold_day(today)
+        journal_bytes = folded.read_text(encoding="utf-8")
+        expect(out, journal_bytes == (
+            f"# Journal — {today}\n\n## What happened\n- 3 exchanges across 1 chats.\n\n"
+            "## What was asked\n- cooper: \"remember that Ma calls on Sundays\"\n\n"
+            "## What was learned\n- [fact] Ma calls on Sundays\n\n"
+            "## What went wrong\n- That send didn't go through. Nothing left the box.\n"),
+            "the journal composes ONLY what truly passed — asks by who, captures, the real failure lines")
+        expect(out, b2["brain"].fold_day(today).read_text(encoding="utf-8") == journal_bytes,
+               "a re-fold is byte-idempotent — the day re-reads the same truth, never a duplicate")
+        b3 = brain_universe("b3")  # an empty day folds nothing at all
+        expect(out, b3["brain"].fold_day() is None
+               and list((b3["brain"].root / "journal").iterdir()) == [],
+               "an empty day writes NO journal — honest silence, shelf stays bare")
+
+        b3m = brain_universe("b3m")  # plurality + the ask cap are composed honestly
+        bc1, bc2 = b3m["vault"].chat_insert(), b3m["vault"].chat_insert()
+        for i in range(12):
+            b3m["vault"].message_add(bc1 if i % 2 == 0 else bc2, "family", f"question {i}", None, None)
+        marathon = b3m["brain"].fold_day(today).read_text(encoding="utf-8")
+        expect(out, "- 12 exchanges across 2 chats." in marathon
+               and "- (2 more, kept in the vault)" in marathon
+               and marathon.count('family: "question') == 10,
+               "the marathon day: multi-chat plurality, the first ten asks, and the honest cap note")
+        # a routerless brain on a hand-driven bus: the fold always lands, the pass defers honestly
+        b3n_path = zone / "b3n"
+        b3n_path.mkdir()
+        b3n_vault = Vault(b3n_path / "vault.db")
+        b3n_bus = Bus()
+        b3n_events = []
+        b3n_bus.subscribe(lambda kind, detail: b3n_events.append((kind, detail)))
+        b3n_brain = Brain(b3n_vault, bus=b3n_bus)  # no router on this build
+        b3n_vault.message_add(b3n_vault.chat_insert(), "family", "question one", None, None)
+        b3n_bus.emit("close", {"reason": "stand down"})
+        expect(out, [d for k, d in b3n_events] == [{"reason": "stand down"}]
+               and (b3n_brain.root / "journal" / f"{today}.md").is_file()
+               and "Consolidation deferred (no ring on this build)."
+               in (b3n_brain.root / "journal" / f"{today}.md").read_text(encoding="utf-8"),
+               "the natural close carries the standing reason; fold always, pass defers without a ring")
+
+        # --- the close law: natural stand-down folds + passes; the kill-switch never does
+        b4 = brain_universe("b4")
+        b4["dialog"].send("what's in your brain")  # a LOCAL row: the vault holds a day to fold
+        b4["machine"].kill()  # Law 5 path — panic close
+        expect(out, list((b4["brain"].root / "journal").iterdir()) == []
+               and b4["gfx"].received == [] and b4["ofx"].received == [],
+               "kill-switch close: NO fold, NO pass, ZERO ring calls — the panic path stays instant")
+        script_simple = ("ok", "FILE: knowledge/ma-sundays.md\nWHY: Ma calls on Sundays\n---\n"
+                               "# Ma\nCalls Sundays.\n", 12)
+        b5 = brain_universe("b5", groq_script=[script_simple])
+        b5["dialog"].send("remember that Ma calls on Sundays")
+        b5["dialog"].send("stand down")  # the standing natural-sleep row drives the REAL close
+        expect(out, (b5["brain"].root / "journal" / f"{today}.md").is_file()
+               and (b5["brain"].root / "knowledge" / "ma-sundays.md").read_text(encoding="utf-8")
+               == "# Ma\nCalls Sundays.\n"
+               and len(b5["gfx"].received) == 1,
+               "stand down: the day folds AND the sleep pass runs — one smart call, FILE block landed")
+        expect(out, "- Consolidation pass: 1 call(s), 1 file(s) updated."
+               in (b5["brain"].root / "journal" / f"{today}.md").read_text(encoding="utf-8"),
+               "the close-driven pass signs its own marginalia into the day's page")
+
+        # --- the sleep pass: ring-bounded, confined, honest (call 1 distill + call 2 merge)
+        script1 = ("ok",
+                   "FILE: lessons/never-guess.md\nWHY: Never guess a command target\n---\n"
+                   "# Never guess\nGuessed once; the near-miss law holds.\n"
+                   "FILE: knowledge/ma-sundays.md\nWHY: Ma calls on Sundays\n---\n# Ma\nCalls Sundays.\n"
+                   "FILE: inner/bhaiya-speed.md\nWHY: CANARY-WHY must never be remembered\n---\n"
+                   "CANARY-INNER-31 Bhaiya speaks fast when excited.\n"
+                   "FILE: people/ma.md\nWHY: Ma profile opened\n---\n# Ma\nMother. Calls Sundays.\n"
+                   "FILE: ../evil.md\nWHY: escape attempt\n---\nowned\n", 40)
+        script2 = ("ok", "FILE: people/ma.md\nWHY: merged\n---\n# Ma\nMother. Calls Sundays."
+                   " Prefers mornings.\n", 30)
+        b6 = brain_universe("b6", groq_script=[script1, script2])
+        b6["dialog"].send("remember that Ma calls on Sundays")
+        b6["brain"].fold_day(today)
+        report = b6["brain"].consolidate(today)
+        expect(out, report["status"] == "done" and report["calls"] == 2
+               and report["calls"] <= CONSOLIDATE_CALL_CAP
+               and "lessons/never-guess.md" in report["files"]
+               and "people/ma.md" in report["files"],
+               "sleep pass: ring-bounded at TWO smart calls — distill + people merge, files landed")
+        expect(out, (b6["brain"].root / "people" / "ma.md").read_text(encoding="utf-8")
+               == "# Ma\nMother. Calls Sundays. Prefers mornings.\n"
+               and not (b6["path"] / "evil.md").exists(),
+               "call 2 rewrote the profile whole; the ../ escape block never touched the host fs")
+        expect(out, [r["text"] for r in b6["vault"].recall("knowledge")] == ["Ma calls on Sundays"]
+               and [r["text"] for r in b6["vault"].recall("lessons")] == ["Never guess a command target"]
+               and all("CANARY-WHY" not in r["text"] for r in b6["vault"].recall()),
+               "knowledge/lessons WHY-lines land in tomorrow's recall; the inner WHY NEVER does")
+        expect(out, b6["gfx"].received[0][0]["role"] == "system"
+               and b6["gfx"].received[0][0]["content"] == CONSOLIDATE_SYSTEM
+               and b6["gfx"].received[0][-1]["role"] == "user"
+               and "# Journal" in b6["gfx"].received[0][-1]["content"]
+               and "CANARY-INNER-31" not in str(b6["gfx"].received[0])
+               and "existing bytes" in b6["gfx"].received[1][-1]["content"],
+               "wire truth: call 1 sees the journal alone (no inner bytes), call 2 merges with priors")
+        expect(out, [row["lane"] for row in b6["vault"].ledger_tail(2)] == ["smart", "smart"]
+               and b6["vault"].kv_get("brain:last_consolidation") == today,
+               "both pass calls ledger on the SMART lane; the day stamp sits in kv (storm law)")
+        expect(out, b6["brain"].consolidate(today)["calls"] == 0
+               and b6["vault"].recall("knowledge")[0]["text"] == "Ma calls on Sundays"
+               and b6["vault"].kv_get("brain:consolidation_deferred") == "no",
+               "a second same-day pass is a no-op — the storm law: one pass per day, kv-marked")
+        refolded = b6["brain"].fold_day(today).read_text(encoding="utf-8")
+        expect(out, "## Consolidation" in refolded
+               and "- Consolidation pass: 2 call(s), 5 file(s) updated." in refolded
+               and refolded.startswith(f"# Journal — {today}"),
+               "a re-fold keeps the pass's marginalia — the day re-reads, the notes survive")
+        (b6["brain"].root / "journal" / f"{today}.md").unlink()  # the page, lost AFTER the stamp
+        expect(out, b6["brain"].consolidate(today)["status"] == "done",
+               "the stamp outranks the page: a stamped day never re-passes, journal or no journal")
+        quiet = brain_universe("bq", groq_script=[("ok", "Nothing needs filing today.", 8)])
+        quiet["dialog"].send("remember that the library opens at nine")
+        quiet["brain"].fold_day(today)
+        quiet_report = quiet["brain"].consolidate(today)
+        expect(out, quiet_report["status"] == "done" and quiet_report["calls"] == 1
+               and quiet_report["files"] == []
+               and list(quiet["brain"].root.rglob("*.md")) ==
+               [quiet["brain"].root / "journal" / f"{today}.md"],
+               "a day with nothing worth filing files NOTHING — the no-block reply is honored")
+        proto = brain_universe("bp", groq_script=[(
+            "ok", "FILE: people/Bad Slug.md\nWHY: x\n---\nno.\n"
+                  "FILE: PEOPLE/wrong-case.md\nWHY: x\n---\nno.\n"
+                  "FILE: knowledge/school/math.md\nWHY: deep nests file fine\n---\n# Math\nDeep.\n"
+                  "FILE: plans/bhaiya-result.md\nWHY: plans shelve too\n---\n# Result day\nWatch it.\n", 25)])
+        proto["dialog"].send("remember that two plus two is four")
+        proto["brain"].fold_day(today)
+        preport = proto["brain"].consolidate(today)
+        expect(out, preport["files"] == ["knowledge/school/math.md", "plans/bhaiya-result.md"]
+               and (proto["brain"].root / "knowledge" / "school" / "math.md").is_file()
+               and not (proto["brain"].root / "people" / "Bad Slug.md").exists()
+               and not (proto["brain"].root / "PEOPLE").exists()
+               and proto["vault"].recall("plans") == []
+               and [r["text"] for r in proto["vault"].recall("knowledge")] == ["deep nests file fine"],
+               "FILE-protocol law: bad slugs + wrong-case shelves never land; deep nests and plans do")
+        proto2 = brain_universe("bw", groq_script=[(
+            "ok", "FILE: knowledge/no-why.md\n---\n# Why-less\nSilent block.\n", 9)])
+        proto2["dialog"].send("remember that the lake road floods in rain")
+        proto2["brain"].fold_day(today)
+        wreport = proto2["brain"].consolidate(today)
+        expect(out, wreport["files"] == ["knowledge/no-why.md"]
+               and proto2["vault"].recall("knowledge") == [],
+               "a WHY-less block files its page but earns NO recall row — recall carries meaning only")
+        tomorrow = date.today() + timedelta(days=1)
+        vclock = Brain(b3n_vault, now_fn=lambda: datetime(tomorrow.year, tomorrow.month,
+                                                          tomorrow.day, 0, 1))
+        expect(out, vclock.fold_day() is None
+               and not (vclock.root / "journal" / f"{tomorrow.isoformat()}.md").exists(),
+               "the fold honors the injected clock: under TOMORROW's clock, today's rows don't fold")
+        bf = brain_universe("bf", groq_script=[  # every key 429s on the merge: all-spent honesty
+            ("ok", "FILE: people/ma.md\nWHY: opened\n---\n# Ma\nMother.\n", 20)]
+            + [("429",)] * 6)
+        bf["dialog"].send("remember that Ma calls on Sundays")
+        bf["brain"].fold_day(today)
+        half = bf["brain"].consolidate(today)
+        expect(out, half["status"] == "done" and half["calls"] == 1
+               and (bf["brain"].root / "people" / "ma.md").read_text(encoding="utf-8")
+               == "# Ma\nMother.\n"
+               and "Profile merge deferred" in (bf["brain"].root / "journal" / f"{today}.md")
+               .read_text(encoding="utf-8"),
+               "call 2 dying mid-pass: call-1 files stand, the skip is journaled, never faked")
+
+        # --- deferred is honest: spent ring -> no fake, no storm retry, spoken NOWHERE
+        b7 = brain_universe("b7")
+        b7["dialog"].send("remember that the wifi password is under the router")
+        b7["brain"].fold_day(today)
+        for key in b7["router"].ring.keys():  # pose the smart lane honestly fully-spent
+            key.lane_spent["smart"] = LANE_CAPS["smart"]
+            key.budget_pct = 100.0
+        said_before = len(said(b7))
+        deferred = b7["brain"].consolidate(today)
+        expect(out, deferred["status"] == "deferred" and deferred["calls"] == 0
+               and b7["vault"].kv_get("brain:consolidation_deferred") == "yes"
+               and "Consolidation deferred (the ring was spent)."
+               in (b7["brain"].root / "journal" / f"{today}.md").read_text(encoding="utf-8"),
+               "spent ring: deferred honestly — journaled, kv-marked, zero calls burned")
+        expect(out, len(said(b7)) == said_before,
+               "the deferral is spoken NOWHERE — Cooper is never woken for bookkeeping (declared silence)")
+        expect(out, b7["brain"].consolidate(today)["calls"] == 0,
+               "a deferred day is NOT retried same-day — one honest attempt, never a storm")
+        b8 = brain_universe("b8")
+        b8["dialog"].send("remember that Ma calls on Sundays")
+        b8["brain"].fold_day(today)
+        free_brain = Brain(b8["vault"])  # no router on this build
+        expect(out, free_brain.consolidate(today)["status"] == "deferred",
+               "a brain with no ring defers by the same honest law")
+        expect(out, Brain(b8["vault"]).consolidate("1999-01-01")["status"] == "nothing",
+               "no journal for a day = nothing to fold — status nothing, zero calls")
+
+        # --- the inner law, canary-swept: bytes never leave, never ride a payload
+        b9 = brain_universe("b9", groq_script=[script1, script2, ("ok", "plain answer", 5),
+                                               ("ok", "second answer", 5)])
+        b9["dialog"].send("remember that Ma calls on Sundays")
+        b9["dialog"].send("stand down")  # pass 1 writes the canary inner page
+        b9["dialog"].send("what does Ma prefer?")  # a ring turn AFTER the canary exists home
+        canary_home = (b9["brain"].root / "inner" / "bhaiya-speed.md").read_text(encoding="utf-8")
+        payload_sweep = str(b9["gfx"].received) + str(b9["ofx"].received)
+        expect(out, "CANARY-INNER-31" in canary_home
+               and "CANARY-INNER-31" not in payload_sweep
+               and "bhaiya-speed" not in payload_sweep,
+               "INNER-VOICE CANARY: written home, swept absent from EVERY ring-request payload")
+        b9["machine"].set_audience("guest")
+        b9["dialog"].send("read me my journal")
+        b9["machine"].set_audience("family")
+        b9["dialog"].send("read today's journal")
+        expect(out, said(b9)[-2:] == [canon.LINE_INNER_PRIVATE, canon.LINE_INNER_PRIVATE]
+               and "CANARY" not in said(b9)[-1]
+               and "remember that Ma calls on Sundays".lower() not in said(b9)[-1].lower(),
+               "audience law: guest AND family earn the canon refusal — zero content bytes cross")
+        b9["machine"].set_audience("cooper")
+        b9["dialog"].send("read me my journal")
+        expect(out, said(b9)[-1].startswith(f"# Journal — {today}"),
+               "Cooper himself hears the journal read back, verbatim — the gate is identity, not silencing")
+
+        # --- roadmap acceptance, end-to-end: journal folds -> profiles update -> tomorrow's recall
+        b10 = brain_universe("b10", groq_script=[
+            ("ok", "FILE: knowledge/ma-sundays.md\nWHY: Ma calls on Sundays\n---\n# Ma\nCalls Sundays.\n"
+                   "FILE: people/ma.md\nWHY: profile opened\n---\n# Ma\nMother.\n", 30),
+            ("ok", "FILE: people/ma.md\nWHY: merged\n---\n# Ma\nMother. Calls on Sundays.\n", 20),
+            ("ok", "She calls on Sundays, Cooper.", 6)])
+        b10["dialog"].send("remember that Ma calls on Sundays")   # day 1: teach
+        b10["dialog"].send("stand down")                          # the fold + the pass
+        profile_after = (b10["brain"].root / "people" / "ma.md").read_text(encoding="utf-8")
+        day2_log = LogX(b10["path"] / "logs2.jsonl")
+        day2_settings = Settings.load(b10["path"] / "settings.json", day2_log)
+        day2_bus = Bus()
+        day2_machine = Machine(day2_settings, day2_log, day2_bus)
+        day2_fx = FixtureAdapter("groq", [("ok", "She calls on Sundays, Cooper.", 6)])
+        day2_router = Router(load_ring(full_source),
+                             {"groq": day2_fx, "openrouter": FixtureAdapter("openrouter", [])},
+                             b10["vault"], day2_bus)
+        day2_layer = CommandLayer(day2_settings, b10["vault"], FixtureExecutor(),
+                                  SearchLanes(FixtureSearch({})), FileFinder([]), day2_log, day2_bus,
+                                  router=day2_router, clockd=Clockd(b10["vault"], day2_bus),
+                                  ops=FixtureOps(None))
+        day2 = Dialog(day2_settings, b10["vault"], day2_router, day2_machine, day2_bus,
+                      command_layer=day2_layer)
+        day2.send("when does Ma call?")  # day 2: the recall surface must carry the distillation
+        recall_prompt = day2_fx.received[-1][0]["content"]
+        expect(out, "[knowledge] Ma calls on Sundays" in recall_prompt
+               and profile_after == "# Ma\nMother. Calls on Sundays.\n"
+               and (b10["brain"].root / "journal" / f"{today}.md").is_file(),
+               "ACCEPTANCE: journal folds -> profiles update -> tomorrow's recall carries the lesson")
+        day2_rows = [m for m in b10["vault"].messages_for(2) if m["who"] == "tars"]
+        expect(out, day2_rows[-1]["text"] == "She calls on Sundays, Cooper."
+               and day2_rows[-1]["hue"] == "cloud" and day2_rows[-1]["lane"] == "fast",
+               "day 2's answer is a real ring turn — amber truth — riding the recalled lesson")
+
+        # --- the A3 explorer: shapes, honesty, confinement, read-only belt
+        b11 = brain_universe("b11")
+        root = b11["brain"].root
+        (root / "journal" / "2026-08-19.md").write_text("# Journal — 2026-08-19\n\nquiet day.\n",
+                                                        encoding="utf-8")
+        (root / "knowledge" / "big.md").write_text("y" * 600, encoding="utf-8")
+        fixed = datetime(2026, 8, 19, 21, 0).timestamp()
+        os.utime(root / "journal" / "2026-08-19.md", (fixed, fixed))
+        listing = b11["dialog"].list_brain("")
+        expect(out, [n["path"] for n in listing] == sorted(BRAIN_DIRS)
+               and all(n["kind"] == "dir" and n["sizeKb"] == 0.0 for n in listing)
+               and all(set(n) == {"path", "kind", "sizeKb", "modifiedDay"} for n in listing),
+               "list_brain root: the BrainNode contract shape, dirs first-class, honest zero sizes")
+        leaf = b11["dialog"].list_brain("journal")[0]
+        expect(out, leaf == {"path": "journal/2026-08-19.md", "kind": "file", "sizeKb": 0.0,
+                             "modifiedDay": "2026-08-19"},
+               "a leaf node carries honest sizeKb and the truthful modifiedDay")
+        expect(out, b11["dialog"].brain_text("journal/2026-08-19.md")
+               == "# Journal — 2026-08-19\n\nquiet day.\n"
+               and b11["dialog"].brain_text("knowledge/big.md") == "y" * 500 + "..."
+               and b11["dialog"].brain_text("journal") == {"ok": False, "line": canon.LINE_BRAIN_DIR}
+               and b11["dialog"].brain_text("journal/nope.md")
+               == {"ok": False, "line": canon.LINE_BRAIN_ABSENT},
+               "brain_text: leaf preview bytes (500-cap honest), dir/absent refusals clean")
+        # belt snapshot = FILE bytes + mtimes only: directory mtimes legitimately move when the
+        # harness itself mints the symlink node — the explorer's claim is file-perfect stillness
+        tree_before = {str(p): (p.read_bytes(), p.stat().st_mtime)
+                       for p in root.rglob("*") if p.is_file()}
+        escapes = b11["dialog"].list_brain(".."), b11["dialog"].list_brain("../vault.db"), \
+            b11["dialog"].list_brain("/etc"), b11["dialog"].brain_text("journal/../../evil")
+        outside = b11["path"] / "outside"
+        outside.mkdir()
+        (outside / "secret.txt").write_text("host-only bytes", encoding="utf-8")
+        os.symlink(outside, root / "knowledge" / "slink")
+        link_escape = (b11["dialog"].list_brain("knowledge/slink"),
+                       b11["dialog"].brain_text("knowledge/slink/secret.txt"))
+        tree_after = {str(p): (p.read_bytes(), p.stat().st_mtime)
+                      for p in root.rglob("*") if p.is_file() and p.name != "slink"}
+        expect(out, all(e == {"ok": False, "line": canon.LINE_BRAIN_REFUSAL} for e in escapes),
+               "A3 LAW: '..' and absolute paths earn the clean refusal — never the host filesystem")
+        expect(out, all(e == {"ok": False, "line": canon.LINE_BRAIN_REFUSAL} for e in link_escape),
+               "A3 LAW: a symlink pointing OUT of the brain root earns the same refusal")
+        expect(out, tree_before == tree_after
+               and b11["gfx"].received == [] and b11["ofx"].received == [],
+               "A3 belt: the explorer WROTE nothing (bytes + mtimes identical) and never rang")
+
+        # --- v1.5 rows e2e, zero-ring counter-pinned, audience-gated, near-miss family
+        b12 = brain_universe("b12")
+        (b12["brain"].root / "lessons" / "never-guess.md").write_text(
+            "# Never guess a command target\nThe near-miss law holds.\n", encoding="utf-8")
+        b12["dialog"].send("what did you learn today")
+        b12["dialog"].send("kya seekha")
+        b12["dialog"].send("what's in your brain")
+        b12["dialog"].send("read me my journal")
+        expect(out, said(b12) == ["Lessons I've written down:\n1. Never guess a command target",
+                                  "Lessons I've written down:\n1. Never guess a command target",
+                                  "My brain holds: people 0 · journal 0 · lessons 1 · knowledge 0 · plans 0 · inner 0.",
+                                  canon.LINE_NO_JOURNAL]
+               and b12["gfx"].received == [] and b12["ofx"].received == []
+               and all(m["hue"] == "local" and m["lane"] is None
+                       for m in b12["vault"].messages_for(1) if m["who"] == "tars"),
+               "v1.5 rows: lessons/tree/journal answer LOCAL, the alias serves, ZERO ring — counter-pinned")
+        b12["dialog"].send("read today's journal")
+        expect(out, said(b12)[-1] == canon.LINE_NO_JOURNAL,
+               "the journal alias row serves the same law — zero ring, same canon line")
+        b12["machine"].set_audience("guest")
+        b12["dialog"].send("what's in your brain")
+        b12["dialog"].send("what did you learn today")
+        expect(out, said(b12)[-2:] == [
+            "My brain holds: people 0 · journal 0 · lessons 1 · knowledge 0 · plans 0 · inner 0.",
+            "Lessons I've written down:\n1. Never guess a command target"],
+               "structural shelves stay OPEN to any audience — only the diary gates (declared)")
+        b12["machine"].set_audience("cooper")
+        b12["dialog"].send("learn the guitar")
+        b12["dialog"].send("journal club meets friday")
+        b12["dialog"].send("brain surgery is monday")
+        expect(out, said(b12)[-3:] == [canon.LINE_NEAR_MISS, canon.LINE_NEAR_MISS, canon.LINE_NEAR_MISS],
+               "near-miss family: learn-/journal-/brain-led unknowns earn the one clarifying question")
+
+        # --- §29 continuity: the watcher meter SEES the growing brain, and never cages it
+        b13 = brain_universe("b13", groq_script=[])
+        (b13["brain"].root / "knowledge" / "heavy.md").write_bytes(b"z" * (2 * 1024 ** 2))
+        expect(out, b13["layer"].watcher_unit.storage_report()
+               == ("Storage meter: vault 0 MB · brain 2 MB · disk free 0 GB. Meter only, by law."
+                   " Free space is under two GB — worth a look. Nothing blocked, by law.")
+               and b13["gfx"].received == [],
+               "§29: the growing brain shows on the standing meter — visibility, never enforcement")
+
+        # --- explorer edges: file-path listing, boundary preview, Cooper browsing his own shelves
+        b14 = brain_universe("b14")
+        (b14["brain"].root / "inner" / "mood.md").write_text("q" * 500, encoding="utf-8")
+        (b14["brain"].root / "inner" / "long.md").write_text("r" * 501, encoding="utf-8")
+        expect(out, b14["dialog"].list_brain("inner/mood.md") == []
+               and [n["path"] for n in b14["dialog"].list_brain("inner")] == ["inner/long.md", "inner/mood.md"]
+               and b14["dialog"].brain_text("inner/mood.md") == "q" * 500
+               and b14["dialog"].brain_text("inner/long.md") == "r" * 500 + "...",
+               "explorer edges: a leaf lists [], listing orders honestly, 500 stands / 501 previews")
+        expect(out, b14["dialog"].list_brain("journal/none") == []
+               and [n["path"] for n in b14["dialog"].list_brain("")]
+               == [n["path"] for n in b14["dialog"].list_brain("/")],
+               "explorer edges: an absent inside-root shelf lists [], and '/' names the root")
+
+        # --- sovereignty at the prompt surface: the recall block is Cooper-only, brain rows included
+        b15 = brain_universe("b15", groq_script=[("ok", "guest answer", 5)])
+        b15["vault"].remember("knowledge", "Ma calls on Sundays")
+        b15["machine"].set_audience("guest")
+        b15["dialog"].send("hello")
+        guest_prompt = b15["gfx"].received[-1][0]["content"]
+        expect(out, "[knowledge] Ma calls on Sundays" not in guest_prompt
+               and "What you remember (local vault):" not in guest_prompt,
+               "§31 iron rule holds over brain distills: a guest prompt carries ZERO recall bytes")
+
+        # --- digest continuity: populated brain, standing watcher shape untouched, zero ring
+        expect(out, len(b13["layer"].watcher_unit.status_report().splitlines()) == 5
+               and b13["gfx"].received == [],
+               "a growing brain leaves the standing 5-line digest untouched — and readers never ring")
+        b12["dialog"].send("seekha kya aaj")
+        expect(out, said(b12)[-1] == canon.LINE_NEAR_MISS,
+               "near-miss family: the Hinglish verb alone (seekha ...) gets the clarifying question")
+        b16 = brain_universe("b16")  # the empty shelf speaks its own canon line, row-served
+        b16["dialog"].send("what did you learn today")
+        expect(out, said(b16) == [canon.LINE_LESSONS_EMPTY],
+               "an empty lessons shelf answers honestly through the row — zero ring, canon byte-exact")
+
+        # --- the grammar doc: v1.5 appended, every earlier section byte-stands
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
+               and "## v1.4 — WATCHER" in grammar and "## v1.5 — LIVING BRAIN" in grammar
+               and "kya seekha" in grammar,
+               "grammar doc: v1.5 appended, v1.0-v1.4 untouched, closed alias declared")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        subprocess.run = real_run
+        subprocess.Popen = real_popen
+
+
 def _crash_checks(base: Path, out) -> None:
     zone = base / "crash"
     proc = subprocess.Popen([sys.executable, "-m", "tars.core.selftest", "--child", str(zone)],
@@ -3589,6 +4069,16 @@ def _crash_checks(base: Path, out) -> None:
            "people-book + sent ledger survive SIGKILL: 2 journal rows, contacts intact, recall honest")
     expect(out, frame_leaks == [] and crash_look_kv == [],
            "SIGKILL mid-watch: zero frames on disk, zero look rows in the vault, integrity already ok")
+    # P-CORE-10: the killed child was folding its journal mid-burst — the atomic law's proof
+    brain_root = zone / "tars-brain"
+    brain_files = [p for p in brain_root.rglob("*") if p.is_file()]
+    tmp_debris = [p for p in brain_root.rglob("*") if p.name.endswith(".tmp")]
+    expect(out, tmp_debris == [],
+           "SIGKILL mid-fold: ZERO tmp debris — tmp-then-rename leaves no orphans")
+    expect(out, sorted(p.name for p in brain_root.iterdir()) == sorted(BRAIN_DIRS)
+           and all((p.read_text(encoding="utf-8").startswith("# Journal — ")
+                    and p.read_text(encoding="utf-8").endswith("\n")) for p in brain_files),
+           "SIGKILL mid-fold: every brain page is COMPLETE-or-absent, shelves stand — old bytes or new")
 
     # --- P-CORE-9 drill: the killed child left a DIRTY run marker. A fresh run must boot OFF
     # (Law 3), confess exactly once on first summon, and restore state exactly where state.py
@@ -3671,12 +4161,17 @@ def _child_crash_worker(zone: Path) -> None:
     # P-CORE-9: the drill — this child run marks itself dirty at boot and never reaches a
     # clean exit (the SIGKILL is the power cut)
     drill_boot(vault)
+    # P-CORE-10: the journal folds ATOMICALLY mid-burst, forever — the SIGKILL will land
+    # somewhere inside the write stream; tmp-then-rename is the only shield
+    crash_brain = Brain(vault)
     print("READY", flush=True)
     burst = 0
     while True:
         vault.remember("burst", f"in-flight {burst}")
         vault.message_add(chat_id, "tars", f"burst message {burst}", "cloud", "fast")
         log.entry("child-burst", marker=burst)
+        if burst % 3 == 0:
+            crash_brain.fold_day()  # same-path atomic overwrite, mid-write stream
         burst += 1
 
 
@@ -3685,7 +4180,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look + watcher batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look + watcher + brain batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -3703,6 +4198,7 @@ def main() -> int:
     _telesend_checks(base, out)
     _look_checks(base, out)
     _watcher_checks(base, out)
+    _brain_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

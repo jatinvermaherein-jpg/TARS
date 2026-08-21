@@ -13,7 +13,11 @@ P-CORE-8 'look' toggle ({} exactly, same engine as the grammar rows), and the
 P-CORE-9 'status' chip ({} exactly, the same 5-line digest as the status row);
 the RED-verb typed-YES seam is confirm(actionId, yes) per contract §3.
 Since P-CORE-9 the boot also carries the §32 drill: send() confesses a dirty
-prior run ONCE, first, mint LOCAL, speak queued — then never again.
+prior run ONCE, first, mint LOCAL, speak queued — then never again. Since
+P-CORE-10 the dialog serves A3's Living Brain explorer — list_brain(path) /
+brain_text(path), read-only, path-confined, zero ring — and the standing
+"stand down" close folds the day's journal + the ring-bounded sleep pass
+(the kill-switch close folds nothing: Law 5 stays instant).
 
 Design declarations (also pinned in code comments where they live):
 - chunk.seq restarts per message until true streaming lands.
@@ -184,6 +188,17 @@ class Dialog:
         mid = self._emit_message(line, hue, None)
         self._machine.spoken()
         return mid
+
+    def list_brain(self, path: str = ""):
+        """A3 (P-CORE-10, earned surface): the Living Brain explorer — read-only,
+        path-confined. Success -> [BrainNode]; escape -> the clean refusal dict."""
+        unit = self._command.brain_unit
+        return unit.list_brain(path) if unit is not None else {"ok": False, "line": canon.LINE_BRAIN_ABSENT}
+
+    def brain_text(self, path: str):
+        """A3: a leaf's preview bytes; escape/kind-mismatch/absent -> refusal dict. Zero ring."""
+        unit = self._command.brain_unit
+        return unit.brain_text(path) if unit is not None else {"ok": False, "line": canon.LINE_BRAIN_ABSENT}
 
     def quick_action(self, name, payload) -> dict:
         payload = payload or {}

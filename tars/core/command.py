@@ -21,6 +21,7 @@ import time
 from datetime import datetime
 
 from tars.core import canon, clockd, office, telesend
+from tars.core.brain import Brain
 from tars.core.classifier import ModelClassifier
 from tars.core.lookd import Lookd
 from tars.core.operator import APP_ALIASES
@@ -58,6 +59,7 @@ NEAR_MISS_MARKERS = {
     "remind", "alarm", "timer", "copy", "clipboard", "make", "write",  # grammar v1.1 families
     "send", "bhejo", "forward", "save", "forget",  # grammar v1.2 TeleSend family
     "watch", "look", "narrate", "screen", "dekh",  # grammar v1.3 LOOK family
+    "learn", "journal", "brain", "seekha",  # grammar v1.5 Living Brain family
 }
 
 RANK_WORDS = {"one": 1, "1": 1, "first": 1, "two": 2, "2": 2, "second": 2,
@@ -130,7 +132,7 @@ class CommandLayer:
 
     def __init__(self, settings, vault, executor, search_lanes, finder, log, bus, clock=None,
                  time_fn=None, router=None, clockd=None, ops=None, desktop=None, tele=None,
-                 lookd=None, watcher=None):
+                 lookd=None, watcher=None, brain=None):
         self._settings = settings
         self._vault = vault
         self._executor = executor
@@ -154,6 +156,10 @@ class CommandLayer:
         self._watcher = watcher if watcher is not None else (
             Watcher(router.ring, ops, vault, time_fn=self._time)
             if ops is not None and router is not None else None)
+        # P-CORE-10 Living Brain: the tree + journal + sleep pass live on vault+bus alone;
+        # the router only ever serves consolidate() (ring-bounded, honestly deferred without one).
+        self._brain = brain if brain is not None else Brain(
+            vault, router=router, bus=bus, now_fn=self._clock)
 
     @property
     def clockd_unit(self):
@@ -370,6 +376,11 @@ class CommandLayer:
         watchplan = self._watch_rows(t)
         if watchplan is not None:
             return watchplan
+
+        # (5f) Living Brain (grammar v1.5: shelf reads — LOCAL, zero ring, audience-gated)
+        brainplan = self._brain_rows(t, machine)
+        if brainplan is not None:
+            return brainplan
 
         # (6) operator RED — the typed-YES gate
         red = self._red(t)
@@ -832,6 +843,11 @@ class CommandLayer:
 
     # ---------- Watcher rows (grammar v1.4): the pulse, read locally, zero ring ----------
 
+    @property
+    def brain_unit(self):
+        """The Living Brain the A3 explorer + the v1.5 rows read (same object, one root)."""
+        return self._brain
+
     def _watch_rows(self, t: str):
         unit = self._watcher
         if unit is None:
@@ -849,6 +865,40 @@ class CommandLayer:
         if t in watch_rows:
             return self._plan([(watch_rows[t](), "local", None)])
         return None
+
+    # ---------- the Living Brain rows (grammar v1.5: local reads, zero ring) ----------
+
+    def _brain_rows(self, t: str, machine):
+        unit = self._brain
+        if unit is None:
+            return None
+        if t in ("what did you learn today", "kya seekha"):  # closed Hinglish alias (v1.5)
+            return self._plan([(canon.lessons_digest_line(self._lesson_titles(unit)),
+                                "local", None)])
+        if t == "what's in your brain":
+            counts = {shelf: sum(1 for p in (unit.root / shelf).rglob("*") if p.is_file())
+                      for shelf in ("people", "journal", "lessons", "knowledge", "plans", "inner")}
+            return self._plan([(canon.brain_tree_line(counts), "local", None)])
+        if t in ("read me my journal", "read today's journal"):
+            if machine.audience != "cooper":
+                return self._plan([(canon.LINE_INNER_PRIVATE, "local", None)])
+            from datetime import datetime as _dt
+            today = (self._clock() if callable(self._clock) else _dt.now()).date().isoformat()
+            page = unit.root / "journal" / f"{today}.md"
+            line = page.read_text(encoding="utf-8") if page.is_file() else canon.LINE_NO_JOURNAL
+            return self._plan([(line, "local", None)])
+        return None
+
+    def _lesson_titles(self, unit) -> list:
+        """A lesson's title is its first non-empty line, stripped of heading marks — the
+        shelf stays small by design, so the digest reads it whole (file order, sorted)."""
+        titles = []
+        for path in sorted((unit.root / "lessons").glob("*.md")):
+            first = next((line.strip("# ").strip() for line in
+                          path.read_text(encoding="utf-8").splitlines() if line.strip()),
+                         path.stem)
+            titles.append(first)
+        return titles
 
     def _red(self, t: str):
         # close <app> — always gated (band karo alias rows included)

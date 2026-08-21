@@ -200,3 +200,23 @@ GREEN local acks: short past-tense templates, numbers in words — *"Volume set 
 | `startup check` · `what's creeping in` · `what is creeping in` | "startup check" · "what's creeping in" · "what is creeping in" | clean: `Startup is clean. Nothing crept in.` · additions numbered: `<name> added itself to startup. Your call whether it stays.` · a tars-named entry is a FIRST-CLASS violation: `<name> put TARS in startup. That breaks Law 3 — flagged, never ignored.` (first snapshot baselines honestly) |
 
 *The power-cut drill is machine-side (no row): every run boots marked dirty and proves innocence at stand-down/kill; a dirty prior end = a power event confessed ONCE on the first summon — `Power event at <h:mm AM|PM>. Memory intact. Nothing lost.` — with an honest damage variant naming verified losses. Boot after any outage is OFF (Law 3), and the restore test asserts the machine resumes exactly where state.py left it.*
+
+## v1.5 — LIVING BRAIN (APPEND-ONLY, P-CORE-10 · Architect decree Aug 20, 2026)
+*Every v1.0–v1.4 byte above stands unchanged. These rows join the parse order at (5f), after the Watcher: the shelf reads. Closed Hinglish alias, declared once: `kya seekha` (lessons digest). EVERY brain row is a pure LOCAL read over the tars-brain tree — zero ring spend, counter-pinned. The ONLY ring spender anywhere near the brain is the sleep-cycle consolidation pass itself: ring-bounded at TWO smart calls per pass, honestly deferred (journaled, never spoken) when the ring is spent. Audience law: the journal read-back is Cooper's; family/guest earn `That's my own journal. Cooper's ears only.` — zero content bytes.*
+
+### 27. Lessons digest (the rules the machine wrote from its own mistakes)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `what did you learn today` · `kya seekha` | "what did you learn today" · "kya seekha" | `Lessons I've written down:` + numbered first-lines of the lessons shelf (file order) · empty shelf: `No lessons filed yet. The day is young.` |
+
+### 28. Brain summary (the honest tree — counts only, names and bytes stay home)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `what's in your brain` | "what's in your brain" | `My brain holds: people <n> · journal <n> · lessons <n> · knowledge <n> · plans <n> · inner <n>.` · empty tree: `My brain is new. The shelves are built; nothing filed yet.` |
+
+### 29. Journal read-back (Cooper-gated; the day as it was truly lived)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `read me my journal` · `read today's journal` | "read me my journal" · "read today's journal" | today's journal bytes, verbatim (folded at stand-down: asks by who, memory captures, the failure lines actually spoken; an empty day folds nothing) · none yet: `No journal yet today — the day is still being lived.` · non-Cooper audience: `That's my own journal. Cooper's ears only.` |
+
+*The fold + sleep pass are machine-side (no row): natural stand-down (the standing close event, reason "stand down") folds the journal then consolidates — at most TWO smart-lane calls, FILE-protocol blocks confined to the five declared shelves, knowledge/lessons WHY-lines landing in tomorrow's recall surface. The kill-switch close folds and passes NOTHING (Law 5 instant, zero calls). The Inner-Voice shelf never appears in any ring payload, never reaches a non-Cooper audience, never leaves the machine. The A3 explorer (list_brain / brain_text) is read-only + path-confined: `..`, absolute paths, symlink escapes — a clean refusal, never the host filesystem.*
