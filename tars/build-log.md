@@ -306,3 +306,13 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 
 ## 📦 ZIP RELOCATED (Cooper decree, Aug 20, 2026)
 - `discord-team-management-bot-main.zip` (4.7MB, web-uploaded at `7918a49`) LEFT the TARS vault: its code now lives as *code* at github.com/jatinvermaherein-jpg/bot (main `83bbd8b`, 118 files, secret-scan CLEAN — token reads via env only). Deploy key `discord_bot` minted for the lane; alias `github-bot`. Normal delete-commit; no history rewrite.
+
+## ⚖️ AUDIT P-CORE-9 — ✅ PASS (banked) · Aug 20, 2026 (no-parking law · one-desk)
+- **Selftest re-executed in audit sandbox: 540/540 green, rc=0, TWICE** (fresh TARS_DATA; crash-child SIGKILLs a DIRTY drill run — reopened vault confesses intact). Fresh clone HEAD `8240333` matches courier AND sits correctly atop my `5a3a190` zip-purge — rebase claim verified; one-desk rule held.
+- Jurisdiction clean: core/* + grammar v1.4 + agent-log ONLY — APP frozen zero bytes. Counts match courier to the file (232/398/915/122/296/3712; grammar 180→202 append-only, ZERO removed lines).
+- Byte sweeps: zero astral (the lane's self-caught U+2462 truly gone — hygiene loop working) · zero dead markers · zero hex · compileall clean · zero unused (seam laws applied).
+- **§32 drill re-proven:** dirty-boot marker → boots OFF (Law 3) → `power_event_line("8:41 PM") == "Power event at 8:41 PM. Memory intact. Nothing lost."` literal-pinned (3281) — line-62 flavor verbatim · damage variant honest, "names exactly what the probe verified" (3295) · speaks FIRST on first summon, LOCAL mint, speak_request queued, NEVER repeats on second summon (537-539).
+- **§29 grep-law holds:** watcher.py:5 carries "VISIBILITY, NOT ENFORCEMENT"; zero enforcement branches.
+- Gauge math unforked: warn INCLUSIVE at 20% pinned, 0%=spent (517-523); digest exactly 5 lines, `Keys: 8 of 8 healthy (0 warn, 0 spent).` prefix pinned on chip AND rows (1598-1601). Creep watch: stored-baseline diff, Law-3 self-policing battery (3352) — a tars-named startup entry outranks the list alone. winreg seam: off-nt False BEFORE import, KEY_READ read-only, canon comments.
+- Re-aims: exactly the ONE sanctioned pair (chip + row-side twin), disclosed in-code at 724-726 AND 1598-1601 — "the pending bytes had become a lie" is the honest-retraction doctrine in action. Remaining five roster names re-pin catch-all byte-exact.
+- **Lane B verdict: PASS. P-CORE-10 (the Living Brain — journal folds, profiles grow, tomorrow remembers) forged and shipped in this same breath.**
