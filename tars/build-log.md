@@ -400,3 +400,11 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Zero product-code touched: SapiTier.available() = os.name=="nt" was RIGHT all along (SAPI = day-1 voice per bench canon); capture_bytes seam fixed earlier stays; this commit is pure harness determinism. Suite count stable: 708 on every host (each branch carries exactly one expect; Linux re-runs the original refusal pins).
 - Battery: zero `os.name != "nt"` conjuncts left in expect rows · compileall clean · suite 2× Linux: **708/708 ALL GREEN, exit 0 both** · `git diff --stat` = selftest.py only (+64/-25) — one file, nine sites, one doctrine.
 - **nt verdict #4 rides on Cooper's ceremony re-run after `git pull`.** Known-remaining terra incognita on nt beyond 187: none foreseen by the sweep — if the map missed one, the loop stands.
+
+## [ARCHITECT] OPS — ceremony nt-run #5 = FAIL at the find battery → P-CORE-12G path-separator pins (Aug 22)
+
+- Fresh courier, far shore visible: 12F's nine re-aims all held on nt (checks through 292 green), then the find battery pinned `f"Found it — {root}/physics.pdf."` — a LITERAL "/" in an expectation. The finder builds os.path.join paths; on the AiO the line says `\files\physics.pdf`, the pin asked for `/physics.pdf`. One separator byte, POSIX-shaped, invisible to 708 green runs on Linux.
+- Sweep of the whole suite for the family (`{var}/…` f-string pins, `endswith("/…")`, bare `/tmp`): exactly TWO sites, both in the find battery (confident single + ambiguous list). Re-aimed to compute the expectation with `os.path.join(str(root), …)` — byte-true on every host, no branching, no guessing.
+- **Byte-proof, because the composer hid in canon.py:** `find_one_line` / `find_list_line` embed the finder's path straight; an ntpath simulation confirmed pin == composition byte-for-byte for both lines. (First verification chain short-circuited on a grep miss — caught, re-run, confessed here.)
+- Battery: compileall clean · suite 2× Linux: **708/708 ALL GREEN, exit 0 both** · literal-slash sweep = zero remaining · `git diff --stat` = selftest.py only (+4/-2).
+- nt verdict #5 rides on Cooper's ceremony re-run. Honesty: the text-mappable families are now all claimed; only execution-shaped Windows quirks (file-touching, locking) remain theoretically open. The loop stands, the map is clean.

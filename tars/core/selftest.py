@@ -1940,10 +1940,12 @@ def _grammar_checks(base: Path, out) -> None:
             plant(f"reports/report {index + 1}.txt", datetime(2026, 8, 10, 9, 0))
         gf = cmd_universe("gf", roots=[str(root)], clock=clock_find)
         gf["dialog"].send("find the physics pdf from yesterday")
-        expect(out, said(gf)[-1] == f"Found it — {root}/physics.pdf.",
+        # P-CORE-12G: pins compute paths with the platform join, byte-true on every OS —
+        # a literal "/" in an expectation is POSIX-shaped wishful thinking.
+        expect(out, said(gf)[-1] == f"Found it — {os.path.join(str(root), 'physics.pdf')}.",
                "confident find answers with the path — name tokens AND the recency hint scored")
         gf["dialog"].send("find physics")
-        expect(out, said(gf)[-1] == f"I found a few — which one?\n1. {root}/physics notes.txt\n2. {root}/physics.pdf",
+        expect(out, said(gf)[-1] == f"I found a few — which one?\n1. {os.path.join(str(root), 'physics notes.txt')}\n2. {os.path.join(str(root), 'physics.pdf')}",
                "ambiguous find: the honest numbered list, newest first — never a guessed file")
         gf["dialog"].send("dhundo physics")
         expect(out, said(gf)[-1] == said(gf)[-2],
