@@ -16,14 +16,20 @@ class LogX:
     def __init__(self, path: Path):
         self._path = Path(path)
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._fh = open(self._path, "a", encoding="utf-8")
+        if not self._path.exists():
+            self._path.touch()  # the log exists from birth; no standing handle owed
 
     def entry(self, kind: str, **fields) -> dict:
         """Append one fsync'd record; returns the record written."""
         record = {"ts": datetime.now().isoformat(timespec="milliseconds"), "kind": kind, **fields}
-        self._fh.write(json.dumps(record, ensure_ascii=False) + "\n")
-        self._fh.flush()
-        os.fsync(self._fh.fileno())
+        # P-CORE-12N: open -> write -> fsync -> close PER ENTRY. A standing append handle
+        # blocks the handover wipe's os.replace on nt (WinError 5: no rename over an open
+        # file); POSIX forgives the collision, Windows-first law never holds what another
+        # seam must be free to move.
+        with open(self._path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
         return record
 
     def read_all(self) -> list:
@@ -36,4 +42,4 @@ class LogX:
         return len(self.read_all())
 
     def close(self) -> None:
-        self._fh.close()
+        """Advisory seam: handles are per-entry (12N), so nothing stands open to release."""
