@@ -5145,6 +5145,13 @@ def _crash_checks(base: Path, out) -> None:
         print(proc.stdout.read(), file=out)
     expect(out, ready, "crash child READY (committed 5 kv + 5 memory + 5 ledger + 5 log lines)")
     time.sleep(0.15)  # let the burst loop get genuinely mid-write
+    # P-CORE-12K: wait for the first folded page by FACT, not by timing luck — the
+    # completeness pin below needs >=1 journal page standing at the kill, and a blind
+    # sleep alone can never promise that (starved child = empty census = vacuous row).
+    for _ in range(200):  # 2 s ceiling; the burst folds within a breath of READY
+        if any((zone / "tars-brain" / "journal").glob("*.md")):
+            break
+        time.sleep(0.01)
     os.kill(proc.pid, getattr(signal, "SIGKILL", signal.SIGTERM))  # Windows has no SIGKILL; SIGTERM maps to TerminateProcess
     proc.wait(timeout=10)
 
@@ -5217,11 +5224,19 @@ def _crash_checks(base: Path, out) -> None:
     brain_root = zone / "tars-brain"
     brain_files = [p for p in brain_root.rglob("*") if p.is_file()]
     tmp_debris = [p for p in brain_root.rglob("*") if p.name.endswith(".tmp")]
-    expect(out, tmp_debris == [],
-           "SIGKILL mid-fold: ZERO tmp debris — tmp-then-rename leaves no orphans")
+    brain_pages = [p for p in brain_files if not p.name.endswith(".tmp")]
+    # P-CORE-12K: a blind-timed SIGKILL CAN land between tmp-write and rename — no
+    # tmp-then-rename protocol guarantees ZERO orphans (the old pin was a kill-timing
+    # lottery, observed red once on Linux validation; nt's scheduler rolls the same dice).
+    # The true atomic law: kill-caught debris is only ever an in-shelf .tmp, and pages
+    # are complete-old or complete-new, never torn.
+    expect(out, all(p.parent.parent == brain_root and p.parent.name in BRAIN_DIRS
+                    for p in tmp_debris),
+           "SIGKILL mid-fold: kill-caught debris is an in-shelf .tmp only — never a page, never a stray")
     expect(out, sorted(p.name for p in brain_root.iterdir()) == sorted(BRAIN_DIRS)
            and all((p.read_text(encoding="utf-8").startswith("# Journal — ")
-                    and p.read_text(encoding="utf-8").endswith("\n")) for p in brain_files),
+                    and p.read_text(encoding="utf-8").endswith("\n")) for p in brain_pages)
+           and [p for p in brain_pages if p.parent.name == "journal"],
            "SIGKILL mid-fold: every brain page is COMPLETE-or-absent, shelves stand — old bytes or new")
 
     # --- P-CORE-9 drill: the killed child left a DIRTY run marker. A fresh run must boot OFF
