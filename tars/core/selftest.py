@@ -906,13 +906,19 @@ def _voice_checks(base: Path, out) -> None:
            "whisper load: declared model slot absent -> honest False, the ladder steps down")
     model_zone = zone / "models"
     model_zone.mkdir(parents=True)
-    (model_zone / "whisper-small.bin").write_bytes(b"in-code staged model bytes")  # real weight lands at M-1
+    (model_zone / "whisper-small.bin").write_bytes(b"in-code staged model bytes")  # real weight lands at M-2's voice ritual
     ram_pressured = WhisperSmallLocal(model_zone, ceiling_mb=2000, ram_probe=lambda: 1500)
     expect(out, ram_pressured.load() is False,
            "RAM Charter: 1500MB used + 900MB burst would cross the 2GB ceiling -> policy-falls to groq-ears")
     ram_clear = WhisperSmallLocal(model_zone, ceiling_mb=2000, ram_probe=lambda: 100)
-    expect(out, ram_clear.load() is False,
-           "whisper import guard: faster_whisper staged on the AiO at M-1, honestly absent in a sandbox")
+    # P-CORE-12E ride-along: faster_whisper absence pinned host-independent — the M-2 voice-stack
+    # install must never flip this row (label + loader comments carry the M-1 -> M-2 staging truth).
+    sys.modules["faster_whisper"] = None  # deterministic absence; restored in the finally
+    try:
+        expect(out, ram_clear.load() is False,
+               "whisper import guard: stack absent -> honest False, the ladder steps down (host-independent)")
+    finally:
+        sys.modules.pop("faster_whisper", None)
 
     # --- mic-cold law: the guard raises outside LISTENING, on any OS, before any device
     _dc, _vc, m_c, _gc, _bc, _ec, _lc, _lad_c = universe("u-cap", [], [FixtureEarEngine(["x"])])
@@ -931,8 +937,15 @@ def _voice_checks(base: Path, out) -> None:
         raised = True
     expect(out, raised, "mic guard raises in ARMED too — LISTENING or nothing")
     m_c.voice_start()
-    expect(out, guard.open() is False and guard.closed,
-           "real device open is nt-only: the Linux sandbox answers False cleanly (canon skip; P3 proves hardware)")
+    # P-CORE-12E re-aim (sanctioned, the ONE): stack-absent is pinned HOST-INDEPENDENT —
+    # a sys.modules poison makes "sounddevice missing" true on every OS, so this row survives
+    # M-2's voice-stack install. The REAL class answers clean-False-and-closed (12E product guard).
+    sys.modules["sounddevice"] = None  # deterministic absence; restored in the finally
+    try:
+        expect(out, guard.open() is False and guard.closed,
+               "real guard, stack absent: clean False + still closed, no crash (host-independent)")
+    finally:
+        sys.modules.pop("sounddevice", None)
 
     # --- run_voice_turn: entry law, happy path, joined spans, honesty lines, kill
     dlg_off, _vo, m_off, _go, bus_off, _eo, _lo, lad_off = universe("u-off", [], [FixtureEarEngine(["x"])])
@@ -1011,7 +1024,12 @@ def _voice_checks(base: Path, out) -> None:
     dlg_nm, v_nm, m_nm, _gnm, bus_nm, _enm, _lnm, lad_nm = universe("u-nomic", [], [FixtureEarEngine(["x"])])
     m_nm.summon()
     real_cap = SoundDeviceCapture(m_nm)
-    nomic = run_voice_turn(real_cap, lad_nm, m_nm, bus_nm, dlg_nm)
+    # P-CORE-12E ride-along: absent-stack pinned host-independent (M-2's real mic must never flip this row)
+    sys.modules["sounddevice"] = None
+    try:
+        nomic = run_voice_turn(real_cap, lad_nm, m_nm, bus_nm, dlg_nm)
+    finally:
+        sys.modules.pop("sounddevice", None)
     expect(out, nomic == {"ok": False, "line": canon.LINE_NO_MIC}
            and v_nm.messages_for(1)[-1]["text"] == canon.LINE_NO_MIC and real_cap.closed,
            "device absent: the §22 no-mic line answers and persists, text mode stays home")
@@ -1418,8 +1436,12 @@ def _matrix_checks(base: Path, out) -> None:
     dn_u["machine"].summon()
     r_d = run_recognized_turn(FakeCapture(dn_u["machine"], recognized_frames(180), permission_denied=True),
                               dn_u["ladder"], dn_u["gate"], dn_u["machine"], dn_u["bus"], dn_u["dialog"])
-    r_m = run_recognized_turn(SoundDeviceCapture(dn_u["machine"]), dn_u["ladder"], dn_u["gate"],
-                              dn_u["machine"], dn_u["bus"], dn_u["dialog"])
+    sys.modules["sounddevice"] = None  # P-CORE-12E ride-along: host-independent absence for the real-guard row
+    try:
+        r_m = run_recognized_turn(SoundDeviceCapture(dn_u["machine"]), dn_u["ladder"], dn_u["gate"],
+                                  dn_u["machine"], dn_u["bus"], dn_u["dialog"])
+    finally:
+        sys.modules.pop("sounddevice", None)
     expect(out, r_d == {"ok": False, "line": canon.LINE_MIC_DENIED} and r_m == {"ok": False, "line": canon.LINE_NO_MIC},
            "matrix rows mic-denied + no-mic: permission refusal and absent device each answer their byte-exact line")
     lc_u = gated_universe("u-lc", [("ok", "unused", 5)], [FixtureEarEngine([""])])

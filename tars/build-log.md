@@ -380,3 +380,14 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - **Stride arithmetic proven OFF the seam:** standalone harness compared slice-strides vs reference per-pixel math on a seeded random buffer — byte-identical. The seam's own body still proves live on the AiO (it is nt geography; the sandbox salutes from afar).
 - Battery: compileall clean · suite 2× on Linux: **708/708 ALL GREEN, exit 0 both** (nt-gated body, suite unchanged as designed) · `git diff --stat` = dailyops.py only.
 - Standing doctrine refreshed: gate first (the ceremony), toy second (the probe). Whole-block paste beats hand-retyping — `selftestm` has now claimed two runs.
+
+## [ARCHITECT] OPS — ceremony nt-run #3 = RED at the mic guard → P-CORE-12E honest-absence family (Aug 22)
+
+- Interlude of joy, logged for the record: the live probe printed **SEAM_OK png-bytes=418247 title='Windows PowerShell'** — TARS's eyes are nt-verified on the AiO (BitBlt → GetDIBits → PNG → foreground title). The 12D stride repair proved on real glass.
+- Ceremony run #3 then reached check 165 and struck the mic guard: `import sounddevice` bare — the lane's comment ASSUMED the M-1 pip table carried the voice stack; the staged-pip law puts the voice stack at M-2's ritual. Family scan mapped every "staged on the AiO" assumption in core: capture.py (sounddevice), ears.py (faster_whisper, M-1 comment stale), mouth.py piper (model-file gated — safe), wake.py (no M-2 staging — post-M-2 watch item, logged).
+- Repairs (one family, one doctrine — the whisper row's own import-guard pattern):
+  - **capture.py:** sounddevice import-guarded — absent stack in LISTENING answers clean False, guard stays closed, never a crash. Docstring staging truth corrected M-1 → M-2.
+  - **ears.py:** loader comment staging truth corrected M-1 → M-2.
+  - **selftest.py (sanctioned re-aims, 12C precedent):** the stack-absent rows are now pinned HOST-INDEPENDENT via sys.modules poison windows (`sounddevice` ×3 rows, `faster_whisper` ×1 row) — the M-2 voice-stack install must never flip a banked row. Suite count stays 708; labels tell the truth.
+- Battery: compileall clean · suite 2× on Linux: **708/708 ALL GREEN, exit 0 both** · `git diff --stat` = capture.py + ears.py + selftest.py only.
+- **nt verdict #3 rides on Cooper's ceremony re-run after `git pull`** — post-165 territory remains terra incognita for nt; the repair loop stands ready.

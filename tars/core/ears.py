@@ -84,7 +84,7 @@ class WhisperSmallLocal:
         if self._ram_probe() + self.BURST_MB > self._ceiling_mb:
             return False  # RAM Charter policy: do the math, fall to Groq-ears under pressure
         try:
-            from faster_whisper import WhisperModel  # staged on the AiO at M-1; absent in the sandbox
+            from faster_whisper import WhisperModel  # staged on the AiO at M-2's voice ritual; absent beforehand and in the sandbox
         except ImportError:
             return False  # canon: dependency lives on the AiO, never in a sandbox
         self._model = WhisperModel(str(self._model_path), device="cpu", compute_type="int8")

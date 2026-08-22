@@ -4,8 +4,8 @@ enforced BEFORE any device is touched, on any OS. The visible mic indicator is
 host/app duty (the app renders the LISTENING strip); this module owns the gate.
 
 Real device open is Windows-first (`os.name == "nt"` adapter): the sounddevice
-stack installs on the AiO at M-1; in a Linux sandbox the device path returns
-False cleanly (canon comment on every skip). Tests drive FakeCapture.
+stack installs on the AiO at M-2's voice ritual, import-guarded until then; in a
+Linux sandbox the device path returns False cleanly (canon comment on every skip). Tests drive FakeCapture.
 """
 import os
 
@@ -25,7 +25,10 @@ class SoundDeviceCapture:
             raise RuntimeError("mic-cold law: capture opens only in LISTENING")
         if os.name != "nt":
             return False  # canon: no device probing in a Linux sandbox — M-1/P3 proves the hardware
-        import sounddevice  # nt-guarded: present on the AiO after the M-1 staged pip table
+        try:
+            import sounddevice  # nt optional dep: the voice stack lands at M-2's ritual — absent == no mic path, honestly closed
+        except ImportError:
+            return False
         try:
             self._stream = sounddevice.RawInputStream(samplerate=self._rate, channels=1, dtype="int16")
             self._stream.start()
