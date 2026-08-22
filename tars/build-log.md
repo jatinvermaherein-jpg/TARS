@@ -408,3 +408,11 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - **Byte-proof, because the composer hid in canon.py:** `find_one_line` / `find_list_line` embed the finder's path straight; an ntpath simulation confirmed pin == composition byte-for-byte for both lines. (First verification chain short-circuited on a grep miss — caught, re-run, confessed here.)
 - Battery: compileall clean · suite 2× Linux: **708/708 ALL GREEN, exit 0 both** · literal-slash sweep = zero remaining · `git diff --stat` = selftest.py only (+4/-2).
 - nt verdict #5 rides on Cooper's ceremony re-run. Honesty: the text-mappable families are now all claimed; only execution-shaped Windows quirks (file-touching, locking) remain theoretically open. The loop stands, the map is clean.
+
+## [ARCHITECT] OPS — ceremony nt-run #6 = FAIL at the golden containers → P-CORE-12H per-host sha anchors (Aug 22)
+
+- Checks through 366 green; the golden-epoch row pinned one literal container sha256 for every host — but a zip container's bytes carry zipfile's `create_system` (3 posix / 0 nt): ONE declared byte per entry, so every host truthfully mints a different hash. The literal was the sandbox's own mirror-gazing. Same-shape twin hid two rows below (docx literal `c614…`).
+- Mint method, honest and validated: replayed the battery's exact inputs in the sandbox — **posix builds reproduced both banked literals byte-for-byte** (proof the replay is faithful) — then re-built under `sys.platform` patched to `win32` (the single line zipfile consults) → nt constants: pptx `1c57…f3e9`, docx `fe31…6ef059`. zlib note: sandbox zlib 1.3.1 = python.org 3.12.10's bundle; Cooper's block prints the AiO's version as the last seatbelt.
+- Rows re-aimed: `digest == digest2 == <per-host constant>` + GOLDEN_EPOCH pin — two-build determinism on every host, literal anchor per host, zero guessing. Suite count stable 708.
+- Battery: compileall clean · suite 2× Linux: **708/708 ALL GREEN, exit 0 both** · `git diff --stat` = selftest.py only.
+- nt verdict #6 rides on the ceremony re-run. Family ledger for the night: posix-shaped bytes (12G) and posix-minted constants (12H) — both now extinct from the suite.

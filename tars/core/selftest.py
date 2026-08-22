@@ -2442,9 +2442,14 @@ def _dailyops_checks(base: Path, out) -> None:
         second = ops_universe("gold2")
         build_pptx("Green Revolution", slides, second["desktop"])
         digest2 = hashlib.sha256(Path(second["desktop"], gold_name).read_bytes()).hexdigest()
-        expect(out, digest == digest2 == "8a13898adc554e55f4ee30439f85d12d18a2998894d902141ef386632d9cd234"
+        # P-CORE-12H (sanctioned): the container bytes differ by exactly ONE declared byte per entry —
+        # zipfile's create_system (0 on nt, 3 elsewhere). The nt constants were minted by patched-platform
+        # simulation, validated by byte-exact reproduction of the posix constants first.
+        CONTAINER_PPTX_SHA = ("1c5775793074e1c8dfb61b22489d723dc727e5f9e09387731970243dc667f3e9" if os.name == "nt"
+                              else "8a13898adc554e55f4ee30439f85d12d18a2998894d902141ef386632d9cd234")
+        expect(out, digest == digest2 == CONTAINER_PPTX_SHA
                and GOLDEN_EPOCH == (2026, 1, 1, 0, 0, 0),
-               "container sha256 pinned across two builds — the golden epoch holds")
+               "container sha256 pinned per declared host byte across two builds — the golden epoch holds")
         expect(out, pres == ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
                              '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
                              'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
@@ -2460,10 +2465,12 @@ def _dailyops_checks(base: Path, out) -> None:
         with zipfile.ZipFile(g_zone / docx_name) as zf:
             doc_names = zf.namelist()
             document = zf.read("word/document.xml").decode()
+        CONTAINER_DOCX_SHA = ("fe318ed4324c035810a4c453c98d84c90da68ea0c46003573cc51f103c6ef059" if os.name == "nt"
+                              else "c614409a9d0adc38c4819bf3dc6442e14fc681f42ccc97ed40e89e7ae103f22f")  # P-CORE-12H
         expect(out, docx_name == "Load Shedding.docx"
                and doc_names == ["[Content_Types].xml", "_rels/.rels", "word/document.xml"]
                and hashlib.sha256((g_zone / docx_name).read_bytes()).hexdigest()
-               == "c614409a9d0adc38c4819bf3dc6442e14fc681f42ccc97ed40e89e7ae103f22f"
+               == CONTAINER_DOCX_SHA
                and "<w:t>Load Shedding</w:t>" in document
                and hashlib.sha256((g_zone / docx_name).read_bytes()).hexdigest()
                == hashlib.sha256((g_zone / docx_name).read_bytes()).hexdigest(),
