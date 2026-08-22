@@ -3892,7 +3892,11 @@ def _brain_checks(base: Path, out) -> None:
         expect(out, preport["files"] == ["knowledge/school/math.md", "plans/bhaiya-result.md"]
                and (proto["brain"].root / "knowledge" / "school" / "math.md").is_file()
                and not (proto["brain"].root / "people" / "Bad Slug.md").exists()
-               and not (proto["brain"].root / "PEOPLE").exists()
+               # P-CORE-12J: nt filesystems are case-insensitive — Path("PEOPLE").exists()
+               # collapses onto the standing people/ shelf and lies True. The law pins ABSENT
+               # BYTES, not absent names: a wrong-case write would land somewhere in the tree
+               # as a file named wrong-case.md on EVERY host, so sweep the tree for it.
+               and not any(p.name == "wrong-case.md" for p in proto["brain"].root.rglob("*"))
                and proto["vault"].recall("plans") == []
                and [r["text"] for r in proto["vault"].recall("knowledge")] == ["deep nests file fine"],
                "FILE-protocol law: bad slugs + wrong-case shelves never land; deep nests and plans do")
