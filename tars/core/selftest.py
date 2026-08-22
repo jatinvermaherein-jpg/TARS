@@ -219,6 +219,29 @@ def _child_env() -> dict:
     return env
 
 
+def _repo_head() -> str:
+    """The sha of the checkout under test, read straight from .git — no subprocess seams,
+    honest absence. P-CORE-12L: a couriered ceremony tail must self-identify its bytes."""
+    git_dir = REPO_ROOT / ".git"
+    try:
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        if head.startswith("ref:"):
+            ref = head.split(None, 1)[1]
+            loose = git_dir / ref
+            if loose.is_file():
+                return loose.read_text(encoding="utf-8").strip()
+            packed = git_dir / "packed-refs"
+            if packed.is_file():
+                for line in packed.read_text(encoding="utf-8").splitlines():
+                    if line.endswith(" " + ref):
+                        return line.split(" ", 1)[0]
+        elif head:  # a detached HEAD carries the bare sha
+            return head
+    except OSError:
+        pass
+    return "unknown"
+
+
 def _broken_subscriber(_kind, _detail) -> None:
     raise RuntimeError("subscriber crash")
 
@@ -5369,6 +5392,7 @@ def main() -> int:
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
+    print(f"repo HEAD: {_repo_head()}", file=out)
     _canon_checks(out)
     _functional_checks(base, out)
     _machine_checks(base, out)

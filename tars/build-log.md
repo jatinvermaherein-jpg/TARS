@@ -440,3 +440,10 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - One `time.sleep` exists in the whole 708 — this trigger finger. Product untouched: `_atomic_write` was always truthful about its guarantee (old bytes or new, never half); the suite finally swore to exactly that and no more.
 - Battery: compileall clean · suite 3x Linux on the full fixed tree: **708/708 ALL GREEN, exit 0 all** · cumulative `git diff --stat` for 12J+12K = selftest.py only.
 - Suite-side law MINTED, joining tonight's four: **a ceremony never rolls dice — a kill-timing sleep is a phase lottery; every pin must map 1:1 to a guarantee the protocol actually makes.** The atomic law protects TARGETS; .tmp orphans are honest storm-debris — tmp-named, in-shelf, never shadowing a read (fold/consolidate address true page names only).
+
+## [ARCHITECT] OPS — ghost-proofing the ceremony: P-CORE-12L repo-HEAD echo (Aug 22)
+
+- Cooper's night produced the red that CANNOT exist: the 12J row pinned red on his shell TWICE more, but on the 12J head that row no longer asks the question he saw fail (the re-aimed pin sweeps for bytes named `wrong-case.md`, which no code path can write on any host). Tell in the paste: `&gt;` HTML-entities — chat-rendered text, not terminal ink. Diagnosis: the checkout never saw the pull (or old scrollback was couriered), and our identical row LABEL on both heads made a stale run indistinguishable from a fresh one.
+- Fix the instrument, not the operator: the banner now prints `repo HEAD: <full sha>` on line three, read straight from `.git` (loose ref → packed-refs fallback → detached sha; OSError or absence → honest `unknown`). Zero subprocess seams, zero expects added, 708 stable. From now on every couriered tail proves which bytes ran — the whole ghost family dies here.
+- Suite-side law MINTED: **a re-aim changes its row's label** (a stale-head FAIL must never wear the fixed row's name) — and every ceremony banner carries its own fingerprint.
+- Battery: compileall clean · suite 2x Linux: **708/708 ALL GREEN, exit 0 both** · banner sha verified byte-equal to `git rev-parse HEAD` · `git diff --stat` = selftest.py only (+24/-0).
