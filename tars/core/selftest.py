@@ -4069,15 +4069,27 @@ def _brain_checks(base: Path, out) -> None:
         outside = b11["path"] / "outside"
         outside.mkdir()
         (outside / "secret.txt").write_text("host-only bytes", encoding="utf-8")
-        os.symlink(outside, root / "knowledge" / "slink")
+        # P-CORE-12M: os.symlink is PRIVILEGE-GATED on nt (admin or Developer Mode — a
+        # per-MACHINE capability, not a per-OS truth), so probe with honest absence; where
+        # the trap can't be minted, the ghost paths still owe their exact shapes. The
+        # target_is_directory flag keeps any future dev-mode nt honest; posix ignores it.
+        try:
+            os.symlink(outside, root / "knowledge" / "slink", target_is_directory=True)
+            trap_live = True
+        except OSError:
+            trap_live = False
         link_escape = (b11["dialog"].list_brain("knowledge/slink"),
                        b11["dialog"].brain_text("knowledge/slink/secret.txt"))
         tree_after = {str(p): (p.read_bytes(), p.stat().st_mtime)
                       for p in root.rglob("*") if p.is_file() and p.name != "slink"}
         expect(out, all(e == {"ok": False, "line": canon.LINE_BRAIN_REFUSAL} for e in escapes),
                "A3 LAW: '..' and absolute paths earn the clean refusal — never the host filesystem")
-        expect(out, all(e == {"ok": False, "line": canon.LINE_BRAIN_REFUSAL} for e in link_escape),
-               "A3 LAW: a symlink pointing OUT of the brain root earns the same refusal")
+        if trap_live:
+            expect(out, all(e == {"ok": False, "line": canon.LINE_BRAIN_REFUSAL} for e in link_escape),
+                   "A3 LAW: a symlink pointing OUT of the brain root earns the same refusal")
+        else:
+            expect(out, link_escape == ([], {"ok": False, "line": canon.LINE_BRAIN_ABSENT}),
+                   "A3 LAW: symlink trap unposeable here (privilege gate honestly declared) — ghost shelf lists empty, ghost leaf absents")
         expect(out, tree_before == tree_after
                and b11["gfx"].received == [] and b11["ofx"].received == [],
                "A3 belt: the explorer WROTE nothing (bytes + mtimes identical) and never rang")
