@@ -153,12 +153,11 @@ class NtOps:
         header = struct.pack("<IiiHHIIiiII", 40, width, -height, 1, 32, 0, 0, 0, 0, 0, 0)
         ctypes.memmove(info.bmiHeader, header, 40)
         gdi32.GetDIBits(mem, bitmap, 0, height, buf, ctypes.byref(info), 0)  # byref: out-structs always ride pointers
+        data = buf.raw  # raw bytes: indexing yields ints — ctypes char-array indexing yields 1-byte bytes instead (probe traceback, P-CORE-12D)
         rows = bytearray(width * height * 3)
-        for row in range(height):
-            for col in range(width):
-                base = (row * width + col) * 4
-                rows[(row * width + col) * 3:(row * width + col) * 3 + 3] = \
-                    bytes((buf[base + 2], buf[base + 1], buf[base]))
+        rows[0::3] = data[2::4]  # R — BGRA memory order; row order untouched (top-down via -height)
+        rows[1::3] = data[1::4]  # G
+        rows[2::3] = data[0::4]  # B
         gdi32.DeleteObject(bitmap)
         gdi32.DeleteDC(mem)
         user32.ReleaseDC(0, src)

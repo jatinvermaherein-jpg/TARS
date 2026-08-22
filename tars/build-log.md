@@ -372,3 +372,11 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - **Doctrine addition, written down where it bites:** suites must never depend on the host's real seams. The real ctypes seam (BitBlt → GetDIBits → foreground-title read) proves itself at the M-2 live smoke + an ad-hoc probe tonight, never inside a pinned suite.
 - Post-fix battery: compileall clean · suite re-run TWICE on Linux: **708/708 ALL GREEN, exit 0 both** · `git diff --stat` = dailyops.py (2+/2-) + selftest.py (+5) — surgical · Cooper's direct-fix decree rides (repair class, second ride).
 - **nt verdict #2 rides on Cooper's ceremony re-run after `git pull`** — further post-140 nt DATA, if any, follows this same repair loop.
+
+## [ARCHITECT] OPS — seam probe = RED one layer deeper → P-CORE-12D pixel-walk repair (Aug 22)
+
+- Cooper ran the live seam probe first (gate order slips him — noted kindly) and the byref twins HELD: the crash marched one line deeper, into the BGRA→RGB pixel walk. `buf[base]` on a ctypes char-array yields 1-byte `bytes`, not ints — `bytes((buf[…], …))` = TypeError. Third nt-only row of the night, same family: ctypes' Python semantics, unreachable on Linux.
+- Repair: single-file, 4+/5- — work on `buf.raw` (ints, as intended) and the double per-pixel loop became three stride assignments (`rows[0::3] = data[2::4]` etc. — R/G/B from BGRA memory order). Side-effect win: the 2-megapixel Python crawl (~10–30 s ⚪ estimate) becomes milliseconds.
+- **Stride arithmetic proven OFF the seam:** standalone harness compared slice-strides vs reference per-pixel math on a seeded random buffer — byte-identical. The seam's own body still proves live on the AiO (it is nt geography; the sandbox salutes from afar).
+- Battery: compileall clean · suite 2× on Linux: **708/708 ALL GREEN, exit 0 both** (nt-gated body, suite unchanged as designed) · `git diff --stat` = dailyops.py only.
+- Standing doctrine refreshed: gate first (the ceremony), toy second (the probe). Whole-block paste beats hand-retyping — `selftestm` has now claimed two runs.
