@@ -85,15 +85,22 @@ class FixtureAdapter:
     records the exact `messages` list it received (self.received) for assertions.
     The AdapterResult contract is unchanged."""
 
-    def __init__(self, provider: str, script: list):
+    def __init__(self, provider: str, script: list, by_model: dict = None):
         self.provider = provider
         self._script = list(script)
+        # P-CORE-12: council seats run in PARALLEL threads, so a FIFO script's pop order
+        # would race seat-to-lane assignment; by_model gives each declared model slug its
+        # own queue — the verdict battery scripts deterministically (empty queue pops loud).
+        self._by_model = {model: list(steps) for model, steps in by_model.items()} if by_model else None
         self.received = []
+        self.received_models = []  # call order as seen on the wire (lanes proven against it)
 
     def call(self, messages: list, *, key_string: str, key_visible_name: str, model: str,
              timeout_s: int = TIMEOUT_S) -> AdapterResult:
         self.received.append([dict(message) for message in messages])
-        step = self._script.pop(0)
+        self.received_models.append(model)
+        queue = self._by_model[model] if self._by_model is not None else self._script
+        step = queue.pop(0)
         if step[0] == "ok":
             _, text, tokens = step
             return AdapterResult(text=text, tokens=int(tokens), latency_ms=0,

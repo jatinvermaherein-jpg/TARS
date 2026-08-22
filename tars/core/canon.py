@@ -442,3 +442,118 @@ def handover_countdown_line(seconds: int = 10) -> str:
 def handover_keys_line() -> str:
     """Part IX's one question at the gate — the keys are Cooper's choice, never assumed."""
     return "Keep the API keys for the machine? YES keeps them."
+
+# --- P-CORE-12 Professor + Council family (grammar v1.7; bible §24 the tutor + §23 parliament) ---
+LINE_PDF_ABSENT = "I can't find that PDF. Name it, or point me at the folder."
+LINE_PDF_OPAQUE = ("That PDF won't give me its text. Scanned pages, likely — "
+                   "I won't pretend to read them.")
+LINE_QUIZ_CAVEAT = "I grade by key words. Your teacher grades better."
+LINE_FLASH_EMPTY = "No cards due. Learn something, then come back."
+LINE_FLASH_FORMAT = "Give it to me as: remember this as a flashcard: front / back."
+LINE_STUDY_GUEST = "Files and flashcards are Cooper's desk. A guest gets my facts — ask a question instead."
+LINE_STUDY_RING = "The ring is how I teach. No keys are standing — load one and ask again."
+LINE_QUIZ_THIN = "I couldn't draft a fair quiz on that. Name the topic tighter."
+LINE_QUIZ_STOPPED = "Quiz stopped. The questions go back in the drawer."
+LINE_FLASH_FRONT_TAIL = "Say reveal when you have it."
+LINE_FLASH_BACK_TAIL = "Right or wrong?"
+LINE_FLASH_DONE = "Desk clear. Nothing more due."
+LINE_FLASH_ADDED = "Card saved — box one, due now."
+LINE_QUIZ_RIGHT = "Correct."
+
+
+def quiz_wrong_line(key: str) -> str:
+    """A miss shows the held key — the quiz's one draft is the only grader here."""
+    return f"Not quite — the key says: {key}"
+
+
+LINE_PDF_BLANK = "This page holds no text. Nothing to read aloud."
+
+
+def read_ack(page: int) -> str:
+    """The read-aloud ack, truthful page in words (grammar v1.7 row (32))."""
+    return f"Reading page {number_words(page)}."
+
+
+def explain_ack(page: int) -> str:
+    """The explain row's tag — ONE smart call carries the page; the line says which."""
+    return f"Page {number_words(page)}, at study depth:"
+
+
+def due_ack(count: int) -> str:
+    """Cards due, number truthful in words; the singular law holds (one CARD due)."""
+    noun = "card" if count == 1 else "cards"
+    return f"{number_words(count).capitalize()} {noun} due."
+
+
+def pdf_range_line(pages: int) -> str:
+    """A page out of the book's reach answers the honest table of contents, never a guess."""
+    return f"That PDF has {number_words(pages)} pages. Pick one of them."
+
+
+def flash_made_line(count: int) -> str:
+    """The make-flashcards ack: drafted and filed, count in words, singular truthful."""
+    noun = "card" if count == 1 else "cards"
+    return f"{number_words(count).capitalize()} {noun} made and filed."
+
+
+def quiz_question_line(index: int, total: int, question: str) -> str:
+    """One question at a time — position truthful in words."""
+    return f"Question {number_words(index)} of {number_words(total)}: {question}"
+
+
+def quiz_score_line(right: int, total: int) -> str:
+    """The grading closes with the honest caveat — key words, never fake rigor (§24)."""
+    return (f"That's the set: {number_words(right)} of {number_words(total)} right. "
+            f"{LINE_QUIZ_CAVEAT}")
+
+
+def flash_front_line(index: int, total: int, front: str) -> str:
+    """A due card shows its front only — the reveal is the student's own word."""
+    return f"Card {number_words(index)} of {number_words(total)}: {front} — {LINE_FLASH_FRONT_TAIL}"
+
+
+def flash_back_line(back: str) -> str:
+    """The reveal — then the honest two-word grade choice."""
+    return f"{back} — {LINE_FLASH_BACK_TAIL}"
+
+
+def flash_grade_line(right: bool, box: int) -> str:
+    """Leitner truth: right climbs a box, wrong returns to box one — named, never hidden."""
+    if right:
+        return f"Right. It climbs to box {number_words(box)}."
+    return "Wrong. Back to box one."
+
+
+def council_verdict_unanimous() -> str:
+    """§23 verdict family, basis declared in council.py: agreement count first."""
+    return "Verdict: unanimous — seats landed together. Trust it."
+
+
+def council_verdict_majority(first: int, second: int) -> str:
+    """Two seats agree — the pair is named by number, never a coin flip."""
+    return f"Verdict: seats {number_words(first)} and {number_words(second)} agree — go with them."
+
+
+def council_verdict_absent(seat: int, agreed: bool, lane: str) -> str:
+    """A seat stood down (spent/failed): honesty in place, then the surviving law —
+    pair-agrees -> trust it; split -> lane strength decides."""
+    word = number_words(seat)
+    if agreed:
+        return f"Verdict: seat {word} couldn't make it; the two answering agree. Trust it."
+    return council_verdict_split(lane)
+
+
+def council_verdict_split(lane: str) -> str:
+    """Full disagreement: the verdict weighs the strongest seat ON RECORD and says why."""
+    return (f"Verdict: the seats split. I weight the {lane} lane — my strongest seat "
+            "standing. Read each side above.")
+
+
+def council_verdict_lone(seat: int) -> str:
+    """A single survivor is NOT a consensus — one voice honestly labeled as one voice."""
+    return f"Verdict: only seat {number_words(seat)} answered. One voice is one voice — weigh it so."
+
+
+def council_verdict_none() -> str:
+    """Every seat stood down — the honest empty bench, zero invented counsel."""
+    return "Verdict: no seat answered. The ring is dry — ask me solo, or wait for midnight."

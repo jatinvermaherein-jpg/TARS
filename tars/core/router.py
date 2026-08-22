@@ -13,12 +13,19 @@ Brain calls send [{"role":"system",...}, *history, {"role":"user",...}]: the
 persona system prompt (bible §12 clauses verbatim on EVERY call, all three
 council seats included) and the rolling chat window thread in from dialog.
 Both are optional; omitted they preserve the single-user-message shape.
+
+NAMED SUMMONS (P-CORE-12): the giant and the parliament answer NAME-ONLY, at
+word boundaries — "ultra" / "use ultra …" / "ask the giant …" summon ultra,
+"council …" summons the council; an unmatched look-alike ("ultraviolet") is a
+plain question, never a summon. council.py owns the seat plan, the seating
+presentation and the verdict — the router only drives, per its own law.
 """
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from tars.core import canon
-from tars.core.gauge import WARN_REMAINING_PCT, council_note, remaining_pct
+from tars.core.council import COUNCIL_PLAN, compose, note_of  # COUNCIL_PLAN: re-export
+from tars.core.gauge import WARN_REMAINING_PCT, remaining_pct
 
 LANE_MODELS = {
     ("groq", "fast"): "llama-3.1-8b-instant",
@@ -33,7 +40,17 @@ LANE_MODELS = {
 COMPLEXITY_KEYWORDS = ("explain", "derive", "proof", "why", "solve", "essay",
                        "physics", "chemistry", "maths", "doubt", "concept")  # museum P1 list, field-proven
 LENGTH_THRESHOLD = 120  # museum P1: messages longer than 120 chars escalate to smart
-COUNCIL_PLAN = (("fast", "groq"), ("smart", "groq"), ("council", "openrouter"))
+NAMED_ULTRA = ("ultra", "use ultra", "ask the giant")  # §24: the giant, named only
+
+
+def is_named_summon(text: str) -> bool:
+    """The named-summon law at word boundary (space/colon/end): command.py stage (4)
+    and this gate consult THE SAME table — one declaration, zero drift."""
+    lowered = " ".join(str(text).strip().lower().split())
+    if lowered == "council" or lowered.startswith(("council ", "council:")):
+        return True
+    return any(lowered == phrase or lowered.startswith((phrase + " ", phrase + ":"))
+               for phrase in NAMED_ULTRA)
 
 
 class Router:
@@ -52,10 +69,11 @@ class Router:
         return self._ring
 
     def gate(self, text: str) -> str:
-        lowered = text.strip().lower()
-        if lowered.startswith("council"):
+        lowered = " ".join(text.strip().lower().split())
+        if lowered == "council" or lowered.startswith(("council ", "council:")):
             return "council"
-        if lowered.startswith("ultra"):
+        if any(lowered == phrase or lowered.startswith((phrase + " ", phrase + ":"))
+               for phrase in NAMED_ULTRA):
             return "ultra"
         if len(text) > LENGTH_THRESHOLD or any(word in lowered for word in COMPLEXITY_KEYWORDS):
             return "smart"
@@ -114,15 +132,15 @@ class Router:
                 "warn": remaining <= WARN_REMAINING_PCT}
 
     def _council(self, text: str, system_prompt: str = None, history: list = None) -> dict:
+        """The drive is router law (3 seats parallel, separate keys, ledger-per-seat);
+        the PRESENTATION is council.py's (P-CORE-12): seats named, honest absences,
+        the declared verdict, the quota flag counting seats that actually answered."""
         with ThreadPoolExecutor(max_workers=len(COUNCIL_PLAN), thread_name_prefix="tars-council") as pool:
             votes = list(pool.map(lambda spec: self._single(text, spec[0], system_prompt, history), COUNCIL_PLAN))
         notices = []
         for vote in votes:
             notices.extend(vote["notices"])
-        lines = [council_note(len(votes))]
-        for vote in votes:
-            lines.append(f"[{vote['lane']}] {vote['text']}")
-        return {"ok": any(vote["ok"] for vote in votes), "text": "\n".join(lines), "lane": "council",
+        return {"ok": any(vote["ok"] for vote in votes), "text": compose(votes), "lane": "council",
                 "key_visible_name": "multiple", "hue": "cloud",
                 "tokens": sum(vote["tokens"] for vote in votes), "notices": notices,
-                "warn": any(vote["warn"] for vote in votes), "note": council_note(len(votes)), "votes": votes}
+                "warn": any(vote["warn"] for vote in votes), "note": note_of(votes), "votes": votes}

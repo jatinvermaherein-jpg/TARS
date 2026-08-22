@@ -74,6 +74,13 @@ CREATE TABLE IF NOT EXISTS sent_log (  -- P-CORE-7: append-only journal of what 
     summary    TEXT NOT NULL,
     sent_epoch REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS flashcards (  -- P-CORE-12: the Leitner desk (bible §24), same WAL posture
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    front     TEXT NOT NULL,
+    back      TEXT NOT NULL,
+    box       INTEGER NOT NULL DEFAULT 1,
+    due_epoch REAL NOT NULL
+);
 """
 
 
@@ -353,6 +360,40 @@ class Vault:
     def sent_count(self) -> int:
         return int(self._db.execute("SELECT COUNT(*) FROM sent_log").fetchone()[0])
 
+    # ---------- P-CORE-12: the Leitner flashcard desk (bible §24) ----------
+    def flash_add(self, front: str, back: str, due_epoch: float) -> int:
+        cur = self._db.execute(
+            "INSERT INTO flashcards (front, back, box, due_epoch) VALUES (?, ?, 1, ?)",
+            (front, back, float(due_epoch)))
+        self._db.commit()
+        return int(cur.lastrowid)
+
+    def flash_due(self, now_epoch: float) -> list:
+        """Due cards, oldest-due first then by filing order — the review walks this order."""
+        rows = self._db.execute(
+            "SELECT id, front, back, box, due_epoch FROM flashcards WHERE due_epoch <= ? "
+            "ORDER BY due_epoch, id", (float(now_epoch),)).fetchall()
+        return [{"id": int(r[0]), "front": r[1], "back": r[2], "box": int(r[3]),
+                 "due_epoch": float(r[4])} for r in rows]
+
+    def flash_get(self, card_id: int):
+        row = self._db.execute(
+            "SELECT id, front, back, box, due_epoch FROM flashcards WHERE id = ?",
+            (int(card_id),)).fetchone()
+        if row is None:
+            return None
+        return {"id": int(row[0]), "front": row[1], "back": row[2], "box": int(row[3]),
+                "due_epoch": float(row[4])}
+
+    def flash_grade(self, card_id: int, box: int, due_epoch: float) -> None:
+        """The grade re-files the card: new box, new due — professor.py owns the Leitner math."""
+        self._db.execute("UPDATE flashcards SET box = ?, due_epoch = ? WHERE id = ?",
+                         (int(box), float(due_epoch), int(card_id)))
+        self._db.commit()
+
+    def flash_count(self) -> int:
+        return int(self._db.execute("SELECT COUNT(*) FROM flashcards").fetchone()[0])
+
     def last_tars_text(self, chat_id=None):
         """Newest assistant message text (chat-scoped when an id rides along) — 'copy that''s source."""
         if chat_id is None:
@@ -370,7 +411,7 @@ class Vault:
         the person. There is no recovery path here by design (the farewell means it)."""
         with self._db:  # sqlite transaction: all tables or none
             for table in ("kv", "memory", "ledger", "chats", "messages",
-                          "reminders", "timers", "contacts", "sent_log"):
+                          "reminders", "timers", "contacts", "sent_log", "flashcards"):
                 self._db.execute(f"DELETE FROM {table}")  # static names above — data never mixes in
 
     def integrity(self) -> str:

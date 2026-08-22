@@ -3,7 +3,8 @@
 Parse order is canon and re-proven by the battery: (1) session/system ->
 (2) dials -> (3) memory -> (4) named brain gates (router-owned; this file never
 touches them) -> (5) operator GREEN -> (6) operator RED (typed-YES gate) ->
-(7) study (P-CORE-12's — declared no-op fall-through) -> (8) else -> brain ring.
+(7) study (grammar v1.7 — the Professor/council/ultra rows; P-CORE-12 retired
+the last boundary here) -> (8) else -> brain ring.
 
 Match rules (grammar §0): case-insensitive, trimmed, WHOLE-UTTERANCE match,
 numbers as digits or words 0–100, one command per utterance, closed alias
@@ -26,6 +27,9 @@ from tars.core.classifier import ModelClassifier
 from tars.core.handover import Handover
 from tars.core.lookd import Lookd
 from tars.core.operator import APP_ALIASES
+from tars.core.pdf import StdPdfReader
+from tars.core.professor import Professor
+from tars.core.router import is_named_summon
 from tars.core.watcher import Watcher
 
 # --- moved here from dialog.py (P-CORE-2 handlers consolidated; behavior byte-identical)
@@ -61,6 +65,7 @@ NEAR_MISS_MARKERS = {
     "send", "bhejo", "forward", "save", "forget",  # grammar v1.2 TeleSend family
     "watch", "look", "narrate", "screen", "dekh",  # grammar v1.3 LOOK family
     "learn", "journal", "brain", "seekha",  # grammar v1.5 Living Brain family
+    "quiz", "padhai",  # grammar v1.7 study family — "flashcards" is itself a live row
 }
 
 RANK_WORDS = {"one": 1, "1": 1, "first": 1, "two": 2, "2": 2, "second": 2,
@@ -73,7 +78,9 @@ COMMANDS_HELP = (
     "Session: stand down · cancel · yes (inside a gate) · new chat · status · commands · what time is it · what's the date\n"
     "Dials: humor/vernacular/discretion/trust 0-100 · presets recruit/docking/endurance · what are your dials\n"
     "Memory: remember this: ... · yaad rakh ... · what do you remember about ...\n"
-    "Brain: council <question> · ultra <question>\n"
+    "Brain: council <question> · ultra <question> (use ultra for ... · ask the giant about ...)\n"
+    "Study: read page <n> of <file>.pdf · explain page <n> of <file>.pdf · quiz me on ... (quiz le lo) · "
+    "make flashcards for ... · remember this as a flashcard: <front> / <back> · flashcards (padhai shuru)\n"
     "Operator: open <app> (kholo) · search <query> (on youtube) · find <desc> (dhundo) · volume (awaaz badha/ghata) · brightness · snap · screenshot\n"
     "Red, always typed-YES: close <app> · delete <file> · move <a> to <b> · shutdown · restart · sleep"
 )
@@ -133,7 +140,7 @@ class CommandLayer:
 
     def __init__(self, settings, vault, executor, search_lanes, finder, log, bus, clock=None,
                  time_fn=None, router=None, clockd=None, ops=None, desktop=None, tele=None,
-                 lookd=None, watcher=None, brain=None, handover=None):
+                 lookd=None, watcher=None, brain=None, handover=None, professor=None, pdf=None):
         self._settings = settings
         self._vault = vault
         self._executor = executor
@@ -168,6 +175,12 @@ class CommandLayer:
         self._handover = handover if handover is not None else Handover(
             vault, bus, ProfileStore(data_dir / "profiles.json", log), self._settings,
             data_dir / "logs.jsonl", ring=router.ring if router is not None else None)
+        # P-CORE-12 Professor (bible §24): the teacher on standing seams — the SAME finder
+        # instance the file rows use; a routerless desk still reads aloud and files cards
+        # locally, and the ring-needing rows answer LINE_STUDY_RING honestly.
+        self._pdf = pdf if pdf is not None else StdPdfReader()
+        self._professor = professor if professor is not None else Professor(
+            vault, router=router, pdf=self._pdf, finder=self._finder, log=log, time_fn=self._time)
 
     @property
     def clockd_unit(self):
@@ -306,6 +319,16 @@ class CommandLayer:
             answers = self._handover.handle(t)
             if answers:
                 return self._plan(answers)
+        # (0b) an engaged quiz consumes every utterance as its answer EXCEPT "stop the quiz"
+        # (grammar v1.7); an armed review consumes reveal/right/wrong only — anything else
+        # flows on as conversation while the desk waits armed (the pointer lives in kv).
+        if self._professor.quiz_active():
+            answers = (self._professor.stop_quiz() if t == "stop the quiz"
+                       else self._professor.answer_quiz(t))
+            return self._plan(answers)
+        review = self._professor.review_turn(t) if self._professor.review_active() else None
+        if review:
+            return self._plan(review)
         # rn = whitespace-normalized raw, ORIGINAL case, index-aligned with t (P-CORE-7 law:
         # an outbound payload is staged as Cooper typed it — §17 exact bytes)
         rn = " ".join(raw.strip().split())
@@ -351,7 +374,11 @@ class CommandLayer:
         if t == "what are your dials":
             return self._plan([(canon.dials_line(self._settings.dials), "local", None)])
 
-        # (3) memory (moved P-CORE-2 handler, behavior byte-identical)
+        # (3) memory (moved P-CORE-2 handler, behavior byte-identical) — the flashcard
+        # carve rides FIRST (grammar v1.7): the longer declared pattern outranks the bare
+        # remember row, or his card bytes would land in plain memory.
+        if t.startswith("remember this as a flashcard"):
+            return self._flash_add_row(rn, machine)
         payload = remember_payload(raw)
         if payload is not None and machine.audience == "cooper":
             self._vault.remember(classify_memory(payload), payload)
@@ -365,8 +392,9 @@ class CommandLayer:
                     return self._plan([(listing, "local", None)])
                 return self._plan([(canon.LINE_NOTHING_REMEMBERED, "local", None)])
 
-        # (4) named brain gates — router-owned (council/ultra prefixes never parse as commands)
-        if t.startswith("council") or t.startswith("ultra"):
+        # (4) named brain gates — router-owned (the ONE shared named-summon table; a named
+        # summon never parses as a command — P-CORE-12 added ultra's two summon aliases)
+        if is_named_summon(t):
             return {"handled": False}
 
         # (5) operator GREEN
@@ -404,7 +432,12 @@ class CommandLayer:
         if red is not None:
             return red
 
-        # (7) study rows are P-CORE-12's: declared no-op fall-through — the ring answers for now
+        # (7) study rows (grammar v1.7) — P-CORE-12 RETIRED the last boundary here
+        # (§7-sanctioned re-aim #1: the gb battery re-pins its own shut list as EMPTY;
+        # study utterances reach professor.py, which answers in person).
+        study = self._study_rows(rn, t, machine)
+        if study is not None:
+            return study
 
         # near-miss law (grammar §0): HIGH STRUCTURE = a command verb opens the utterance but no
         # exact row matched -> ONE clarifying question, nothing moves. Keyword-anywhere would be
@@ -415,8 +448,11 @@ class CommandLayer:
         # (8) else: the brain ring is conversation's home
         return {"handled": False}
 
-    def _plan(self, replies, stand_down=False, new_chat=False) -> dict:
-        return {"handled": True, "replies": replies, "stand_down": stand_down, "new_chat": new_chat}
+    def _plan(self, replies, stand_down=False, new_chat=False, speak=None) -> dict:
+        # speak: reply index whose emission the dialog queues onto the speak_request seam
+        # (P-CORE-12 read-aloud voices the PAGE message, never the ack) — absent elsewhere.
+        return {"handled": True, "replies": replies, "stand_down": stand_down,
+                "new_chat": new_chat, "speak": speak}
 
     def _dial_line(self, machine, name, value) -> str:
         if machine.audience != "cooper":
@@ -872,6 +908,11 @@ class CommandLayer:
         """The farewell engine the v1.6 row drives and the dialog heartbeats (tick)."""
         return self._handover
 
+    @property
+    def professor_unit(self):
+        """The teacher the v1.7 rows drive (read-aloud queues ride the standing speak seam)."""
+        return self._professor
+
     def _watch_rows(self, t: str):
         unit = self._watcher
         if unit is None:
@@ -911,6 +952,68 @@ class CommandLayer:
             page = unit.root / "journal" / f"{today}.md"
             line = page.read_text(encoding="utf-8") if page.is_file() else canon.LINE_NO_JOURNAL
             return self._plan([(line, "local", None)])
+        return None
+
+    # ---------- grammar v1.7: the Professor + council/ultra named summons (P-CORE-12) ----------
+    def _flash_add_row(self, rn: str, machine):
+        """Row (36): LOCAL filing, original-case bytes (§17), split on the declared ' / '.
+        §31: the desk is Cooper's — a guest never touches it (LINE_STUDY_GUEST)."""
+        if machine.audience == "guest":
+            return self._plan([(canon.LINE_STUDY_GUEST, "local", None)])
+        payload = rn[len("remember this as a flashcard"):].lstrip(" :,-").strip()
+        front, slash, back = payload.partition(" / ")
+        if not slash or not front.strip() or not back.strip():
+            return self._plan([(canon.LINE_FLASH_FORMAT, "local", None)])
+        return self._plan(self._professor.add_flashcard(front.strip(), back.strip()))
+
+    def _study_rows(self, rn: str, t: str, machine):
+        """Rows (32)-(35)+(37): page-pinned read/explain, quiz, flash make/review. Files and
+        cards are Cooper's desk (guest refused BEFORE the finder stirs); quizzes teach anyone."""
+        professor = self._professor
+        guest_desk_words = None
+        match = re.match(r"^(?:read aloud |read |padho )page (\d+) of (.+)$", t)
+        if match:  # (32) read-aloud: zero ring, page bytes never in an adapter payload
+            page, name = int(match.group(1)), match.group(2).strip()
+            guest_desk_words = self._guest_desk(machine, name)
+            if guest_desk_words is not None:
+                return guest_desk_words
+            result = professor.read_page(name, page)
+            return self._plan(result["lines"], speak=result["speak"])
+        match = re.match(r"^(?:explain |samjhao )page (\d+) of (.+)$", t)
+        if match:  # (33) explain: EXACTLY ONE smart call carries the page slice
+            page, name = int(match.group(1)), match.group(2).strip()
+            guest_desk_words = self._guest_desk(machine, name)
+            if guest_desk_words is not None:
+                return guest_desk_words
+            result = professor.explain_page(name, page)
+            return self._plan(result["lines"])
+        match = re.match(r"^(?:quiz me on|quiz le lo) (.+)$", t)
+        if match:  # (34) quizzes teach anyone (§31: facts are everyone's) — ONE smart draft
+            topic = match.group(1).strip()
+            if self._never(topic):
+                return self._plan([(canon.LINE_NEVER_LIST, "local", None)])
+            return self._plan(professor.start_quiz(topic)["lines"])
+        match = re.match(r"^(?:make flashcards for|flashcards banao) (.+)$", t)
+        if match:  # (35) ONE smart draft over the F:/B: protocol, then filed local
+            topic = match.group(1).strip()
+            guest_desk_words = self._guest_desk(machine, topic)
+            if guest_desk_words is not None:
+                return guest_desk_words
+            return self._plan(professor.make_flashcards(topic)["lines"])
+        if t in ("flashcards", "padhai shuru"):  # (37) the due desk, closed Hinglish alias
+            guest_desk_words = self._guest_desk(machine, None)
+            if guest_desk_words is not None:
+                return guest_desk_words
+            return self._plan(professor.start_review())
+        return None
+
+    def _guest_desk(self, machine, target):
+        """The §31 guest door on Cooper's files/cards: refused before the finder stirs;
+        the §34 Never-List still scans a named target first (the door fronts everything)."""
+        if target is not None and self._never(target):
+            return self._plan([(canon.LINE_NEVER_LIST, "local", None)])
+        if machine.audience == "guest":
+            return self._plan([(canon.LINE_STUDY_GUEST, "local", None)])
         return None
 
     def _lesson_titles(self, unit) -> list:

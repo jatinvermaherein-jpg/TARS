@@ -233,3 +233,46 @@ GREEN local acks: short past-tense templates, numbers in words — *"Volume set 
 | Pattern | Examples | Ack family |
 |---|---|---|
 | `abort handover` · `cancel` (during the countdown only) | "abort handover" · "cancel" · "abort handover" | `Handover aborted. Everything stays.` — zero wipe, flow dead. Law 5: the kill-switch during the countdown is instant death with NO wipe; a crashed countdown is a dead countdown, never a resumed one. The wipe (§30 ledger order, per-store atomic): vault rows · profiles.json · settings.json (factory; honesty 90 stands) · the keys mapping (unless kept) · tars-brain/ in full · logs.jsonl down to exactly `Handover executed <date>`. Kept: the app, the laws, the Never List, gauge schemas — house rules aren't memories. First summon after: `Factory state. New commander, identify yourself. Honesty: ninety. Humor: five.` — once, then never again. |
+
+## v1.7 — PROFESSOR + COUNCIL (APPEND-ONLY, P-CORE-12 · Architect decree Aug 21, 2026)
+*Every v1.0–v1.6 byte above stands unchanged. The final core phase: THE STUDY BOUNDARY RETIRES — professor.py answers in person, and zero boundary rows remain anywhere in the parser (battery-pinned). §24: the Professor teaches page-pinned with the file law aboard; §23: the council convenes on NAMED summon only — a special weapon, not a habit; §24's giant answers only when named. The persona-omission + history-closure laws (v1.6 table note) stand under every study call: §12 clauses ride each draft.*
+
+### 32. PDF read-aloud (page-pinned · zero ring · LOCAL voice only)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `read page <n> of <file>` · `read aloud page <n> of <file>` · `padho page <n> of <file>` | "read page 3 of physics.pdf" · "read aloud page 12 of chemistry.pdf" · "padho page 2 of physics.pdf" | `Reading page three.` then the page text itself (one speak request queued — local tiers only; file bytes never in an adapter payload) · missing: `I can't find that PDF. Name it, or point me at the folder.` · opaque: `That PDF won't give me its text. Scanned pages, likely — I won't pretend to read them.` · out of reach: `That PDF has N pages. Pick one of them.` · blank: `This page holds no text. Nothing to read aloud.` |
+
+### 33. PDF explain (page-pinned · EXACTLY ONE smart call)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `explain page <n> of <file>` · `samjhao page <n> of <file>` | "explain page 3 of physics.pdf" · "explain page 12 of chemistry.pdf" · "samjhao page 2 of physics.pdf" | `Page three, at study depth:` + the explanation (the page slice rides ONLY that one call, under the study prompt) · same refusal family as row (32) |
+
+### 34. Quiz (one draft · local grading · the honest caveat)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `quiz me on <topic>` · `quiz le lo <topic>` | "quiz me on thermodynamics" · "quiz me on modern history" · "quiz le lo kinematics" | ONE smart draft (Q:/A: protocol, key held) -> `Question one of three: …` · every next utterance grades LOCAL (`Correct.` / `Not quite — the key says: …`) · set close: `That's the set: two of three right. I grade by key words. Your teacher grades better.` · `stop the quiz` abandons honestly · thin draft: `I couldn't draft a fair quiz on that. Name the topic tighter.` |
+
+### 35. Flashcards — make (one draft, filed box one)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `make flashcards for <topic>` · `flashcards banao <topic>` | "make flashcards for thermodynamics" · "make flashcards for the periodic table" · "flashcards banao optics" | ONE smart draft (F:/B: protocol) -> `Three cards made and filed.` (singular truthful) · guest: the desk-door line |
+
+### 36. Flashcards — add (LOCAL, zero ring, original-case bytes)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `remember this as a flashcard: <front> / <back>` | "remember this as a flashcard: Snell's law / n1 sin i = n2 sin r" · "remember this as a flashcard: escape velocity / 11.2 km per second" · "remember this as a flashcard: Avogadro number / 6.022e23 per mole" | `Card saved — box one, due now.` · malformed: `Give it to me as: remember this as a flashcard: front / back.` · the carve outranks the bare memory row (the bytes would else land in plain memory) |
+
+### 37. Flashcards — due review (Leitner boxes 1-5: 1, 2, 4, 7, 15 days)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `flashcards` · `padhai shuru` · then `reveal` · `right` / `wrong` | "flashcards" · "padhai shuru" · "reveal" | `Three cards due.` -> `Card one of three: <front> — Say reveal when you have it.` -> `<back> — Right or wrong?` -> `Right. It climbs to box two.` / `Wrong. Back to box one.` -> chain or `Desk clear. Nothing more due.` · empty: `No cards due. Learn something, then come back.` · the desk door refuses guests |
+
+### 38. Council (NAMED summon only — 3 seats parallel, 3 distinct keys)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `council <question>` | "council on this: skip the mock test?" · "council this: which elective?" · "council on the internship offer" | `council of 3 — 3x quota` (honest count of the seats that ANSWERED) -> each seat named `[fast]`/`[smart]`/`[council]` (a drained seat: `seat three [council]: couldn't make it.`) -> the declared verdict (agreement first, lane strength — never a coin flip) · the chip `quick_action('council', {text})` convenes the same parliament; `{}` earns the near-miss question, zero ring |
+
+### 39. Ultra (§24 — the giant answers when NAMED, never auto-routed)
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `ultra <question>` · `use ultra for <question>` · `ask the giant about <question>` | "ultra derive the path-integral sketch" · "use ultra for the navier-stokes outline" · "ask the giant about entropy" | ONE ultra-lane call, amber, ledgers `ultra` · word-boundary law: "ultraviolet" summons nothing · unnamed complexity stays smart |

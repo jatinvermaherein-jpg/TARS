@@ -101,6 +101,21 @@ sent recall, tree/counts structural-open) x {cooper, family, guest} with
 PERSONAL-CANARY swept absent from every non-Cooper surface and every ring
 payload under their watch — the rolling history window now rides Cooper
 only (machine-taught this phase: the side window leaked prior answers).
+P-CORE-12 battery (bible §24 + §23 — finish the core): the pure-stdlib PDF
+spine (Kids-order page pinning, the honest OPAQUE envelope at every edge),
+read-aloud zero-ring with the page's voice LOCAL-only (FRAME/CLIP pattern,
+one queued speak request), explain = EXACTLY ONE smart call carrying the
+page slice, one-draft quizzes graded LOCAL with the caveat, Leitner boxes
+1-5 arithmetic pinned (cap, due gate, alias desk), the parse carve ordering
+flash-add before the bare memory row, the named-summon council — 3 seats
+parallel on 3 distinct keys, the QUOTA ARITHMETIC acceptance (council 3 vs
+solo 1, contrast-pinned), 2-of-3 graceful, the declared verdict basis
+(agreement count, then lane strength — never a coin flip), the rostered
+'council' chip served (the §7 re-aim), the giant NAMED-only at a word
+boundary, the §31 desk door for guests, the study boundary RETIRED (the gb
+battery pins its own shut list EMPTY), the farewell sweeping the Leitner
+desk, and the crash child keeping a card + a completed parliament exactly
+as they were. The core is finished.
 
 Child mode:  python -m tars.core.selftest --child <data_dir>
 """
@@ -138,6 +153,10 @@ from tars.core.classifier import HeuristicClassifier, ModelClassifier, is_privat
 from tars.core.lookd import BUFFER_CAP, IDLE_S, LOOK_INTERVAL_S, NARRATE_PROMPT, Lookd
 from tars.core.telesend import TELE_SESSION_FILE, FixtureTelethon, TelethonUserClient, wa_url
 from tars.core.brain import BRAIN_DIRS, CONSOLIDATE_CALL_CAP, CONSOLIDATE_SYSTEM, Brain
+from tars.core.pdf import FixturePdf, PdfOpaque, StdPdfReader
+from tars.core.professor import (GRADE_OVERLAP, LEITNER_DAYS, QUIZ_QUESTIONS, STUDY_PROMPT,
+                                 grade_answer, parse_qa_protocol)
+from tars.core.council import verdict
 from tars.core.watcher import (FixtureCreepSource, NtCreepSource, Watcher, drill_boot,
                                drill_mark_clean, survival_line, survival_probe)
 from tars.core.voiceid import (MATRIX_ROWS, FixtureScorer, ProfileStore, ResemblyzerScorer, VoiceGate, classify,
@@ -762,8 +781,14 @@ def _persona_checks(base: Path, out) -> None:
            "'status' is served by the watcher digest — out of the catch-all set")
     expect(out, dialog7.quick_action("open", {}) == {"ok": False, "line": canon.LINE_CATCH_ALL}
            and all(dialog7.quick_action(name, {}) == {"ok": False, "line": canon.LINE_CATCH_ALL}
-                   for name in ("search", "find_file", "document", "telesend", "council")),
+                   for name in ("search", "find_file", "document", "telesend")),
            "unshipped quick_action names get the canon catch-all (P-CORE-5 territory)")
+    # P-CORE-12 re-aim (§7-sanctioned #2 — the roster's final earn): 'council' LEAVES the
+    # unshipped catch-all set; the {} summon earns the near-miss honest question, ZERO ring
+    # (the served {text} convene is pinned seat-and-verdict in the _study_checks battery).
+    expect(out, dialog7.quick_action("council", {}) == {"ok": False, "line": canon.LINE_NEAR_MISS}
+           and dialog7.quick_action("council", {"txt": "x"}) == {"ok": False, "line": canon.LINE_NEAR_MISS},
+           "'council' is served now: {} or a wrong key earns the honest question, never a guessed summon")
 
     # rolling context window
     dialog8, _v8, _m8, gfx8, _o8, _e8, _s8 = universe("u8", [("ok", f"a{i}", 5) for i in range(1, 13)], [])
@@ -1995,17 +2020,31 @@ def _grammar_checks(base: Path, out) -> None:
                and len([r for r in g8["log"].read_all() if r.get("kind") == "never-list"]) == 7,
                "Never-List battery: every §34 family refuses at every row — no gate, no execution, logged")
 
-        # --- declared boundaries ride the ring until their phases land
-        # P-CORE-7 re-aim (sanctioned §7-1, the ONLY boundary change set): TeleSend utterances
-        # leave this battery — real rows now, owned by _telesend_checks. Study (P-CORE-12)
-        # stays pinned exactly as before; whatsapp FILE send is a canon row (LINE_WA_FILES_OFF),
-        # never a boundary.
-        gb = cmd_universe("gb", groq_script=[("ok", f"boundary {i}", 3) for i in range(4)])
-        for text in ("explain torque with one example", "quiz me on thermodynamics",
-                     "why is the sky blue", "help me understand fractions"):
+        # --- the boundary battery RETIRES (P-CORE-12 §7-sanctioned re-aim #1): study
+        # utterances reach professor.py now — the shut list is EMPTY, proven two ways:
+        # the source carries no no-op study boundary, and the quiz row's one call is the
+        # Professor's draft (study prompt aboard), not the boundary's blind ring ride.
+        gsrc = (REPO_ROOT / "tars" / "core" / "command.py").read_text()
+        expect(out, "declared no-op fall-through" not in gsrc
+               and "P-CORE-12's" not in gsrc,
+               "the shut list is EMPTY: no study boundary remains in the parser — the core is whole")
+        gb = cmd_universe("gb", groq_script=[("ok", f"boundary {i}", 3) for i in range(3)])
+        for text in ("explain torque with one example", "why is the sky blue",
+                     "help me understand fractions"):
             gb["dialog"].send(text)
-        expect(out, len(gb["gfx"].received) == 4 and not gb["executor"].calls,
-               "study boundary declared: the ring answers until P-CORE-12 (TeleSend is a real row set now)")
+        expect(out, len(gb["gfx"].received) == 3 and not gb["executor"].calls
+               and said(gb) == ["boundary 0", "boundary 1", "boundary 2"],
+               "plain study-flavored questions still ride the ring — no boundary CLAIMS them anymore")
+        gbq = cmd_universe("gbq", groq_script=[("ok", "Q: What is force?\nA: force equals mass times acceleration\n"
+                                                     "Q: Unit of force?\nA: the newton\n"
+                                                     "Q: Value of g?\nA: 9.8 metres per second squared", 20)])
+        gbq["dialog"].send("quiz me on thermodynamics")
+        quiz_payload = gbq["gfx"].received[0][0]["content"]
+        expect(out, len(gbq["gfx"].received) == 1 and not gbq["executor"].calls
+               and STUDY_PROMPT.splitlines()[0] in quiz_payload
+               and said(gbq) == ["Question one of three: What is force?"]
+               and gbq["vault"].kv_get("quiz:active") not in (None, ""),
+               "the quiz row's one call is the Professor's armed draft — never the old blind pass")
 
         # --- zero real OS effects: every Nt verb refuses off-nt while the seams are patched
         swept = NtExecutor()
@@ -4504,6 +4543,520 @@ def _handover_checks(base: Path, out) -> None:
         subprocess.Popen = real_popen
 
 
+def _study_checks(base: Path, out) -> None:
+    """P-CORE-12 battery (bible §24 the Professor + §23 the Council — the final core):
+    the pure-stdlib PDF spine with its honest OPAQUE envelope, page-pinned read-aloud
+    (zero ring, LOCAL-only voice, one queued speak request), explain = EXACTLY ONE smart
+    call carrying the page slice, one-draft quizzes with LOCAL grading + the caveat,
+    Leitner boxes 1-5 arithmetic, the named-summon council (3 seats / 3 distinct keys /
+    parallel) with the declared verdict basis and the QUOTA ARITHMETIC acceptance, the
+    named-only ultra gate, the §31 desk door for guests, and the rostered chip served.
+    Net/spawn seams patched RAISE, per decree."""
+    zone = base / "study"
+    zone.mkdir(parents=True, exist_ok=True)
+    full_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    full_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    FAST_MODEL = LANE_MODELS[("groq", "fast")]
+    SMART_MODEL = LANE_MODELS[("groq", "smart")]
+    COUNCIL_MODEL = LANE_MODELS[("openrouter", "council")]
+    CANARY = "STUDY-CANARY-12"
+
+    def make_pdf(pages) -> bytes:  # pages: list[list[str]] — one Tj op per line, the envelope spine
+        objects = []
+        page_ids = [3 + 2 * i for i in range(len(pages))]
+        content_ids = [4 + 2 * i for i in range(len(pages))]
+        objects.append(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n")
+        kids = b" ".join(b"%d 0 R" % p for p in page_ids)
+        objects.append(b"2 0 obj\n<< /Type /Pages /Kids [" + kids + b"] /Count "
+                       + str(len(pages)).encode() + b" >>\nendobj\n")
+        for pid, cid, lines in zip(page_ids, content_ids, pages):
+            stream = b"\n".join(b"(%s) Tj" % line.encode() for line in lines)
+            blob = zlib.compress(stream)
+            objects.append(b"%d 0 obj\n<< /Type /Page /Parent 2 0 R /Contents %d 0 R >>\nendobj\n"
+                           % (pid, cid))
+            objects.append(b"%d 0 obj\n<< /Length %d /Filter /FlateDecode >>\nstream\n"
+                           % (cid, len(blob)) + blob + b"\nendstream\nendobj\n")
+        return b"%PDF-1.4\n" + b"".join(objects)
+
+    library = zone / "library"
+    library.mkdir()
+    physics_pages = [["Chapter one: motion.", "v equals u plus at."],
+                     [f"Page two holds {CANARY}.", "KE equals half m v squared."],
+                     []]  # page three is honestly blank
+    (library / "physics.pdf").write_bytes(make_pdf(physics_pages))
+    (library / "chemistry.pdf").write_bytes(make_pdf([["Atoms and bonds."]]))
+    reader = StdPdfReader()
+
+    def stud_universe(name, groq_script=(), or_script=(), groq_models=None, or_models=None,
+                      roots=None, audience="cooper", enroll=False, time_at=10000.0, clock=None):
+        cell = [time_at]
+        path = zone / name
+        path.mkdir(parents=True, exist_ok=True)
+        log = LogX(path / "logs.jsonl")
+        settings = Settings.load(path / "settings.json", log)
+        vault = Vault(path / "vault.db")
+        bus = Bus()
+        events = []
+        bus.subscribe(lambda kind, detail: events.append((kind, detail)))
+        machine = Machine(settings, log, bus)
+        groq_fx = FixtureAdapter("groq", list(groq_script), by_model=groq_models)
+        or_fx = FixtureAdapter("openrouter", list(or_script), by_model=or_models)
+        router = Router(load_ring(full_source), {"groq": groq_fx, "openrouter": or_fx}, vault, bus)
+        layer = CommandLayer(settings, vault, FixtureExecutor(), SearchLanes(FixtureSearch({})),
+                             FileFinder(list(roots) if roots is not None else [str(library)],
+                                        now=clock),
+                             log, bus, time_fn=lambda: cell[0], router=router,
+                             clockd=Clockd(vault, bus), ops=FixtureOps(None))
+        dialog = Dialog(settings, vault, router, machine, bus, command_layer=layer)
+        if enroll:  # the farewell flow's gate runs on the standing Member File hash law
+            store = ProfileStore(path / "profiles.json", log)
+            store.add({"name": "Cooper", "relationship": "self", "tier": "cooper",
+                       "passSalt": "salt1", "passHash": hash_passphrase("open sesame", "salt1")})
+        machine.set_audience(audience)
+        return {"path": path, "vault": vault, "bus": bus, "events": events, "machine": machine,
+                "router": router, "gfx": groq_fx, "ofx": or_fx, "layer": layer, "dialog": dialog,
+                "log": log, "cell": cell}
+
+    def said(univ, chat=1) -> list:
+        return [m["text"] for m in univ["vault"].messages_for(chat) if m["who"] == "tars"]
+
+    real_urlopen = urllib.request.urlopen
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def _no_net(*args, **kwargs):
+        raise AssertionError("network lifted inside the sandbox battery")
+
+    def _no_spawn(*args, **kwargs):
+        raise AssertionError("subprocess spawned inside the sandbox battery")
+
+    urllib.request.urlopen = _no_net
+    subprocess.run = _no_spawn
+    subprocess.Popen = _no_spawn
+    try:
+        # --- decreed literals + the generative family, byte-exact
+        expect(out, canon.LINE_PDF_ABSENT == "I can't find that PDF. Name it, or point me at the folder."
+               and canon.LINE_PDF_OPAQUE == ("That PDF won't give me its text. Scanned pages, "
+                                             "likely — I won't pretend to read them.")
+               and canon.LINE_QUIZ_CAVEAT == "I grade by key words. Your teacher grades better."
+               and canon.LINE_FLASH_EMPTY == "No cards due. Learn something, then come back."
+               and canon.LINE_STUDY_GUEST == ("Files and flashcards are Cooper's desk. "
+                                              "A guest gets my facts — ask a question instead."),
+               "decreed v1.7 literals byte-exact (the pdf pair, the caveat, the desk laws)")
+        expect(out, canon.read_ack(2) == "Reading page two." and canon.due_ack(1) == "One card due."
+               and canon.due_ack(4) == "Four cards due."
+               and canon.quiz_score_line(2, 3) == ("That's the set: two of three right. "
+                                                   "I grade by key words. Your teacher grades better.")
+               and canon.flash_grade_line(True, 2) == "Right. It climbs to box two."
+               and canon.flash_grade_line(False, 1) == "Wrong. Back to box one.",
+               "the generative study family: numbers truthful in words, the singular law holds")
+        expect(out, canon.council_verdict_unanimous() == "Verdict: unanimous — seats landed together. Trust it."
+               and canon.council_verdict_majority(1, 2) == "Verdict: seats one and two agree — go with them."
+               and canon.council_verdict_absent(3, True, "") == ("Verdict: seat three couldn't make it; "
+                                                                 "the two answering agree. Trust it.")
+               and canon.council_verdict_split("smart") == ("Verdict: the seats split. I weight the smart "
+                                                            "lane — my strongest seat standing. Read each "
+                                                            "side above."),
+               "the verdict family pinned: unanimous, majority, seat-three-absent, the split weight")
+        expect(out, LEITNER_DAYS == (1, 2, 4, 7, 15) and QUIZ_QUESTIONS == 3
+               and STUDY_PROMPT.startswith(persona.HONESTY_CLAUSES)
+               and "Professor register" in STUDY_PROMPT and "JEE" in STUDY_PROMPT,
+               "the Leitner table declared; the study prompt BUILDS ON §12 — never a persona fork")
+
+        # --- the protocol parser + the local grader, truth-table exact
+        parsed = parse_qa_protocol("Q: one?\nA: alpha\nQ: two?\nnope\nQ: three?\nA: gamma", "Q:", "A:")
+        expect(out, parsed == [("one?", "alpha"), ("three?", "gamma")],
+               "the Q:/A: protocol keeps whole pairs only — an unpaired draft line files nothing")
+        expect(out, grade_answer("it is mass times acceleration", "force equals mass times acceleration")
+               and not grade_answer("no idea", "the newton")
+               and not grade_answer("anything at all", "123 abc")  # every key word too short
+               and not grade_answer("", "the newton") and GRADE_OVERLAP == 0.5,
+               "the local grader: declared keyword-overlap bar, honest empty-key refusal")
+
+        # --- StdPdfReader: the real spine and the honest OPAQUE edges
+        book = reader.open(library / "physics.pdf")
+        page_two = book.page_text(2)
+        expect(out, book.pages == 3 and page_two == f"Page two holds {CANARY}.\nKE equals half m v squared."
+               and book.page_text(1) == "Chapter one: motion.\nv equals u plus at."
+               and book.page_text(3) == "",
+               "the pure-stdlib spine: page-pinned text through Kids order, the blank page honest")
+        expect(out, book.page_text(1).startswith("Chapter one") and _raises_index(book.page_text, 4)
+               and _raises_index(book.page_text, 0),
+               "page-pinning law: 1-indexed, and outside the book is an error, never a guess")
+        (library / "junk.pdf").write_bytes(b"not a pdf at all")
+        (library / "spineless.pdf").write_bytes(b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n")
+        (library / "rawflate.pdf").write_bytes(make_pdf([["hello"]]).replace(b"/Filter /FlateDecode", b""))
+        (library / "notext.pdf").write_bytes(make_pdf([[], []]))
+        opaque_notes = []
+        for name in ("junk.pdf", "spineless.pdf", "rawflate.pdf", "notext.pdf"):
+            try:
+                reader.open(library / name)
+                opaque_notes.append("OPENED?!")
+            except PdfOpaque as exc:
+                opaque_notes.append(str(exc))
+        expect(out, len(opaque_notes) == 4 and all(note != "OPENED?!" for note in opaque_notes),
+               "the OPAQUE envelope: no header, no Kids spine, non-Flate, zero Tj/TJ — all honest refusals")
+        try:
+            FixturePdf({}).open("no/such/book.pdf")
+            fixture_loud = False
+        except KeyError:
+            fixture_loud = True
+        expect(out, fixture_loud, "FixturePdf is KeyError-loud on an unknown book — the fixture invents nothing")
+
+        # --- row (32) read-aloud e2e: finder -> spine -> page, zero ring, LOCAL voice only
+        s1 = stud_universe("s1")  # the standing StdPdfReader auto-build reads the real bytes
+        s1["dialog"].send("read page 2 of physics.pdf")
+        page_mid = [m for m in s1["vault"].messages_for(1) if m["who"] == "tars"][-1]["id"]
+        queued = s1["vault"].kv_scan("speak_request:", only_value="queued")
+        expect(out, said(s1) == [canon.read_ack(2), page_two]
+               and s1["gfx"].received == [] and s1["ofx"].received == []
+               and queued == [(f"speak_request:{page_mid}", "queued")],
+               "read-aloud: the ack then the page bytes, mint LOCAL, ZERO adapters touched, "
+               "exactly ONE speak request queued — for the page, never the ack")
+        sapi = FixtureTier("sapi", True, True)
+        edge = FixtureTier("edge", False, True)
+        Mouth([sapi, edge], LogX(s1["path"] / "mouth.jsonl")).drain_speak_queue(s1["vault"], s1["machine"])
+        expect(out, sapi.calls == [page_two] and CANARY in sapi.calls[0] and edge.calls == []
+               and s1["vault"].kv_get(f"speak_request:{page_mid}") == "done",
+               "the FRAME/CLIP pattern at study scale: the file's bytes voice ONLY on local tiers — "
+               "the edge tier never hears them, drain marks done")
+        s1["dialog"].send("read page 9 of physics.pdf")
+        s1["dialog"].send("read page 3 of physics.pdf")
+        expect(out, said(s1)[-2:] == [canon.pdf_range_line(3), canon.LINE_PDF_BLANK]
+               and s1["vault"].kv_scan("speak_request:", only_value="queued") == []
+               and s1["gfx"].received == [],
+               "out-of-reach pages get the honest table of contents; blank pages the honest blank")
+        s1["dialog"].send("read page 1 of missing.pdf")
+        s1["dialog"].send("padho page 1 of physics.pdf")
+        s1["dialog"].send("read page 1 of kmspico.pdf")
+        expect(out, said(s1)[-4] == canon.LINE_PDF_ABSENT
+               and said(s1)[-3] == canon.read_ack(1) and said(s1)[-2].startswith("Chapter one")
+               and said(s1)[-1] == canon.LINE_NEVER_LIST
+               and s1["gfx"].received == [],
+               "absent book, Hinglish padho alias, and the §34 door at the read row — all zero ring")
+        (zone / "ambiguous").mkdir()
+        (zone / "ambiguous" / "physics.pdf").write_bytes(make_pdf([["plain"]]))
+        (zone / "ambiguous" / "physics workbook.pdf").write_bytes(make_pdf([["worked"]]))
+        amb = stud_universe("amb", roots=[str(zone / "ambiguous")])
+        amb["dialog"].send("read page 1 of physics.pdf")  # the exact name is a confident single
+        amb["dialog"].send("read page 1 of physics")      # one loose token hits BOTH basenames
+        listing = said(amb)[-1]
+        expect(out, said(amb)[-3] == canon.read_ack(1) and said(amb)[-2] == "plain"
+               and listing.startswith("More than one match. Which one?\n1. ")
+               and "physics workbook.pdf" in listing and "\n2. " in listing,
+               "finder law rides the read row: confident single answers, ambiguity lists — never a guess")
+
+        # --- row (33) explain: exactly ONE smart call, page slice ONLY there, amber-honest
+        s2 = stud_universe("s2", groq_script=[("ok", "derive it like this", 25), ("ok", "again slower", 18)])
+        s2["dialog"].send("explain page 2 of physics.pdf")
+        explain_call = s2["gfx"].received[0]
+        expect(out, len(s2["gfx"].received) == 1
+               and explain_call[0] == {"role": "system", "content": STUDY_PROMPT}
+               and CANARY in explain_call[1]["content"] and "JEE depth" in explain_call[1]["content"]
+               and said(s2)[-1] == canon.explain_ack(2) + "\nderive it like this"
+               and [m["hue"] for m in s2["vault"].messages_for(1) if m["who"] == "tars"][-1] == "cloud",
+               "explain: exactly ONE smart call; the page bytes ride it ALONE, under the study prompt"
+               )
+        s2["dialog"].send("read page 2 of physics.pdf")  # the canary must NOT appear in any payload
+        s2["dialog"].send("explain page 1 of physics.pdf")
+        canary_payloads = sum(1 for call in s2["gfx"].received if CANARY in str(call))
+        expect(out, len(s2["gfx"].received) == 2 and canary_payloads == 1
+               and s2["ofx"].received == [] and s2["ofx"].received_models == [],
+               "privacy routing decree: read-aloud puts file bytes in ZERO payloads; they travel "
+               "only inside the one explain call — canary-counted across the whole session")
+        s2b = stud_universe("s2b", groq_script=[])
+        s2b["dialog"].send("explain page 1 of junk.pdf")  # the reader refuses at the spine
+        expect(out, said(s2b)[-1] == canon.LINE_PDF_OPAQUE and s2b["gfx"].received == [],
+               "an opaque book explains as the honest refusal — the ring is never asked to guess")
+        bare_layer = CommandLayer(Settings.load(zone / "bare" / "settings.json",
+                                                LogX(zone / "bare" / "logs.jsonl")),
+                                  Vault(zone / "bare" / "vault.db"), FixtureExecutor(),
+                                  SearchLanes(FixtureSearch({})), FileFinder([str(library)]),
+                                  LogX(zone / "bare" / "logs.jsonl"), Bus())  # no router
+        bare_machine = Machine(Settings.load(zone / "bare2" / "settings.json",
+                                             LogX(zone / "bare2" / "logs.jsonl")),
+                               LogX(zone / "bare2" / "logs.jsonl"), Bus())
+        bare_plan = bare_layer.execute("explain page 1 of physics.pdf", bare_machine, 1)
+        expect(out, bare_plan["handled"] and bare_plan["replies"] == [(canon.LINE_STUDY_RING, "local", None)],
+               "a routerless desk answers ring-needing rows with the honest line, zero invention")
+
+        # --- row (34) quiz: one draft, local grading, the caveat closes the set
+        quiz_draft = ("Q: State Newton's second law.\nA: force equals mass times acceleration\n"
+                      "Q: Unit of force?\nA: the newton\n"
+                      "Q: Value of g?\nA: 9.8 metres per second squared")
+        s3 = stud_universe("s3", groq_script=[("ok", quiz_draft, 22)])
+        s3["dialog"].send("quiz me on thermodynamics")
+        expect(out, said(s3) == ["Question one of three: State Newton's second law."]
+               and len(s3["gfx"].received) == 1
+               and s3["gfx"].received[0][0]["content"] == STUDY_PROMPT
+               and "quiz:active" in [name for name, _v in s3["vault"].kv_scan("quiz:")],
+               "quiz start: exactly ONE smart draft under the study prompt, question one, session armed")
+        s3["dialog"].send("it is mass times acceleration")   # 3/5 key words -> the bar
+        s3["dialog"].send("joule, maybe")                    # zero overlap -> honest miss
+        expect(out, said(s3)[-4:] == [canon.LINE_QUIZ_RIGHT,
+                                      "Question two of three: Unit of force?",
+                                      canon.quiz_wrong_line("the newton"),
+                                      "Question three of three: Value of g?"]
+               and len(s3["gfx"].received) == 1,
+               "answering is LOCAL: graded against the held key, next question, ZERO new ring calls")
+        s3["dialog"].send("9.8 metres per second squared")
+        expect(out, said(s3)[-2:] == [canon.LINE_QUIZ_RIGHT, canon.quiz_score_line(2, 3)]
+               and s3["vault"].kv_get("quiz:active") in (None, ""),
+               "the set closes with the score and I grade by key words — the caveat is law, not garnish")
+        s3b = stud_universe("s3b", groq_script=[("ok", quiz_draft, 22)])
+        s3b["dialog"].send("quiz le lo kinematics")  # the closed Hinglish alias arms the same row
+        s3b["dialog"].send("stop the quiz")
+        expect(out, said(s3b)[0].startswith("Question one of three:")
+               and said(s3b)[-1] == canon.LINE_QUIZ_STOPPED
+               and s3b["vault"].kv_get("quiz:active") in (None, "")
+               and len(s3b["gfx"].received) == 1,
+               "quiz le lo alias + the abandon row — the session closes honestly mid-flight")
+        s3c = stud_universe("s3c", groq_script=[("ok", "I cannot draft that fairly.", 8)])
+        s3c["dialog"].send("quiz me on blorpg")
+        expect(out, said(s3c) == [canon.LINE_QUIZ_THIN] and len(s3c["gfx"].received) == 1,
+               "a thin draft refuses honestly — one spent call, zero invented questions")
+        s3g = stud_universe("s3g", groq_script=[("ok", quiz_draft, 22)], audience="guest")
+        s3g["dialog"].send("quiz me on football rules")
+        expect(out, said(s3g) == ["Question one of three: State Newton's second law."],
+               "§31 extension: a GUEST may study facts — the quiz row is everyone's teacher")
+
+        # --- rows (35)-(37): the Leitner desk — draft, local add, due walk, grade math
+        flash_draft = ("F: first law of thermodynamics?\nB: energy is conserved\n"
+                       "F: entropy unit?\nB: joule per kelvin\n"
+                       "F: adiabatic means?\nB: no heat exchange")
+        s4 = stud_universe("s4", groq_script=[("ok", flash_draft, 17)], time_at=10000.0)
+        s4["dialog"].send("make flashcards for thermodynamics")
+        expect(out, said(s4) == [canon.flash_made_line(3)] and len(s4["gfx"].received) == 1
+               and s4["vault"].flash_count() == 3
+               and all(row["box"] == 1 and row["due_epoch"] == 10000.0
+                       for row in s4["vault"].flash_due(10000.0)),
+               "flash-make: one draft, three cards filed box one due now — count truthful in words")
+        s4["dialog"].send("remember this as a flashcard: Carnot limit / one minus Tc over Th")
+        expect(out, said(s4)[-1] == canon.LINE_FLASH_ADDED and len(s4["gfx"].received) == 1
+               and s4["vault"].flash_get(4)["front"] == "Carnot limit"
+               and s4["vault"].flash_get(4)["back"] == "one minus Tc over Th",
+               "flash-add parses at the carve BEFORE the memory row — LOCAL, original-case, zero ring")
+        s4["dialog"].send("remember this as a flashcard: only a front")
+        s4["dialog"].send("remember this: the wifi code is under the desk")  # the memory row, unmoved
+        expect(out, said(s4)[-2:] == [canon.LINE_FLASH_FORMAT, canon.LINE_NOTED]
+               and s4["vault"].flash_count() == 4
+               and any("wifi code" in row["text"] for row in s4["vault"].recall()),
+               "a malformed card gets the format line; a bare remember still lands in memory — "
+               "the carve never steals the standing row")
+        s4["dialog"].send("flashcards")
+        s4["dialog"].send("reveal")
+        expect(out, said(s4)[-3:] == [canon.due_ack(4),
+                                      "Card one of four: first law of thermodynamics? — "
+                                      "Say reveal when you have it.",
+                                      "energy is conserved — Right or wrong?"],
+               "the due desk opens count-first, shows the front alone, then the reveal "
+               "answers the held back with the honest two-word question")
+        s4["dialog"].send("what time is it")  # a detoured row does not disarm the desk
+        s4["dialog"].send("wrong")
+        expect(out, said(s4)[-2:] == [canon.flash_grade_line(False, 1),
+                                      "Card one of three: entropy unit? — Say reveal when you have it."]
+               and s4["vault"].flash_get(1)["box"] == 1
+               and s4["vault"].flash_get(1)["due_epoch"] == 10000.0 + 86400.0,
+               "wrong sends the card home to box one due tomorrow, then chains the next due front")
+        s4["dialog"].send("reveal")
+        s4["dialog"].send("right")
+        expect(out, s4["vault"].flash_get(2)["box"] == 2
+               and s4["vault"].flash_get(2)["due_epoch"] == 10000.0 + LEITNER_DAYS[1] * 86400.0,
+               "right climbs the declared box and re-stamps by the Leitner table (two days at box two)")
+        s4["dialog"].send("reveal")
+        s4["dialog"].send("right")
+        s4["dialog"].send("reveal")
+        s4["dialog"].send("right")
+        expect(out, said(s4)[-1] == canon.LINE_FLASH_DONE
+               and s4["vault"].kv_get("flash:review") in (None, ""),
+               "the walk grades through the desk and closes with the desk-clear line, pointer released")
+        s4d = stud_universe("s4d", time_at=10000.0)
+        s4d["vault"].flash_add("cap card front", "cap card back", 500.0)
+        s4d["vault"].flash_grade(1, 5, 500.0)  # box five already, long since due
+        s4d["dialog"].send("flashcards")
+        s4d["dialog"].send("reveal")
+        s4d["dialog"].send("right")
+        expect(out, said(s4d)[-1] == canon.LINE_FLASH_DONE
+               and said(s4d)[-2] == canon.flash_grade_line(True, 5)
+               and s4d["vault"].flash_get(1)["box"] == 5
+               and s4d["vault"].flash_get(1)["due_epoch"] == 10000.0 + LEITNER_DAYS[4] * 86400.0,
+               "Leitner cap: box five is the ceiling — right at the top re-stamps the top interval")
+        s4d["cell"][0] += 10 * 86400.0  # ten days on: the 15-day card is NOT due yet
+        s4d["dialog"].send("flashcards")
+        expect(out, said(s4d)[-1] == canon.LINE_FLASH_EMPTY,
+               "the due gate is real: a graded card vanishes from the desk until its day arrives")
+        s4d["cell"][0] += 6 * 86400.0  # day sixteen: it surfaces again
+        s4d["dialog"].send("padhai shuru")  # the closed study alias wakes the same desk
+        expect(out, said(s4d)[-1] == "Card one of one: cap card front — Say reveal when you have it."
+               and said(s4d)[-2] == "One card due.",
+               "the alias row serves the due card on its day — count truthful, singular law standing")
+        s4e = stud_universe("s4e")
+        expect(out, s4e["dialog"].send("flashcards") == {"chatId": 1}
+               and said(s4e) == [canon.LINE_FLASH_EMPTY],
+               "an empty desk answers the honest empty line")
+
+        # --- the §31 desk door: guests refused, family served, facts open to all
+        s5g = stud_universe("s5g", audience="guest")
+        for utterance in ("read page 1 of physics.pdf", "explain page 1 of physics.pdf",
+                          "flashcards", "remember this as a flashcard: a / b",
+                          "make flashcards for optics"):
+            s5g["dialog"].send(utterance)
+        expect(out, said(s5g) == [canon.LINE_STUDY_GUEST] * 5
+               and s5g["gfx"].received == [] and s5g["ofx"].received == []
+               and s5g["vault"].kv_scan("speak_request:") == [],
+               "the matrix extends: files and cards are Cooper's desk — a guest earns the one "
+               "honest line at all five desk rows, zero ring, zero speak, zero finder")
+        s5f = stud_universe("s5f", audience="family", groq_script=[("ok", flash_draft, 17)])
+        s5f["dialog"].send("read page 1 of physics.pdf")
+        s5f["dialog"].send("make flashcards for thermodynamics")
+        expect(out, said(s5f)[0] == canon.read_ack(1) and said(s5f)[-1] == canon.flash_made_line(3),
+               "family-standard studies at the desk — the decree bars the guest, not the household")
+
+        # --- §23 the Council: named summon, parallel seats, distinct keys, declared verdict
+        c1 = stud_universe("c1",
+                           groq_models={FAST_MODEL: [("ok", "take the shot", 10),
+                                                     ("ok", "take the shot", 10)],
+                                        SMART_MODEL: [("ok", "take the shot", 20),
+                                                      ("ok", "take the shot", 20),
+                                                      ("ok", "a solo smart take", 12)]},
+                           or_models={COUNCIL_MODEL: [("ok", "take the shot", 30),
+                                                      ("ok", "take the shot", 30)]})
+        road = c1["router"].route("council on this: one for the road")  # the router-level turn
+        key_names = {vote["key_visible_name"] for vote in road["votes"]}
+        expect(out, road["ok"] and len(key_names) == 3 and len({k for k in key_names if "groq" in k}) == 2
+               and road["note"] == "council of 3 — 3x quota",
+               "the summoned turn fires 3 parallel seats on 3 DISTINCT ring keys (2 groq + 1 openrouter)")
+        c1["dialog"].send("council on this: skip the mock test?")
+        council_text = said(c1)[-1]
+        expect(out, council_text.splitlines()[0] == "council of 3 — 3x quota"
+               and "seat one [fast]: take the shot" in council_text
+               and "seat two [smart]: take the shot" in council_text
+               and "seat three [council]: take the shot" in council_text
+               and council_text.splitlines()[-1] == canon.council_verdict_unanimous()
+               and [m["lane"] for m in c1["vault"].messages_for(1) if m["who"] == "tars"][-1] == "council",
+               "the council presents every seat, honest lane names, and the unanimous verdict")
+        c1["dialog"].send("explain photosynthesis in one line")  # a solo smart question, beside it
+        rows7 = c1["vault"].ledger_tail(7)
+        gauge_keys = {d["keyIndex"] for k, d in c1["events"] if k == "gauge"}
+        expect(out, len(rows7) == 7 and [row["lane"] for row in rows7[:6]].count("council") == 2
+               and sum(row["tokens"] for row in rows7[:6]) == 120
+               and rows7[6]["lane"] == "smart" and rows7[6]["tokens"] == 12
+               and len(gauge_keys) >= 3,
+               "QUOTA ARITHMETIC (the acceptance): each council turn ledgered EXACTLY 3 seat calls "
+               "(60 tokens across distinct keys), the solo smart beside them ledgered exactly ONE — "
+               "the 3x flag is arithmetic, not decoration")
+        c2 = stud_universe("c2", groq_models={FAST_MODEL: [("ok", "alpha plan", 7)],
+                                              SMART_MODEL: [("ok", "alpha plan", 9)]},
+                           or_models={COUNCIL_MODEL: [("429",), ("503",)]})  # seat three never answers
+        c2["dialog"].send("council on this: the weekday plan")
+        c2_text = said(c2)[-1]
+        expect(out, "seat three [council]: couldn't make it." in c2_text
+               and c2_text.splitlines()[0] == "council of 2 — 2x quota"
+               and c2_text.splitlines()[-1] == canon.council_verdict_absent(3, True, "")
+               and len(c2["vault"].ledger_tail(5)) == 2,
+               "2-of-3 graceful: the drained seat is announced in place, the flag drops to 2x, "
+               "the ledger holds exactly the two answering seats — no phantom third")
+        c3 = stud_universe("c3", groq_models={FAST_MODEL: [("ok", "fast take", 5)],
+                                              SMART_MODEL: [("ok", "smart take", 5)]},
+                           or_models={COUNCIL_MODEL: [("ok", "council take", 5)]})
+        c3["dialog"].send("council on this: split decision")
+        expect(out, said(c3)[-1].splitlines()[-1] == canon.council_verdict_split("smart"),
+               "full disagreement: the declared lane-strength basis weights the smart seat — "
+               "never a coin flip")
+        fab = lambda ok, text, lane: {"ok": ok, "text": text, "lane": lane, "tokens": 1,
+                                      "notices": [], "warn": False, "key_visible_name": "k"}
+        expect(out, verdict([fab(False, "", "fast"), fab(False, "", "smart"), fab(False, "", "council")])
+               == canon.council_verdict_none()
+               and verdict([fab(True, "lone", "fast"), fab(False, "", "smart"), fab(False, "", "council")])
+               == canon.council_verdict_lone(1)
+               and verdict([fab(True, "x", "fast"), fab(True, "x", "smart"), fab(True, "y", "council")])
+               == canon.council_verdict_majority(1, 2),
+               "the verdict truth table at the unit rail: none, lone, majority — all honest shapes")
+        chip = stud_universe("chip", groq_models={FAST_MODEL: [("ok", "joined answer", 8)],
+                                                  SMART_MODEL: [("ok", "joined answer", 8)]},
+                             or_models={COUNCIL_MODEL: [("ok", "joined answer", 8)]})
+        chip_reply = chip["dialog"].quick_action("council", {"text": "should i skip leg day"})
+        seat_systems = [call[0]["content"] for call in chip["gfx"].received] + \
+                       [chip["ofx"].received[0][0]["content"]]
+        expect(out, chip_reply["ok"] is True and chip_reply["line"].splitlines()[-1]
+               == canon.council_verdict_unanimous()
+               and all(persona.HONESTY_CLAUSES in content for content in seat_systems)
+               and [m for m in chip["vault"].messages_for(1) if m["who"] == "tars"][-1]["lane"] == "council",
+               "the rostered chip SERVED: {text} convenes the parliament with §12 aboard every "
+               "seat, persists by the response law, and the verdict lands")
+
+        # --- §24 the giant, NAMED only: the gate never auto-summons it
+        u1 = stud_universe("u1", or_models={LANE_MODELS[("openrouter", "ultra")]: [("ok", "deep", 40),
+                                                                                  ("ok", "deeper", 41)]},
+                           groq_script=[("ok", "plain smart", 12)])
+        u1["dialog"].send("use ultra for the navier-stokes sketch")
+        u1["dialog"].send("ask the giant about entropy")
+        u1["dialog"].send("derive and explain why the fourier transform works, in full detail, "
+                          "with every step and every reason spelled out at proper length here")
+        lanes = [m["lane"] for m in u1["vault"].messages_for(1) if m["who"] == "tars"]
+        expect(out, lanes == ["ultra", "ultra", "smart"]
+               and u1["ofx"].received_models == [LANE_MODELS[("openrouter", "ultra")]] * 2
+               and persona.HONESTY_CLAUSES in u1["ofx"].received[0][0]["content"],
+               "named-only law: both summon aliases ride the ultra lane with §12 aboard; "
+               "unnamed complexity stays smart — the router NEVER auto-selects the giant")
+        u1b = stud_universe("u1b", groq_script=[("ok", "plain smart answer", 5), ("ok", "plain fast", 5)])
+        u1b["dialog"].send("ultraviolet catastrophe — derive and explain it for me")
+        u1b["dialog"].send("councilhouse rules tonight")
+        expect(out, [m["lane"] for m in u1b["vault"].messages_for(1) if m["who"] == "tars"] == ["smart", "fast"]
+               and u1b["ofx"].received == [],
+               "boundary law: look-alikes are plain questions (smart by keywords, fast by default) — "
+               "no summon on a glued token, the giant never auto-selected")
+        u2 = stud_universe("u2", or_script=[("ok", "gated giant", 40)])
+        expect(out, u2["layer"].execute("use ultra for safety advice on shutdown", u2["machine"], 1)["handled"]
+               is False,
+               "(4) owns the named summons: they never parse as commands, never park a gate")
+
+        # --- the farewell sweeps the desk too (the wipe tuple grew this phase)
+        s7 = stud_universe("s7", enroll=True)
+        s7["dialog"].send("remember this as a flashcard: Kepler's second / equal areas, equal times")
+        s7["dialog"].send("tars handover")
+        s7["dialog"].send("open sesame")
+        s7["dialog"].send("confirm")
+        s7["dialog"].send("yes")
+        s7["vault"].kv_set(DEADLINE_KEY, str(time.time() - 1))
+        s7["layer"].handover_unit.tick()
+        expect(out, s7["vault"].flash_count() == 0 and s7["vault"].flash_due(10 ** 15) == []
+               and s7["vault"].kv_get(FACTORY_KEY) == "yes",
+               "Part IX continuity: the farewell now sweeps the Leitner desk with the person — "
+               "house rules stand, the cards were his")
+
+        # --- the deliberate-hardness law + the grammar doc + the chip's cold posture
+        expect(out, "quiz" in NEAR_MISS_MARKERS and "padhai" in NEAR_MISS_MARKERS,
+               "near-miss family grew the study verbs: a quiz-ish misfire earns one question")
+        chip_g2 = stud_universe("chip2", groq_models={FAST_MODEL: [("ok", "v", 5)]},
+                                or_models={COUNCIL_MODEL: [("ok", "v", 5)]})
+        before = (len(chip_g2["gfx"].received), len(chip_g2["ofx"].received))
+        cold = chip_g2["dialog"].quick_action("council", {})
+        expect(out, cold == {"ok": False, "line": canon.LINE_NEAR_MISS}
+               and (len(chip_g2["gfx"].received), len(chip_g2["ofx"].received)) == before
+               and chip_g2["vault"].kv_scan("speak_request:") == [],
+               "the {} summon: the honest near-miss question, ZERO ring — a parliament is never guessed")
+        grammar17 = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        expect(out, grammar17.startswith("# TARS COMMAND GRAMMAR — v1.0")
+               and "## v1.6 — HANDOVER" in grammar17 and "## v1.7 — PROFESSOR + COUNCIL" in grammar17
+               and "padhai shuru" in grammar17 and "quiz le lo" in grammar17
+               and "ask the giant about" in grammar17,
+               "grammar doc: v1.7 appended (rows 32-39, closed aliases), v1.0-v1.6 bytes untouched")
+    finally:
+        urllib.request.urlopen = real_urlopen
+        subprocess.run = real_run
+        subprocess.Popen = real_popen
+
+
+def _raises_index(fn, *args) -> bool:
+    """True only when the callable answers IndexError — the out-of-book law."""
+    try:
+        fn(*args)
+        return False
+    except IndexError:
+        return True
+
+
 def _crash_checks(base: Path, out) -> None:
     zone = base / "crash"
     proc = subprocess.Popen([sys.executable, "-m", "tars.core.selftest", "--child", str(zone)],
@@ -4540,6 +5093,9 @@ def _crash_checks(base: Path, out) -> None:
     crash_stage = vault.kv_get(STAGE_KEY)
     crash_deadline = vault.kv_get(DEADLINE_KEY)
     crash_keep = vault.kv_get(KEEP_KEYS_KEY)
+    # P-CORE-12: the desk + the completed parliament, gathered before the close
+    crash_cards = vault.flash_due(10 ** 12)
+    crash_seats = [row for row in vault.ledger_tail(50) if row["lane"] in ("fast", "smart", "council")]
     vault.close()
     # P-CORE-8: a mid-watch SIGKILL leaves ZERO frame bytes anywhere in the data dir
     crash_zone_files = [p for p in Path(zone).rglob("*") if p.is_file()]
@@ -4570,6 +5126,14 @@ def _crash_checks(base: Path, out) -> None:
            and float(crash_deadline) > time.time() and crash_keep == "yes",
            "crash child: the farewell was LIVE mid-countdown at the kill — stage, future "
            "deadline, keep-choice all committed (the reopen law below is not vacuous)")
+    expect(out, any(c["front"] == "crash front" and c["back"] == "crash back" and c["box"] == 1
+                    for c in crash_cards),
+           "crash child: the Leitner desk survives SIGKILL — the card is exactly as filed")
+    expect(out, len(crash_seats) == 3
+               and {row["lane"] for row in crash_seats} == {"fast", "smart", "council"}
+               and sum(row["tokens"] for row in crash_seats) == 60,
+           "crash child: the completed council ledgered exactly 3 seat rows (60 tokens) — "
+           "a torn seat writes nothing, so no phantom seat row appears on reopen")
     # P-CORE-10: the killed child was folding its journal mid-burst — the atomic law's proof
     brain_root = zone / "tars-brain"
     brain_files = [p for p in brain_root.rglob("*") if p.is_file()]
@@ -4677,6 +5241,17 @@ def _child_crash_worker(zone: Path) -> None:
     vault.kv_set(STAGE_KEY, "countdown")
     vault.kv_set(KEEP_KEYS_KEY, "yes")
     vault.kv_set(DEADLINE_KEY, str(time.time() + COUNTDOWN_S))
+    # P-CORE-12: a Leitner card on the desk + a COMPLETED council — the ledger is per-call
+    # append-only, so a seat that never completed writes nothing; reopen counts exactly 3
+    vault.flash_add("crash front", "crash back", 500.0)
+    child_source = {f"GROQ_KEY_{i}": f"gsk-{i}" for i in range(1, 7)}
+    child_source.update({f"OPENROUTER_KEY_{i}": f"or-{i}" for i in range(1, 3)})
+    child_router = Router(load_ring(child_source),
+                          {"groq": FixtureAdapter("groq", [("ok", "crash vote a", 10),
+                                                           ("ok", "crash vote b", 20)]),
+                           "openrouter": FixtureAdapter("openrouter", [("ok", "crash vote c", 30)])},
+                          vault, Bus())
+    child_router.route("council on this: outlive the kill?")
     # P-CORE-10: the journal folds ATOMICALLY mid-burst, forever — the SIGKILL will land
     # somewhere inside the write stream; tmp-then-rename is the only shield
     crash_brain = Brain(vault)
@@ -4696,7 +5271,7 @@ def main() -> int:
         _child_crash_worker(Path(sys.argv[sys.argv.index("--child") + 1]))
         return 0
     out = sys.stdout
-    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look + watcher + brain + handover batteries — proof, not claims",
+    print("CORE SELFTEST — P-CORE-0 + ring + persona + voice + Cooper-ID + operator-grammar + daily-ops + telesend + look + watcher + brain + handover + study batteries — proof, not claims",
           file=out)
     base = Path(tempfile.mkdtemp(prefix="tars-core-"))
     print(f"data sandbox: {base}", file=out)
@@ -4716,6 +5291,7 @@ def main() -> int:
     _watcher_checks(base, out)
     _brain_checks(base, out)
     _handover_checks(base, out)
+    _study_checks(base, out)
     _crash_checks(base, out)
     print(f"SELFTEST: ALL GREEN ({CHECKS} checks)", file=out)
     return 0

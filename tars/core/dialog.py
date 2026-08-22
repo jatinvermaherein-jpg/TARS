@@ -173,8 +173,11 @@ class Dialog:
         if plan["handled"]:
             if plan["new_chat"]:
                 self.new_chat()  # the boot line opens the FRESH chat; the command itself closed the old one
+            emitted = []
             for line, hue, lane in plan["replies"]:
-                self._emit_message(line, hue, lane)
+                emitted.append(self._emit_message(line, hue, lane))
+            if plan.get("speak") is not None:  # P-CORE-12 row (32): the page's voice queues
+                self._vault.kv_set(f"speak_request:{emitted[plan['speak']]}", "queued")
             self._machine.spoken()
             if plan["stand_down"]:
                 self._machine.stand_down("spoken")
@@ -261,6 +264,19 @@ class Dialog:
                 self.new_chat()
             self._emit_message(line, "local", None)
             return {"ok": True, "line": line}
+        if name == "council":  # P-CORE-12: rostered chip, SERVED — a named one-shot parliament
+            question = str(payload.get("text", "")).strip() if isinstance(payload, dict) else ""
+            if not question or set(payload) != {"text"}:  # the chip takes {text} exactly — never a guessed summon
+                return {"ok": False, "line": canon.LINE_NEAR_MISS}  # zero ring, honest question
+            if self._router is None:
+                return {"ok": False, "line": canon.LINE_CATCH_ALL}
+            reply = self._router.route(f"council on {question}", system_prompt=self._system_prompt())
+            if self._chat_id is None:
+                self.new_chat()
+            for notice in reply["notices"]:
+                self._emit_message(notice, "cloud", None)
+            self._emit_message(reply["text"], "cloud", reply["lane"])  # response law: persist + stream
+            return {"ok": reply["ok"], "line": reply["text"]}
         return {"ok": False, "line": canon.LINE_CATCH_ALL}
 
     def _emit_message(self, text: str, hue, lane) -> int:
