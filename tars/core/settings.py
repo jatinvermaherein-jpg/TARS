@@ -57,8 +57,9 @@ class Settings:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         payload = json.dumps({"honesty": HONESTY_FIXED, "dials": self._dials}, indent=2) + "\n"
         tmp = self._path.with_name(self._path.name + ".tmp")
-        tmp.write_text(payload, encoding="utf-8")
-        with open(tmp, "rb") as fh:
+        with open(tmp, "wb") as fh:  # wb: fsync needs a WRITE descriptor on nt (msvcrt _commit); an rb fd passes Linux, dies on Windows
+            fh.write(payload.encode("utf-8"))
+            fh.flush()
             os.fsync(fh.fileno())
         os.replace(tmp, self._path)
 

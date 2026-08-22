@@ -189,7 +189,8 @@ class Handover:
                   "note": f"Handover executed {day}"}  # raw line carries the phrase + the iso date
         payload = json.dumps(record, ensure_ascii=False) + "\n"
         tmp = self._log_path.with_name(self._log_path.name + ".tmp")
-        tmp.write_text(payload, encoding="utf-8")
-        with open(tmp, "rb") as fh:
+        with open(tmp, "wb") as fh:  # wb: fsync needs a WRITE descriptor on nt (msvcrt _commit); an rb fd passes Linux, dies on Windows
+            fh.write(payload.encode("utf-8"))
+            fh.flush()
             os.fsync(fh.fileno())
         os.replace(tmp, self._log_path)  # atomic: a reader sees old bytes or the survivor, never half

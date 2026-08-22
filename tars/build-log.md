@@ -353,3 +353,12 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Re-aims: exactly the sanctioned pair — **the gb boundary battery retired ITSELF (shut list EMPTY, proven two ways — the parser holds zero boundary rows anywhere)** + 'council' chip served (near-miss {} zero-ring; remaining roster re-pins byte-exact, 786-790). Disclosed in-code, zero other prior bytes moved, 651 prior green.
 - **DOCTRINE NOTE for the record:** twelve phases, twelve audits, twelve PASS · zero contract violations · zero emoji bytes in product · every machine-taught fix confessed in the open · every pinned byte earned. The suite chain: 62 → 96 → 138 → 193 → 243 → 320 → 385 → 445 → 495 → 540 → 595 → 651 → **708**.
 - **Lane B verdict: PASS — CORE BUILD COMPLETE. The pipeline crosses to M-1: the AiO wakes.**
+
+## [ARCHITECT] OPS — M-1 ceremony nt-run #1 = RED by design → P-CORE-12B hotfix shipped direct (Aug 22)
+
+- FIRST Windows-native run (AiO, Python 3.12.10, Win11): suite crashed at check 27 — settings.save() rode `open(tmp, "rb")` into `os.fsync`. Linux forgives fsync on a read-only descriptor; Windows msvcrt `_commit` demands a WRITE fd → OSError Errno 9. Twenty-four Linux-green audits were structurally blind. The ceremony did exactly its job: **the AiO is the nt rig.**
+- Sweep law (never let one bug hide its twin): 3 fsync sites — settings.py + handover.py (identical skeleton; the twin was waiting at the handover wipe drill) + logx.py (clean: a-mode write fd, flush, fsync — canonical reference pattern).
+- **Cooper decree (Aug 22, verbatim): "you can code and directly fix these m bugs as they are not building or big task" → ARCHITECT pushed the hotfix direct** (phase-build lane doctrine stands; this was a two-block repair, not a build). wb one-handle pattern in both files; bytes-on-disk identical, atomic `os.replace` untouched, zero dead code, zero contract/grammar/bible moves, APP still frozen at ba36bc2.
+- Post-fix audit battery: rb-fsync grep = zero offenders · compileall clean · suite re-run TWICE on Linux: **708/708 ALL GREEN, exit 0 both** · `git diff --stat` = exactly 2 files, 6+/4- — surgical.
+- Static tripwire row (708→709) PARKED by decree-size ruling: core is complete, the family cannot regrow silently; if P-CORE-13 ever ships, the row prompts there.
+- **nt verdict rides on Cooper's ceremony re-run after `git pull`** — green = M-1 step 1.7 PASS banked.
