@@ -1073,8 +1073,11 @@ def _voice_checks(base: Path, out) -> None:
            and any(row.get("kind") == "mouth" and "stayed on screen" in row.get("note", "")
                    for row in log_m.read_all()),
            "no serving tier: the last attempted tier is named, the refusal is logged, the text stays on screen")
-    expect(out, SapiTier().available() is False and PiperTier(zone / "no-piper").available() is False,
-           "real local tiers honestly unavailable in a Linux sandbox (nt-first staging at M-1)")
+    # P-CORE-12F re-aim (sanctioned): SAPI presence is a DECLARED per-OS truth (nt yes, others no);
+    # the piper absence rides the missing model dir on every host. Ceremonies pin truths, not sandboxes.
+    expect(out, SapiTier().available() is (os.name == "nt")
+           and PiperTier(zone / "no-piper").available() is False,
+           "mouth tiers per host law: sapi = nt-yes/others-no; piper absents on the missing model dir")
 
     # --- privacy routing is LAW: private never rides the edge, provably
     log_p = LogX(zone / "privacy.jsonl")
@@ -1497,8 +1500,16 @@ def _matrix_checks(base: Path, out) -> None:
     expect(out, dodged["awoken"] is False and dodged["detected"] is True and busy_u["machine"].state == THINKING
            and any(r.get("kind") == "wake" for r in busy_u["log"].read_all()),
            "a wake word mid-turn is detected but IGNORED and logged — it never hijacks a live turn")
-    expect(out, PorcupineWakeEngine(zone / "no-kw").load() is False and ResemblyzerScorer().load() is False,
-           "nt-real paths (Porcupine, Resemblyzer) honestly unavailable in a Linux sandbox — M-1 stages them")
+    # P-CORE-12F ride-along: wake/voice-ID stacks pinned absent on EVERY host — the M-2 ritual
+    # never flips a banked row. (Staging truth: M-2, not M-1.)
+    sys.modules["pvporcupine"] = None
+    sys.modules["resemblyzer"] = None
+    try:
+        expect(out, PorcupineWakeEngine(zone / "no-kw").load() is False and ResemblyzerScorer().load() is False,
+               "wake/voice-ID stacks absent: honest False on every host (M-2 stages them; poison-pinned)")
+    finally:
+        sys.modules.pop("pvporcupine", None)
+        sys.modules.pop("resemblyzer", None)
 
     # the §11 tail of the matrix re-proven live: drained ears lane under a verified voice
     sp_wires = []
@@ -2081,9 +2092,13 @@ def _grammar_checks(base: Path, out) -> None:
                  swept.snap_left, swept.snap_right, swept.snap_maximize,
                  lambda: swept.open_url("https://example.invalid"), lambda: swept.delete_path("x"),
                  lambda: swept.move_path("a", "b"), lambda: swept.power("shutdown", 30)]
-        expect(out, os.name != "nt" and all(verb() is False for verb in verbs)
-               and not hasattr(os, "startfile"),
-               "NtExecutor off-nt: every verb refuses False — run/Popen patched to RAISE prove nothing spawned")
+        if os.name == "nt":
+            # P-CORE-12F: ceremony law — real OS verbs are never fired inside a suite; existence is pinnable
+            expect(out, callable(swept.volume_set) and callable(swept.power) and hasattr(os, "startfile"),
+                   "NtExecutor on nt: verbs callable, never fired in a ceremony; startfile present by OS law")
+        else:
+            expect(out, all(verb() is False for verb in verbs) and not hasattr(os, "startfile"),
+                   "NtExecutor off-nt: every verb refuses False — run/Popen patched to RAISE prove nothing spawned")
         expect(out, sorted(APP_ALIASES) == sorted(
             ("chrome", "google chrome", "word", "microsoft word", "excel", "powerpoint", "settings",
              "whatsapp", "telegram", "spotify", "calculator", "notepad", "explorer", "file explorer")),
@@ -2338,11 +2353,21 @@ def _dailyops_checks(base: Path, out) -> None:
 
         # --- daily-ops hands
         nt_ops = NtOps()
-        expect(out, nt_ops.uptime_seconds() is False and nt_ops.ram_percent() is False
-               and nt_ops.cpu_hog() is False and nt_ops.clipboard_get() is False
-               and nt_ops.clipboard_set("x") is False
-               and nt_ops.screenshot("full", str(zone)) is False,
-               "NtOps off-nt: every OS verb refuses False (spawn seams patched to RAISE)")
+        if os.name == "nt":
+            # P-CORE-12F: ceremonies never fire screen/clipboard (privacy + side effects); the psutil
+            # meters are real read-only reads, pinned by honest shape. The M-2 matrix walks the rest live.
+            up_n, ram_n = nt_ops.uptime_seconds(), nt_ops.ram_percent()
+            expect(out, ((isinstance(up_n, (int, float)) and up_n >= 0) or up_n is False)
+                   and ((isinstance(ram_n, (int, float)) and 0 <= ram_n <= 100) or ram_n is False)
+                   and callable(nt_ops.cpu_hog) and callable(nt_ops.clipboard_get)
+                   and callable(nt_ops.clipboard_set) and callable(nt_ops.screenshot),
+                   "NtOps on nt: meters read real values; screen/clipboard seams callable, unfired, reviewable")
+        else:
+            expect(out, nt_ops.uptime_seconds() is False and nt_ops.ram_percent() is False
+                   and nt_ops.cpu_hog() is False and nt_ops.clipboard_get() is False
+                   and nt_ops.clipboard_set("x") is False
+                   and nt_ops.screenshot("full", str(zone)) is False,
+                   "NtOps off-nt: every OS verb refuses False (spawn seams patched to RAISE)")
         free_bytes = nt_ops.storage_free_bytes("/")
         expect(out, isinstance(free_bytes, int) and free_bytes > 0,
                "storage rides the honest dual path — shutil.disk_usage is REAL on every OS")
@@ -2623,10 +2648,14 @@ def _telesend_checks(base: Path, out) -> None:
         seam_dir.mkdir()
         (seam_dir / TELE_SESSION_FILE).write_text("fake-session", encoding="utf-8")
         seam = TelethonUserClient(seam_dir, {"TELEGRAM_API_ID": "1", "TELEGRAM_API_HASH": "h"})
-        expect(out, os.name != "nt" and not seam.linked()
-               and seam.send_text("@x", "hi") is False and seam.send_document("@x", "f.pdf") is False
-               and "telethon" not in _sys.modules,
-               "TelethonUserClient off-nt: session+creds present, still unlinked, zero wire, lib never imported")
+        _sys.modules["telethon"] = None  # P-CORE-12F: deterministic absence on every host — P3's link ritual never flips this row
+        try:
+            expect(out, not seam.linked()
+                   and seam.send_text("@x", "hi") is False and seam.send_document("@x", "f.pdf") is False
+                   and _sys.modules["telethon"] is None,
+                   "TelethonUserClient: session+creds present, still unlinked, zero wire — absence pinned on every host")
+        finally:
+            _sys.modules.pop("telethon", None)
 
         # --- fixture twin records in order, scripted failures stay honest
         fx = FixtureTelethon(linked=True, fail={"send_document"})
@@ -3025,9 +3054,8 @@ def _look_checks(base: Path, out) -> None:
                and gate.calls == 2,
                "classify() returns the declared pair; the call counter proves one call per frame")
         model = ModelClassifier()
-        expect(out, model.backend == "heuristic" and os.name != "nt"
-               and model.classify(frame_prv) == "private",
-               "ModelClassifier off-nt: honestly delegates to the heuristic gate, backend says so")
+        expect(out, model.backend == "heuristic" and model.classify(frame_prv) == "private",
+               "ModelClassifier: honestly delegates to the heuristic gate on every host (the zone holds no weights), backend says so")
 
         # --- the fixture seam + the real seam's off-nt refusal
         fops = FixtureOps()
@@ -3035,8 +3063,13 @@ def _look_checks(base: Path, out) -> None:
         expect(out, fr[1] == "Notepad" and fr[2] == "fixture page text" and fr[0].startswith(b"\x89PNG")
                and fops.calls == [("capture_frame",)],
                "FixtureOps.capture_frame: declared default public frame, real PNG bytes, call recorded")
-        expect(out, NtOps().capture_frame() is False and os.name != "nt",
-               "NtOps.capture_frame off-nt: honest False — the sandbox never pretends to see")
+        if os.name == "nt":
+            # P-CORE-12F: the real seam is never fired inside a ceremony (tonight's SEAM_OK probe walked it live)
+            expect(out, callable(NtOps().capture_frame),
+                   "NtOps.capture_frame on nt: live seam present, reviewable, unfired inside a suite")
+        else:
+            expect(out, NtOps().capture_frame() is False,
+                   "NtOps.capture_frame off-nt: honest False — the sandbox never pretends to see")
 
         # --- route_vision: the ONE declared eyes message shape, ring law shared
         v1 = look_universe("v1", groq_script=[("ok", "a notepad with a report draft", 40)], frames=[F_PUBLIC])
@@ -3461,8 +3494,13 @@ def _watcher_checks(base: Path, out) -> None:
                "LAW 3 self-policing: a tars-named startup entry is a FIRST-CLASS violation, flagged first")
         w7 = watch_universe("w7")
         w7["watcher"]._creep = NtCreepSource()
-        expect(out, w7["watcher"].creep_report() == canon.meter_unavailable_line("The startup watch"),
-               "off-nt the registry read is honestly unavailable — the sandbox never invents a startup set")
+        if os.name == "nt":
+            rep7 = w7["watcher"].creep_report()  # real read-only registry content — host-owned, never pinned
+            expect(out, isinstance(rep7, str) and rep7 != "",
+                   "creep report on nt: a real line from a real read-only read; content is the host's own")
+        else:
+            expect(out, w7["watcher"].creep_report() == canon.meter_unavailable_line("The startup watch"),
+                   "off-nt the registry read is honestly unavailable — the sandbox never invents a startup set")
 
         # --- the digest: the full five-line assembly, literal-pinned on a scripted desk
         w8 = watch_universe("w8", ops_scripted={"storage_free_bytes": 250 * (1024 ** 3),
@@ -3600,8 +3638,9 @@ def _watcher_checks(base: Path, out) -> None:
                and w18_lines[2] == "RAM in use: forty two percent."
                and w18_lines[4] == "Uptime: two hours.",
                "the digest is exactly five lines; live meters render LIVE numbers, never placeholders")
-        expect(out, NtCreepSource().snapshot() is False and os.name != "nt",
-               "NtCreepSource off-nt: honest False, zero registry reads attempted")
+        snap_n = NtCreepSource().snapshot()
+        expect(out, isinstance(snap_n, list) if os.name == "nt" else snap_n is False,
+               "creep source per-OS truth: nt = real read-only list (HKCU Run is user-readable); others = honest False")
         w15 = watch_universe("w15")
         expect(out, w15["watcher"]._dir_size_mb(w15["path"] / "never-existed") == 0,
                "an absent store honestly measures zero MB")
