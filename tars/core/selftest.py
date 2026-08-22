@@ -2064,7 +2064,7 @@ def _grammar_checks(base: Path, out) -> None:
         # utterances reach professor.py now — the shut list is EMPTY, proven two ways:
         # the source carries no no-op study boundary, and the quiz row's one call is the
         # Professor's draft (study prompt aboard), not the boundary's blind ring ride.
-        gsrc = (REPO_ROOT / "tars" / "core" / "command.py").read_text()
+        gsrc = (REPO_ROOT / "tars" / "core" / "command.py").read_text(encoding="utf-8")  # P-CORE-12I
         expect(out, "declared no-op fall-through" not in gsrc
                and "P-CORE-12's" not in gsrc,
                "the shut list is EMPTY: no study boundary remains in the parser — the core is whole")
@@ -2538,7 +2538,7 @@ def _dailyops_checks(base: Path, out) -> None:
                "a topic-less office utterance earns ONE question — never an empty draft")
 
         # --- the grammar doc itself: v1.1 appended, v1.0 untouched
-        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text(encoding="utf-8")  # P-CORE-12I: implicit locale read — cp1252 on nt mojibakes the dashes
         expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
                and "## v1.1 — DAILY OPS + OFFICE STUDIO" in grammar
                and "yaad dilana" in grammar and "alarm lagao" in grammar and "timer lagao" in grammar,
@@ -2962,7 +2962,7 @@ def _telesend_checks(base: Path, out) -> None:
                "unlinked file row refuses BEFORE the finder walks a single directory")
 
         # --- the grammar doc: v1.2 appended, v1.0 + v1.1 byte-untouched (zero-removed-lines pattern)
-        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text(encoding="utf-8")  # P-CORE-12I: implicit locale read — cp1252 on nt mojibakes the dashes
         expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
                and "## v1.1 — DAILY OPS + OFFICE STUDIO" in grammar
                and "## v1.2 — TELESEND" in grammar and "bhejo" in grammar,
@@ -3334,7 +3334,7 @@ def _look_checks(base: Path, out) -> None:
                "the private-refusal line is LOCAL mint — nothing cloud about a frame that never left")
 
         # --- the grammar doc: v1.3 appended, every earlier section byte-stands
-        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text(encoding="utf-8")  # P-CORE-12I: implicit locale read — cp1252 on nt mojibakes the dashes
         expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
                and "## v1.1 — DAILY OPS + OFFICE STUDIO" in grammar
                and "## v1.2 — TELESEND" in grammar
@@ -3438,7 +3438,7 @@ def _watcher_checks(base: Path, out) -> None:
                "the damage variant names its losses — never sadder, never happier")
 
         # --- §29 enforcement-absence, grep-level (the decree's own audit shape)
-        wsrc = (REPO_ROOT / "tars" / "core" / "watcher.py").read_text()
+        wsrc = (REPO_ROOT / "tars" / "core" / "watcher.py").read_text(encoding="utf-8")  # P-CORE-12I
         expect(out, "VISIBILITY, NOT ENFORCEMENT" in wsrc and "os.remove" not in wsrc
                and "rmtree" not in wsrc and ".unlink(" not in wsrc,
                "§29 grep-law: the visibility comment stands; ZERO enforcement/deletion branches exist")
@@ -3665,7 +3665,7 @@ def _watcher_checks(base: Path, out) -> None:
         dv2.close()
 
         # --- the grammar doc: v1.4 appended, every earlier section byte-stands
-        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text(encoding="utf-8")  # P-CORE-12I: implicit locale read — cp1252 on nt mojibakes the dashes
         expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
                and "## v1.2 — TELESEND" in grammar
                and "## v1.3 — LOOK + EYES" in grammar and "## v1.4 — WATCHER" in grammar
@@ -4134,7 +4134,7 @@ def _brain_checks(base: Path, out) -> None:
                "an empty lessons shelf answers honestly through the row — zero ring, canon byte-exact")
 
         # --- the grammar doc: v1.5 appended, every earlier section byte-stands
-        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text(encoding="utf-8")  # P-CORE-12I: implicit locale read — cp1252 on nt mojibakes the dashes
         expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
                and "## v1.4 — WATCHER" in grammar and "## v1.5 — LIVING BRAIN" in grammar
                and "kya seekha" in grammar,
@@ -4232,7 +4232,7 @@ def _handover_checks(base: Path, out) -> None:
                "the countdown number stays truthful at the singular boundary (one, not ones)")
 
         # --- irreversibility, grep-level: no copy, no shadow, no undo path in the engine
-        hsrc = (REPO_ROOT / "tars" / "core" / "handover.py").read_text()
+        hsrc = (REPO_ROOT / "tars" / "core" / "handover.py").read_text(encoding="utf-8")  # P-CORE-12I
         expect(out, "shutil.copy" not in hsrc and "copytree" not in hsrc and "copy2" not in hsrc
                and "backup" not in hsrc.lower()
                and WIPE_ORDER == ("vault", "profiles", "settings", "secrets", "brain", "logs"),
@@ -4607,7 +4607,7 @@ def _handover_checks(base: Path, out) -> None:
         expect(out, "handover" not in NEAR_MISS_MARKERS and "abort" not in NEAR_MISS_MARKERS
                and "hand over" not in NEAR_MISS_MARKERS,
                "deliberate hardness: no near-miss rescue around the farewell row — exact bytes only")
-        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        grammar = (REPO_ROOT / "tars" / "command-grammar.md").read_text(encoding="utf-8")  # P-CORE-12I: implicit locale read — cp1252 on nt mojibakes the dashes
         expect(out, grammar.startswith("# TARS COMMAND GRAMMAR — v1.0")
                and "## v1.5 — LIVING BRAIN" in grammar and "## v1.6 — HANDOVER" in grammar
                and "tars handover" in grammar,
@@ -5111,7 +5111,7 @@ def _study_checks(base: Path, out) -> None:
                and (len(chip_g2["gfx"].received), len(chip_g2["ofx"].received)) == before
                and chip_g2["vault"].kv_scan("speak_request:") == [],
                "the {} summon: the honest near-miss question, ZERO ring — a parliament is never guessed")
-        grammar17 = (REPO_ROOT / "tars" / "command-grammar.md").read_text()
+        grammar17 = (REPO_ROOT / "tars" / "command-grammar.md").read_text(encoding="utf-8")  # P-CORE-12I: implicit locale read — cp1252 on nt mojibakes the dashes
         expect(out, grammar17.startswith("# TARS COMMAND GRAMMAR — v1.0")
                and "## v1.6 — HANDOVER" in grammar17 and "## v1.7 — PROFESSOR + COUNCIL" in grammar17
                and "padhai shuru" in grammar17 and "quiz le lo" in grammar17

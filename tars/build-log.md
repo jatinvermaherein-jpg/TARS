@@ -416,3 +416,11 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Rows re-aimed: `digest == digest2 == <per-host constant>` + GOLDEN_EPOCH pin — two-build determinism on every host, literal anchor per host, zero guessing. Suite count stable 708.
 - Battery: compileall clean · suite 2× Linux: **708/708 ALL GREEN, exit 0 both** · `git diff --stat` = selftest.py only.
 - nt verdict #6 rides on the ceremony re-run. Family ledger for the night: posix-shaped bytes (12G) and posix-minted constants (12H) — both now extinct from the suite.
+
+## [ARCHITECT] OPS — ceremony nt-run #7 = FAIL at the grammar-doc pin → P-CORE-12I explicit-UTF8 reads (Aug 22)
+
+- Deepest yet: check 382. The suite reads the grammar doc with a BARE `Path.read_text()` — on Linux that silently means UTF-8; on Windows it means **cp1252**, the em-dash in the v1.0 header becomes mojibake, and the append-only pin truthfully fails. Implicit-locale reads: the family no grep-shaped sweep sees — only a real locale reveals it.
+- Family inventory: 10 bare sites in the suite, all reading repo literature (grammar doc ×7, command.py/watcher.py/handover.py sources ×3). Product code ALREADY carries encoding="utf-8" everywhere (keys/logx/settings/brain/voiceid/command) — lane hygiene was clean; the harness missed it. All 10 now declare UTF-8 (+# P-CORE-12I marker on each).
+- CRLF side-quest closed WITHOUT touching Cooper's working tree: text-mode reads translate newlines universally, so the Windows-style checkout is harmless to every text pin; no .gitattributes/renormalize churn tonight. (Audit mint-side stays my LF Linux clone anyway.)
+- Battery: zero bare `.read_text()` left in the suite · compileall clean · suite 2× Linux: **708/708 ALL GREEN, exit 0 both** · diff = selftest.py only, 10 lines swapped 1:1.
+- nt verdict #7 rides on the re-run. The map says: after the Office battery, remaining batteries touch vault/logs/brain/handover/professor — all product-paths already UTF-8-explicit. The pin-side families are all accounted for. Clear water, ⚪ honestly earned.
