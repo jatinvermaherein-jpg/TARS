@@ -149,10 +149,10 @@ class NtOps:
             _fields_ = [("bmiHeader", ctypes.c_byte * 40), ("bmiColors", ctypes.c_byte * 16)]
 
         info = _BMPINFO()
-        ctypes.memset(info, 0, ctypes.sizeof(_BMPINFO))
+        ctypes.memset(ctypes.byref(info), 0, ctypes.sizeof(info))  # byref: memset wants a POINTER, not the instance (AiO ceremony traceback)
         header = struct.pack("<IiiHHIIiiII", 40, width, -height, 1, 32, 0, 0, 0, 0, 0, 0)
         ctypes.memmove(info.bmiHeader, header, 40)
-        gdi32.GetDIBits(mem, bitmap, 0, height, buf, info, 0)
+        gdi32.GetDIBits(mem, bitmap, 0, height, buf, ctypes.byref(info), 0)  # byref: out-structs always ride pointers
         rows = bytearray(width * height * 3)
         for row in range(height):
             for col in range(width):

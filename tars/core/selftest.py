@@ -753,6 +753,11 @@ def _persona_checks(base: Path, out) -> None:
     # A1: redo
     dialog7, vault7, _m7, gfx7, _o7, ev7, _s7 = universe(
         "u7", [("ok", "answer v1", 10), ("ok", "answer v2", 11)], [])
+    # P-CORE-12C re-aim (sanctioned, the ONE): the 'look' chip below rides a scripted
+    # NO-SEAM unit on every OS. The standing default builds the REAL NtOps — on the AiO it
+    # truly grabs — which would make the pin host-dependent. Suites must never depend on
+    # the host's real seams; the real ctypes seam proves itself at the M-2 live smoke.
+    dialog7._command._lookd = Lookd(FixtureOps({"capture_frame": False}), ModelClassifier(), None, Bus(), time_fn=lambda: 1000.0)
     dialog7.send("hello")
     old_mid = vault7.messages_for(1)[-1]["id"]
     redo = dialog7.quick_action("redo", {"chatId": 1, "messageId": old_mid})

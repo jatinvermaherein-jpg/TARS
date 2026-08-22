@@ -362,3 +362,13 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - Post-fix audit battery: rb-fsync grep = zero offenders · compileall clean · suite re-run TWICE on Linux: **708/708 ALL GREEN, exit 0 both** · `git diff --stat` = exactly 2 files, 6+/4- — surgical.
 - Static tripwire row (708→709) PARKED by decree-size ruling: core is complete, the family cannot regrow silently; if P-CORE-13 ever ships, the row prompts there.
 - **nt verdict rides on Cooper's ceremony re-run after `git pull`** — green = M-1 step 1.7 PASS banked.
+
+## [ARCHITECT] OPS — M-1 ceremony nt-run #2 = RED at check 140 → P-CORE-12C two-half repair (Aug 22)
+
+- AiO ceremony run #2: checks 1–139 green — **the P-CORE-12B fsync hotfix is nt-VERIFIED by the machine itself** (settings battery + handover paths ran clean) — then the first Windows-only seam fired its real body: NtOps._grab crashed at `ctypes.memset(info, 0, …)` — a POINTER was required, an instance was passed. Untestable on Linux by construction (`ctypes.windll` does not exist off-nt); the sandbox was blind again, the AiO saw again. DATA doctrine held.
+- Family scan of the same block caught the latent twin: `GetDIBits(…, buf, info, 0)` passed the out-struct bare — same pointer law, one line later.
+- **Half 1 (product, NtOps._grab):** memset + GetDIBits now ride `ctypes.byref(info)` — pointer-correct for the real P3/M-2 seam.
+- **Half 2 (harness, u7 universe):** the 'look' chip battery stood on the REAL NtOps and stayed deterministic only because Linux short-circuits at the os.name gate — a host-dependent pin. Sanctioned re-aim (house precedent: the P-CORE-8/9/12 re-aims): dialog7's standing lookd is rebound to a scripted NO-SEAM unit `Lookd(FixtureOps({"capture_frame": False}), ModelClassifier(), None, Bus(), time_fn=lambda: 1000.0)` — the NO_SEAM pin is now true byte-exact on every OS, zero other checks touched, suite count stays 708.
+- **Doctrine addition, written down where it bites:** suites must never depend on the host's real seams. The real ctypes seam (BitBlt → GetDIBits → foreground-title read) proves itself at the M-2 live smoke + an ad-hoc probe tonight, never inside a pinned suite.
+- Post-fix battery: compileall clean · suite re-run TWICE on Linux: **708/708 ALL GREEN, exit 0 both** · `git diff --stat` = dailyops.py (2+/2-) + selftest.py (+5) — surgical · Cooper's direct-fix decree rides (repair class, second ride).
+- **nt verdict #2 rides on Cooper's ceremony re-run after `git pull`** — further post-140 nt DATA, if any, follows this same repair loop.
