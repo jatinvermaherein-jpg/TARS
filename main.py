@@ -52,11 +52,23 @@ APP_INDEX = APP_DIR / "index.html"
 DEFAULT_DATA = Path(r"C:\TARS\data") if os.name == "nt" else Path.home() / ".tars"
 TICK_S = 1.0  # the heartbeat: clock dues, speak-queue drain, idle law
 
-# The one parse-time line of merge glue (P3 first-run find): pywebview exposes the
-# js_api as window.pywebview.api; APP/mock watch window.tarsBridge. Serving this
-# alias AHEAD of mock.js keeps the real bridge first — and in a plain browser the
-# expression lands undefined, so the contract §6 mock law still holds there.
-_ALIAS = b"<script>window.tarsBridge=(window.pywebview||{}).api||undefined;</script>"
+# The one parse-time element of merge glue (P3 first-run finds, round two). Docs:
+# window.pywebview.api is only GUARANTEED at pywebviewready — never at parse. A bare
+# alias therefore races the mock (parse-order: alias script -> mock.js). So the host
+# serves a DEFERRED PROXY that owns window.tarsBridge from parse onward: any JS call
+# made before the bridge is ready is queued and replayed onto the real api the
+# instant pywebviewready fires; the mock sees the name taken and never installs.
+# In a plain browser the file bundle is untouched — contract §6's mock law stands.
+_ALIAS = (b"<script>(function(){var pending=[],real=null;"
+          b"window.tarsBridge=new Proxy({}, {get:function(t,name){"
+          b"if(name===\"then\"){return undefined;}"
+          b"return function(){var a=Array.prototype.slice.call(arguments);"
+          b"if(real){return real[name].apply(real,a);}"
+          b"return new Promise(function(res,rej){pending.push({n:name,a:a,res:res,rej:rej});});};}});"
+          b"window.addEventListener(\"pywebviewready\",function(){"
+          b"real=window.pywebview.api;window.tarsBridge=real;"
+          b"pending.forEach(function(c){real[c.n].apply(real,c.a).then(c.res,c.rej);});pending=[];});"
+          b"})();</script>")
 
 
 def patched_index(raw: bytes) -> bytes:
