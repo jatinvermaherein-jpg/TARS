@@ -156,8 +156,12 @@ class NtExecutor:
             return False  # canon: power verbs touch the family machine only after typed YES, on the AiO
         import subprocess
         flag = {"shutdown": "/s", "restart": "/r", "sleep": "/h"}[verb]
-        subprocess.run(["shutdown", flag, "/t", str(countdown_s)], timeout=10)
-        return True
+        try:
+            result = subprocess.run(["shutdown", flag, "/t", str(countdown_s)],
+                                    timeout=10, capture_output=True)
+        except (OSError, subprocess.SubprocessError):
+            return False  # spawn refused — the ack must report the refusal, not hope
+        return result.returncode == 0  # merge-day field law: a non-zero exit is NOT a performed verb
 
 
 class FixtureExecutor:
