@@ -110,6 +110,7 @@
 
     if (notice.dials) { renderDials(notice.dials); }
     if (s === "OFF") { renderClosed(); }
+    else { closedScreen.hidden = true; }  /* [A5] the cover lifts on any live notice */
   }
 
   function renderHue(hue) {
@@ -1213,6 +1214,12 @@
     });
 
     el("new-chat-btn").addEventListener("click", startNewChat);
+
+    /* [A5] the OFF cover carries the wake door — click and Enter/Space both summon. */
+    closedScreen.addEventListener("click", function () { call("summon", []); });
+    closedScreen.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); call("summon", []); }
+    });
     el("settings-btn").addEventListener("click", function () { showSettings(true); });
     el("settings-back").addEventListener("click", function () { showSettings(false); });
 

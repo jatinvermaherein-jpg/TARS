@@ -452,6 +452,12 @@
       return Promise.resolve(notice());
     },
 
+    summon: function () {  /* [A5] the demo's own wake door: setState carries the envelope */
+      armIdle();
+      setState("IDLE");
+      return Promise.resolve(notice());
+    },
+
     set_dial: function (name, value) {
       armIdle();
       if (name === "honesty") {

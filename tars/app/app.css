@@ -788,6 +788,9 @@ input:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 }
 .closed-screen[hidden] { display: none; }
 .closed-label { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: .34em; color: var(--text-dim); }
+.closed-hint { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: .1em; color: var(--text-dim); }
+.closed-screen { cursor: pointer; }
+.closed-screen:focus-visible { outline: 1px solid var(--local); outline-offset: -6px; }
 
 /* ── confirm modal ─────────────────────────────────────── */
 .modal-scrim {

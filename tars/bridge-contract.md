@@ -1,6 +1,8 @@
-# TARS BRIDGE CONTRACT — v1.4
+# TARS BRIDGE CONTRACT — v1.5
 **The one file both build agents obey · August 17, 2026 · App-Era, two-lane build**
 **If you are an AI agent building any part of TARS: this contract defines the border between AGENT CORE and AGENT APP. Neither side crosses it. When your instinct conflicts with this document, the document wins. To change it requires a Cooper decree plus a version bump plus BOTH agents re-reading it.**
+
+**Amendment A5 (v1.5, Aug 23, Cooper decree "ARCHITECT fixes it now" — Merge-Day seam ruling):** the OFF state gains a REACHABLE WAKE DOOR. §3 surface gains a 14th method: `summon() -> Promise<StateNotice>` — the lawful summon with zero message and zero ring spend (the same OFF→ARMED transition send() performs on a first text; the 'state' event envelope carries the wake). APP law: the closed screen IS the door — it shows "Press Enter to summon.", is a focusable button, click and Enter/Space both call summon(), AND the screen hides on EVERY non-OFF StateNotice (the cover is no longer a one-way street — the stand-down path reopens too). Rationale: merge-day field finding on the AiO — the mock never exercised OFF, so the cover shipped without a handle; the real core's Law-3 OFF made it a dead end (composer unreachable, no summon path). Zero-emoji/copy laws unchanged.
 
 **Amendment A4 (v1.4, Aug 17, Architect-post-ratification, Cooper ballot "v2 locked"):** Mission Display v2 becomes the skin canon. Geometry: soft-round radius 8/12/16px (+ capsule pills, asymmetric 16/8 message bubbles, 9–10px glyph tiles, 18px window shell). Depth: soft-glass — raised surfaces `0 4px 14px rgba(0,0,0,.28)`, floating layers `0 10px 28px rgba(0,0,0,.38)`, 3.5% white vertical sheen on header/input strips and raised cards. Hue tokens: CLOUD = warm amber `#F2AD4E`, LOCAL = mint `#5CD6AE`; on-accent text `#0B0E12` (mint) / `#191207` (amber), never white. **Semantics UNCHANGED — hue still means privacy.** All thirteen v1 hexes are retired; their presence in `tars/app/` is an audit failure. Full token law: bible §14 (v1.2) + `tars/brand/palette-mission-display.md` v2.
 
@@ -35,6 +37,7 @@ AGENT CORE exposes one global object on the page: `window.tarsBridge` (pywebview
 ```
 send(text)             -> Promise<ReplyResult>     // a typed/said user message
 get_state()            -> Promise<StateNotice>     // current state + dials + audience
+summon()               -> Promise<StateNotice>     // [A5] wake door: OFF->ARMED, zero spend, zero message
 set_dial(name, value)  -> Promise<DialResult>      // name in {humor, vernacular, discretion, trust}; 'honesty' is rejected with the canon line
 confirm(actionId, yes) -> Promise<ConfirmResult>   // RED-verb gate answers; yes=false means cancel
 voice_ptt(phase)       -> Promise<void>            // phase: 'start' | 'stop' (push-to-talk)

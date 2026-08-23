@@ -169,6 +169,14 @@ class Bridge:
     def get_state(self) -> dict:
         return self._rt["machine"].notice()
 
+    def summon(self) -> dict:
+        """[A5] The OFF cover's door. The lawful summon with zero message and zero
+        ring spend — the exact transition send() performs on a first text. _go
+        already emits the state event; the cover lifts on that envelope."""
+        machine = self._rt["machine"]
+        machine.summon()  # OFF -> ARMED; an honest no-op when already awake
+        return machine.notice()
+
     def set_dial(self, name, value) -> dict:
         if isinstance(value, float) and value.is_integer():
             value = int(value)  # browser numbers arrive double; the dial law rules ints
