@@ -503,3 +503,9 @@ HP 24-cr0023in — **IN HAND** (Cooper confirmation Aug 17, 2026). Outstanding l
 - The ceremony's refusal card needed a WHY — the adapter vocabulary lumps every non-429 HTTP fault into `http_5xx` (by design for the app; blind for a mortician). key_doctor.py at root: ONE key, ONE call, declared fast model, printed HTTP code + server body snippet (key-safe: Groq error bodies never echo key bytes; courier law clean).
 - Also fixed this push: the deferred-proxy alias (previous commit) — read back over the diff: mock's parse-time check sees a truthy object, gets out; the real api lands at pywebviewready; pre-ready calls queue. Still zero app-lane bytes served differently than minted, plus one host element.
 - Vault state: bridge proxy 7dee518 | key doctor this push. Awaiting Cooper's twin courier: doctor verdict + badge status at relaunch.
+
+## [ARCHITECT] OPS — the 1010 read: Cloudflare bounced the bare urllib signature (Aug 23)
+
+- key_doctor's first verdict: `HTTP 403 — error code: 1010` = Cloudflare's client-signature ban, not Groq's key judgment. The keys were never weighed — the raw Python-urllib handshake got carded at the door. Official clients (httpx-based SDKs) pass.
+- Doctor rebuilt as a DUAL probe: bare hello, then the honest nametag (User-Agent: tars-core/1.0 — self-identification, Never-List-clean: no disguises, no evasion machinery). If the nametag opens, both adapters gain one header line; if not, the staged move is the official groq SDK (P3 pins its own deps, per the staged-table law) — with a NOTE that the Nametag law keeps TARS honest by name everywhere it speaks.
+- Also standing unverdicted: the window badge question (Cooper launched + closed without the badge courier). Relaunch ask rides the next block.
