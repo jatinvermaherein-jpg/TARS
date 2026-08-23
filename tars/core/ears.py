@@ -151,7 +151,9 @@ def _multipart_post(url: str, body: bytes, content_type: str, key_string: str) -
     if not key_string:
         raise RuntimeError("ears call attempted without a key")  # belt-and-braces: the ring normally stops this
     request = urllib.request.Request(url, data=body, method="POST", headers={
-        "Authorization": f"Bearer {key_string}", "Content-Type": content_type})
+        "Authorization": f"Bearer {key_string}", "Content-Type": content_type,
+        # Same honest nametag as adapters._http_call — bare stdlib is 1010-bait at the edge.
+        "User-Agent": "tars-core/1.0 (resident, Cooper's machine)"})
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             payload = json.loads(response.read().decode("utf-8"))

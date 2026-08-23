@@ -548,9 +548,10 @@ def _ring_checks(base: Path, out) -> None:
     expect(out, reply5c["lane"] == "ultra" and reply5c["key_visible_name"] == "openrouter#7",
            "named ultra routes to the OpenRouter ultra lane")
     vault5c.close()
-    expect(out, LANE_MODELS[("groq", "fast")] == "llama-3.1-8b-instant"
-           and LANE_MODELS[("groq", "smart")] == "llama-3.3-70b-versatile" and TIMEOUT_S == 30,
-           "lane map + 30s ceiling byte-exact to bible §26")
+    # Re-aimed 2026-08-23 (post-retirement slugs; Groq killed the llama-3.x pair 2026-08-16):
+    expect(out, LANE_MODELS[("groq", "fast")] == "openai/gpt-oss-20b"
+           and LANE_MODELS[("groq", "smart")] == "openai/gpt-oss-120b" and TIMEOUT_S == 30,
+           "lane map (gpt-oss replacements for the retired llama-3.x pair) + 30s ceiling, bible §26")
 
     router6, _r6, vault6, _e6 = universe([("ok", "fast vote", 10), ("ok", "smart vote", 20)],
                                          [("ok", "spare vote", 30)])

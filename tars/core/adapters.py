@@ -40,6 +40,12 @@ def _http_call(url: str, messages: list, *, key_string: str, key_visible_name: s
     request = urllib.request.Request(url, data=payload, method="POST", headers={
         "Authorization": f"Bearer {key_string}",
         "Content-Type": "application/json",
+        "Accept": "application/json",
+        # The honest nametag: bare-stdlib requests die at the provider's edge gate
+        # (Cloudflare error 1010, signature ban on bot-shaped traffic — the doctor
+        # proved it field-true 2026-08-23). Self-identification is Never-List-clean:
+        # we declare what we are, we never impersonate a browser.
+        "User-Agent": "tars-core/1.0 (resident, Cooper's machine)",
     })
     started = time.monotonic()
     try:

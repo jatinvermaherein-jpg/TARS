@@ -27,10 +27,16 @@ from tars.core import canon
 from tars.core.council import COUNCIL_PLAN, compose, note_of  # COUNCIL_PLAN: re-export
 from tars.core.gauge import WARN_REMAINING_PCT, remaining_pct
 
+# Groq retired llama-3.1-8b-instant and llama-3.3-70b-versatile on 2026-08-16 with
+# llama-4-scout already on the deprecation list (console.groq.com/docs/deprecations);
+# the fast-lane 404 in the P3.3a doctor run was exactly that retirement, one week on.
+# Slugs below are Groq's own recommended replacements; the eyes pick is the current
+# vision-capable Groq model (qwen3.6-27b — preview tier, honest risk, catalog-verified
+# by key_doctor's roster probe).
 LANE_MODELS = {
-    ("groq", "fast"): "llama-3.1-8b-instant",
-    ("groq", "smart"): "llama-3.3-70b-versatile",
-    ("groq", "eyes"): "meta-llama/llama-4-scout-17b-16e-instruct",
+    ("groq", "fast"): "openai/gpt-oss-20b",
+    ("groq", "smart"): "openai/gpt-oss-120b",
+    ("groq", "eyes"): "qwen/qwen3.6-27b",
     ("groq", "ears"): "whisper-large-v3-turbo",
     # bible §26 lane names; the exact :free slugs are confirmed from the OR console at the M-1 key ceremony.
     ("openrouter", "ultra"): "nemotron-3-ultra-550b",
