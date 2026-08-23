@@ -8,6 +8,7 @@ implements the identical interface from recorded scripts and is the ONLY
 adapter the selftest drives.
 """
 import json
+import re
 import socket
 import time
 import urllib.error
@@ -19,6 +20,18 @@ from tars.core import canon
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 TIMEOUT_S = 30  # bible §26: 30-second ceiling, then retry on the next healthy key
+
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+
+def _speakable(text: str) -> str:
+    """Reasoning-class models (gpt-oss, qwen3.6) wrap their chain-of-thought in a
+    <think>…</think> envelope INSIDE the content bytes (field-true at the P3.4
+    eyes ceremony, Aug 23). The scaffolding is never TARS's voice — strip every
+    envelope, keep the verdict. Never invent: if only scaffolding came back, the
+    raw text stands rather than an empty reply."""
+    stripped = _THINK_RE.sub("", text).strip()
+    return stripped or text.strip()
 
 
 @dataclass
@@ -52,7 +65,7 @@ def _http_call(url: str, messages: list, *, key_string: str, key_visible_name: s
         with urllib.request.urlopen(request, timeout=timeout_s) as response:
             body = json.loads(response.read().decode("utf-8"))
         return AdapterResult(
-            text=body["choices"][0]["message"]["content"],
+            text=_speakable(body["choices"][0]["message"]["content"]),
             tokens=int(body.get("usage", {}).get("total_tokens", 0)),
             latency_ms=int((time.monotonic() - started) * 1000),
             key_visible_name=key_visible_name,
