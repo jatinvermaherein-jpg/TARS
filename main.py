@@ -21,6 +21,7 @@ import shutil
 import sys
 import threading
 import time
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from tars.core import canon
@@ -46,9 +47,56 @@ except ImportError:  # headless sandbox: the Bridge object still assembles + ans
     webview = None
 
 REPO_ROOT = Path(__file__).resolve().parent
-APP_INDEX = REPO_ROOT / "tars" / "app" / "index.html"
+APP_DIR = REPO_ROOT / "tars" / "app"
+APP_INDEX = APP_DIR / "index.html"
 DEFAULT_DATA = Path(r"C:\TARS\data") if os.name == "nt" else Path.home() / ".tars"
 TICK_S = 1.0  # the heartbeat: clock dues, speak-queue drain, idle law
+
+# The one parse-time line of merge glue (P3 first-run find): pywebview exposes the
+# js_api as window.pywebview.api; APP/mock watch window.tarsBridge. Serving this
+# alias AHEAD of mock.js keeps the real bridge first — and in a plain browser the
+# expression lands undefined, so the contract §6 mock law still holds there.
+_ALIAS = b"<script>window.tarsBridge=(window.pywebview||{}).api||undefined;</script>"
+
+
+def patched_index(raw: bytes) -> bytes:
+    """index.html bytes + the alias, injected right after <head>; if the marker ever
+    moves, serve the file untouched and log nothing here — the mock law stays safe."""
+    return raw.replace(b"<head>", b"<head>\n" + _ALIAS, 1)
+
+
+class _AppHandler(SimpleHTTPRequestHandler):
+    """Loopback static host for tars/app/*; quiet, byte-true, and only index.html patched."""
+
+    def log_message(self, *args) -> None:  # the app never chatters to the terminal
+        pass
+
+    def do_GET(self) -> None:
+        if self.path.split("?", 1)[0] in ("/", "/index.html"):
+            try:
+                body = patched_index(APP_INDEX.read_bytes())
+            except OSError:
+                self.send_error(404)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
+
+
+def serve_app() -> tuple:
+    """Start the loopback host on an ephemeral port. Thread is a daemon: it dies
+    with the window. Bound to 127.0.0.1 only — the bridge is a private place."""
+    import functools
+    handler = functools.partial(_AppHandler, directory=str(APP_DIR))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.2},
+                              daemon=True, name="tars-appserver")
+    thread.start()
+    return server, f"http://127.0.0.1:{server.server_address[1]}/index.html"
 
 
 def _data_dir() -> Path:
@@ -241,7 +289,8 @@ def main() -> int:
     rt = build_runtime(_data_dir())
     make_pump(rt)
     stop = threading.Event()
-    window = webview.create_window("TARS", str(APP_INDEX), js_api=Bridge(rt),
+    server, url = serve_app()
+    window = webview.create_window("TARS", url, js_api=Bridge(rt),
                                    width=1240, height=780, min_size=(960, 620))
     rt["window"] = window
     try:
@@ -254,6 +303,7 @@ def main() -> int:
         webview.start()  # blocks until the window closes (no debug server, no menu)
     finally:
         stop.set()
+        server.shutdown()
         pump.join(timeout=2)
         close_ritual(rt)
     return 0
