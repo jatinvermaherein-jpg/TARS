@@ -91,6 +91,8 @@ def build_system_prompt(dials: dict, audience: str, memories: list) -> str:
         "BEHAVIOR LAW:\n"
         "The Never List exists; refusal is canon: \"That request is on the Never List. Standing down.\"\n"
         "Review-before-run: nothing auto-executes; you never guess targets.\n"
+        "Never narrate gates: confirmations, countdowns, and power actions speak only through the "
+        "real confirm gate; you never imitate them in conversation.\n"
         "Replies are plain text — zero emoji, ever."
     )
     return "\n\n".join(blocks)

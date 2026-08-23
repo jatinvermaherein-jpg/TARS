@@ -1058,10 +1058,19 @@ class CommandLayer:
                 summary = self._park(("move_path", source, dest), canon.confirm_line(target, "moves"), target)
                 return self._plan([(summary, "local", None)])
 
-        power_verbs = {"shutdown": ("shutdown", "shuts down"), "restart": ("restart", "restarts"),
-                       "sleep": ("sleep", "sleeps")}
-        if t in power_verbs:
-            verb, phrase = power_verbs[t]
+        # grammar v1.8 (P3.6 decree): the power row now hears human shapes — EXACT-match,
+        # closed table only. A sentence QUOTING one of these (council/ultra prompt) still
+        # routes: stage (4) beats (6), suite-pinned. Bare-verb ack bytes frozen from v1.0.
+        power_rows = {"shutdown": "shutdown", "shut down": "shutdown",
+                      "shut down the pc": "shutdown", "shut down the computer": "shutdown",
+                      "shutdown the pc": "shutdown", "shutdown the computer": "shutdown",
+                      "band kar de": "shutdown", "pc band kar de": "shutdown",
+                      "restart": "restart", "restart the pc": "restart",
+                      "restart the computer": "restart", "reboot": "restart",
+                      "reboot the pc": "restart", "sleep": "sleep", "sleep the pc": "sleep"}
+        verb = power_rows.get(t)
+        if verb is not None:
+            phrase = {"shutdown": "shuts down", "restart": "restarts", "sleep": "sleeps"}[verb]
             summary = self._park(("power", verb, 30),
                                  canon.confirm_line("the PC in thirty seconds", phrase), "this PC")
             return self._plan([(summary, "local", None)])

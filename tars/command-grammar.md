@@ -276,3 +276,12 @@ GREEN local acks: short past-tense templates, numbers in words — *"Volume set 
 | Pattern | Examples | Ack family |
 |---|---|---|
 | `ultra <question>` · `use ultra for <question>` · `ask the giant about <question>` | "ultra derive the path-integral sketch" · "use ultra for the navier-stokes outline" · "ask the giant about entropy" | ONE ultra-lane call, amber, ledgers `ultra` · word-boundary law: "ultraviolet" summons nothing · unnamed complexity stays smart |
+
+### 40. Power verbs — human aliases (grammar v1.8 · P3.6 decree, Aug 23, 2026)
+*The P3.2 field lesson: a real human types "shutdown the computer", not the bare verb. The row now hears human shapes — exact-match, closed table, no substring powers (a sentence QUOTING these words, e.g. inside a council summon, still routes to the ring: stage order law, suite-pinned at the 4-beats-6 battery). Bare-verb ack bytes stay frost-locked from v1.0.*
+
+| Pattern | Examples | Ack family |
+|---|---|---|
+| `shutdown` — one of: "shutdown" · "shut down" · "shut down the pc" · "shut down the computer" · "shutdown the pc" · "shutdown the computer" · "band kar de" · "pc band kar de" | "shutdown the computer" | RED gate: `That shuts down the PC in thirty seconds. Type YES to confirm.` → YES → `Shutting down in thirty seconds.` · refusal answers the could-not-complete line, never a claim (P3.2 field law) |
+| `restart` — one of: "restart" · "restart the pc" · "restart the computer" · "reboot" · "reboot the pc" | "reboot the pc" | RED gate, same machinery, restart ack bytes |
+| `sleep` — "sleep" · "sleep the pc" | "sleep" | RED gate, same machinery, sleep ack bytes |
