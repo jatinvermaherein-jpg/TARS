@@ -304,7 +304,8 @@ def heartbeat(rt: dict, stop: threading.Event) -> None:
 
 def main() -> int:
     if webview is None:
-        print("pywebview is not staged here (M-1.5 installs it on the AiO).", file=sys.stderr)
+        print("pywebview is not staged here — on the AiO, wake the venv first: "
+              r"C:\TARS\.venv\Scripts\Activate.ps1 (M-1.5 stages pywebview inside it).", file=sys.stderr)
         return 2
     rt = build_runtime(_data_dir())
     make_pump(rt)
