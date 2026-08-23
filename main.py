@@ -302,6 +302,68 @@ def heartbeat(rt: dict, stop: threading.Event) -> None:
             rt["log"].entry("host", note=f"heartbeat beat failed: {exc}")
 
 
+def _start_hotkeys(rt) -> None:
+    """P3.5 — the global summon chord (Ctrl+Alt+T) and kill chord (Ctrl+Alt+Esc),
+    heard anywhere in Windows. PowerToys remaps the physical Copilot key onto
+    Ctrl+Alt+T (bench manual); this hook is the ear that obeys it. Root-glue law:
+    honest absence off-nt; a colliding registration means the chord stands down
+    with a log line, never a fight."""
+    if os.name != "nt":
+        return
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+    mods = 0x0002 | 0x0001 | 0x4000  # MOD_CONTROL | MOD_ALT | MOD_NOREPEAT — the About-panel chords
+    wm_hotkey = 0x0312
+    ready = threading.Event()
+    holder = {"tid": None, "armed": False}
+
+    def _summon():
+        machine = rt["machine"]
+        machine.summon()  # the lawful wake; an honest no-op when already awake (A5's own law)
+        window = rt.get("window")
+        if window is None:
+            return
+        try:
+            window.restore()  # un-minimize; a courtesy on backends that know it
+        except Exception:  # noqa: BLE001 — never crash the chord
+            pass
+        hwnd = getattr(window, "hwnd", None)
+        if hwnd:
+            try:
+                user32.SetForegroundWindow(hwnd)
+            except Exception:  # noqa: BLE001 — focus is a courtesy, never a crash
+                pass
+
+    def _kill():
+        window = rt.get("window")
+        if window is None:
+            return
+        try:
+            window.destroy()  # main's finally-block close ritual does the honest rest
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _loop():
+        holder["tid"] = kernel32.GetCurrentThreadId()
+        holder["armed"] = bool(user32.RegisterHotKey(None, 1, mods, 0x54)          # Ctrl+Alt+T
+                               and user32.RegisterHotKey(None, 2, mods, 0x1B))      # Ctrl+Alt+Esc
+        ready.set()
+        msg = wintypes.MSG()
+        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            if msg.message != wm_hotkey:
+                continue
+            (_summon if msg.wParam == 1 else _kill)()
+
+    threading.Thread(target=_loop, name="tars-hotkeys", daemon=True).start()
+    if ready.wait(5) and holder["armed"]:
+        rt["log"].entry("host", note="global chords armed: Ctrl+Alt+T summon, Ctrl+Alt+Esc kill")
+    else:
+        rt["log"].entry("host", note="global chords refused (a prior claim holds them) — keyboard quiet tonight")
+
+
 def main() -> int:
     if webview is None:
         print("pywebview is not staged here — on the AiO, wake the venv first: "
@@ -314,6 +376,7 @@ def main() -> int:
     window = webview.create_window("TARS", url, js_api=Bridge(rt),
                                    width=1240, height=780, min_size=(960, 620))
     rt["window"] = window
+    _start_hotkeys(rt)  # P3.5: the summon/kill chords — daemon thread, honest no-op off-nt
     try:
         window.events.loaded += lambda: boot(rt)  # empty state + canon boot line (§7.1)
     except AttributeError:
