@@ -39,11 +39,13 @@ LANE_MODELS = {
     ("groq", "eyes"): "qwen/qwen3.6-27b",
     ("groq", "ears"): "whisper-large-v3-turbo",
     # The OpenRouter seats, pinned against the Aug-2026 free catalog: the ULTRA giant is
-    # nemotron-3-ultra 550B; the council's third seat is gemma-4-31b (vendor diversity
-    # away from the two groq gpt-oss seats). :free listings ROTATE — if a seat ever
-    # answers honestly-spent, the OR console eyeball re-pins the slug.
+    # nemotron-3-ultra 550B; the council's third seat is nemotron-3-super 120B.
+    # (gemma-4-31b was the proven-real first pick — on 2026-08-23 it answered 429
+    # "temporarily rate-limited upstream", the most-mobbed free seat on OR; it stays
+    # the documented alternate.) :free listings ROTATE and congest — if a seat ever
+    # answers honestly-spent, key_doctor's openrouter roster re-pins from truth.
     ("openrouter", "ultra"): "nvidia/nemotron-3-ultra-550b-a55b:free",
-    ("openrouter", "council"): "google/gemma-4-31b-it:free",
+    ("openrouter", "council"): "nvidia/nemotron-3-super-120b-a12b:free",
 }
 
 COMPLEXITY_KEYWORDS = ("explain", "derive", "proof", "why", "solve", "essay",
