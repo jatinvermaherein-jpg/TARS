@@ -38,9 +38,12 @@ LANE_MODELS = {
     ("groq", "smart"): "openai/gpt-oss-120b",
     ("groq", "eyes"): "qwen/qwen3.6-27b",
     ("groq", "ears"): "whisper-large-v3-turbo",
-    # bible §26 lane names; the exact :free slugs are confirmed from the OR console at the M-1 key ceremony.
-    ("openrouter", "ultra"): "nemotron-3-ultra-550b",
-    ("openrouter", "council"): "openrouter-free-council",
+    # The OpenRouter seats, pinned against the Aug-2026 free catalog: the ULTRA giant is
+    # nemotron-3-ultra 550B; the council's third seat is gemma-4-31b (vendor diversity
+    # away from the two groq gpt-oss seats). :free listings ROTATE — if a seat ever
+    # answers honestly-spent, the OR console eyeball re-pins the slug.
+    ("openrouter", "ultra"): "nvidia/nemotron-3-ultra-550b-a55b:free",
+    ("openrouter", "council"): "google/gemma-4-31b-it:free",
 }
 
 COMPLEXITY_KEYWORDS = ("explain", "derive", "proof", "why", "solve", "essay",

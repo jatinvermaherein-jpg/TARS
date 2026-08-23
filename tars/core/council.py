@@ -11,8 +11,8 @@ THE VERDICT BASIS (declared, deterministic — never a coin flip):
   1. agreement count first: every seat's answer byte-compared;
   2. a majority pair wins and is NAMED by seat number;
   3. full disagreement -> SEAT_WEIGHT lane strength (smart > council > fast —
-     the 70B instruct seat carries the most weight; the free-tier council seat sits
-     above the 8B fast seat);
+     the heavyweight instruct seat carries the most weight; the free-tier council seat
+     sits above the light fast seat);
   4. a seat that never answered (spent or failed key) is announced in place —
      "couldn't make it" — and the verdict composes gracefully from the survivors.
 THE QUOTA FLAG rides first (council_note): the count is the number of seats that
