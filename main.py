@@ -131,7 +131,7 @@ def build_runtime(data_dir: Path) -> dict:
     router = Router(ring, {"groq": GroqAdapter(), "openrouter": OpenRouterAdapter()}, vault, bus)
     dialog = Dialog(settings, vault, router, machine, bus)  # ctor builds the full command layer
     voice_dir = data_dir / "voice"  # M-2 stages tars-piper.onnx / whisper-small.bin here
-    mouth = Mouth([SapiTier(), PiperTier(voice_dir), EdgeTier()], log)
+    mouth = Mouth([PiperTier(voice_dir), SapiTier(), EdgeTier()], log)  # M-2.1: anointed voice speaks first
     ladder = EarLadder([WhisperSmallLocal(voice_dir), GroqEarsAdapter(ring)], log)
     store = ProfileStore(data_dir / "profiles.json", log)
     return {"log": log, "settings": settings, "vault": vault, "bus": bus, "machine": machine,

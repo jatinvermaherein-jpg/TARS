@@ -1,8 +1,9 @@
-"""The speak ladder — SAPI -> Piper -> edge-tts, privacy routing is LAW.
+"""The speak ladder — Piper -> SAPI -> edge-tts, privacy routing is LAW.
 
-Tier order (bible §27): SAPI first (Windows-native, LOCAL), Piper second
-(LOCAL model file, staged at M-1), edge-tts last (CLOUD — the human-sounding
-tier, public-safe utterances only). The privacy guard sits in the ladder walk
+Tier order (bible §27, amended M-2.1, ballot 2n): Piper first (LOCAL neural —
+the anointed voice, staged as tars-piper.onnx), SAPI second (Windows-native
+stock floor, the always-present emergency layer), edge-tts last (CLOUD — the
+human-sounding tier, public-safe utterances only). The privacy guard sits in the ladder walk
 itself: a private utterance never reaches the edge tier — there is no flag,
 no config, no override (§31). If nothing local can serve, the text stays on
 screen and the moment is logged, per the prompt's rule (no new canon line).

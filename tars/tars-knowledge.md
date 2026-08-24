@@ -102,7 +102,7 @@ Router (3-gate): fast lane default -> escalate to smart on complexity signal (P1
 ====================================================================
 7. BODY STACK + STORAGE LEDGER
 ====================================================================
-Body (on machine, P3+): ears faster-whisper small int8 (medium elective); mouth ladder SAPI -> Piper -> edge-tts (edge-tts NEVER for private content); wake Porcupine custom "Hey TARS"; face pywebview + WebView2 rendering a static Vite/React/Tailwind bundle (ZERO Node runtime on the AiO); everything below-normal CPU priority; storage: NO hard cap (Law 7, Aug 11) — Watcher keeps a visibility meter only.
+Body (on machine, P3+): ears faster-whisper small int8 (medium elective); mouth ladder Piper -> SAPI -> edge-tts (M-2.1 re-aim: anointed Piper voice speaks first, SAPI = stock floor; edge-tts NEVER for private content); wake Porcupine custom "Hey TARS"; face pywebview + WebView2 rendering a static Vite/React/Tailwind bundle (ZERO Node runtime on the AiO); everything below-normal CPU priority; storage: NO hard cap (Law 7, Aug 11) — Watcher keeps a visibility meter only.
 Storage ledger (handover consequences):
   - vault.db     personal memory, local SQLite, APPEND-ONLY crash-safe     -> handover WIPES
   - profiles.json voiceprints (embeddings, never raw audio) + passphrase    -> handover WIPES
